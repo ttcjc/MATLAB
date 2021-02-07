@@ -1,10 +1,9 @@
-%% Lagrangian Data Reader v2.0
+%% Lagrangian Data Reader v1.0
 
 
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - Rewritten to Optimise for Large Datasets
 
 
 %% Main Function
@@ -277,8 +276,6 @@ function T = inputTime(type)
 
         if isnan(T) || length(T) > 1
             disp('        WARNING: Invalid Entry');
-%         elseif length(time) > 1
-%             disp('        WARNING: Invalid Entry');
         else
             valid = true;
         end

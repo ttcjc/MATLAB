@@ -1,11 +1,11 @@
-%% Third Party Case Initialisation v2.0
+%% Third Party Case Initialisation v1.0
 
 clearvars;
 close all;
 clc;
 
 disp ('====================================');
-disp ('THIRD-PARTY CASE INITIALISATION v2.0');
+disp ('THIRD-PARTY CASE INITIALISATION v1.0');
 disp ('====================================');
 disp (' ');
 
@@ -13,8 +13,6 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - Added Inlet Flow Initialisation
-% v2.1 
 
 
 %% Case Selection

@@ -1,4 +1,4 @@
-%% Particle Deposition Mapper v2.0
+%% Particle Deposition Mapper v1.0
 
 clearvars;
 close all;
@@ -16,7 +16,6 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit (Base Contamination Only)
-% v2.0 - Utilised initialiseCase Function, Added Support for Multiple Time Instances
 
 
 %% Case Initialisation

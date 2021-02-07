@@ -1,4 +1,4 @@
-%% Particle Tracker v2.1
+%% Particle Tracker v1.0
 
 clearvars;
 close all;
@@ -16,8 +16,6 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - Rewritten to Optimise for Large Datasets
-% v2.1 - Utilised initialiseCase Function
 
 
 %% Case Initialisation

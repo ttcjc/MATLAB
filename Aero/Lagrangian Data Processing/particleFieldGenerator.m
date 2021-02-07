@@ -1,4 +1,4 @@
-%% Particle Volume Field Generator v1.1
+%% Particle Volume Field Generator v1.0
 
 clearvars;
 close all;
@@ -16,7 +16,6 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
-% v1.1 - Utilised initialiseCase Function
 
 
 %% Case Initialisation

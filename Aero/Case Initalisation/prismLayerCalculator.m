@@ -1,11 +1,11 @@
-%% Prism Layer Calculator v2.0
+%% Prism Layer Calculator v1.0
 
 clear variables;
 close all;
 clc;
 
 disp ('===========================');
-disp ('Prism Layer Calculator v2.0');
+disp ('Prism Layer Calculator v1.0');
 disp ('===========================');
 disp (' ');
 
@@ -13,7 +13,6 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - Layout Restructure
 
 
 %% Flow Properties

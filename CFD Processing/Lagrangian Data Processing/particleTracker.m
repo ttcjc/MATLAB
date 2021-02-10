@@ -296,8 +296,8 @@ switch method
 		
 		% Save Plot
 		namePos = max(strfind(caseFolder, '/'));
-		savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_SC_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
-		print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_SC_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
+		savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_SC_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
+		print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_SC_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
 
 	case 'B'
 		% Figure Setup
@@ -346,8 +346,8 @@ switch method
 
 		% Save Plot
 		namePos = max(strfind(caseFolder, '/'));
-		savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_TP_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
-		print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_TP_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
+		savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_TP_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
+		print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_TP_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
 
 	case 'C'
 		% Figure Setup
@@ -396,8 +396,8 @@ switch method
 
 		% Save Plot
 		namePos = max(strfind(caseFolder, '/'));
-		savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
-		print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
+		savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)]);
+		print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_c', num2str(count)], '-dpng', '-r300');
 
 end
 
@@ -434,8 +434,8 @@ hold off;
 
 % Save Plot
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_Diameter_Bar_', num2str(minD), '_', num2str(maxD)]);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Tracking_Diameter_Bar_', num2str(minD), '_', num2str(maxD)], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Diameter_Bar_', num2str(minD), '_', num2str(maxD)]);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Diameter_Bar_', num2str(minD), '_', num2str(maxD)], '-dpng', '-r300');
 
 
 %% Data Key

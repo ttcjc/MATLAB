@@ -94,8 +94,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Cp_Base');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Cp_Base', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Cp_Base');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Cp_Base', '-dpng', '-r300');
 
 % Figure Setup
 fig = fig + 1;
@@ -123,8 +123,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_CpRMS_Base');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_CpRMS_Base', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_CpRMS_Base');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_CpRMS_Base', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims E_Exp E_CFD data;
 
@@ -214,8 +214,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Cp_Base']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Cp_Base'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Cp_Base']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Cp_Base'], '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims E_CFD data;
 
@@ -277,8 +277,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(figHold, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Cp_Centreline']);
-print(figHold, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Cp_Centreline'], '-dpng', '-r300');
+savefig(figHold, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Cp_Centreline']);
+print(figHold, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Cp_Centreline'], '-dpng', '-r300');
 
 clearvars -except fig figHold data;
 
@@ -302,6 +302,6 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/Pressure_Bar', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Pressure_Bar', '-dpng', '-r300');
 
 clearvars -except data;

@@ -142,8 +142,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Force_Coeffs_']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Force_Coeffs_'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Force_Coeffs_']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Force_Coeffs_'], '-dpng', '-r300');
 
 
 %% Time-Averaged Values

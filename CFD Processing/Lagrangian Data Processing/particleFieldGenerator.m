@@ -286,8 +286,8 @@ for i = 1:size(times,2)
 	% Save Plot
 	namePos = max(strfind(caseFolder, '/'));
 	timeInstance = erase(num2str(particleData.time{times(i),1}), '.');
-	savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Particle_Field_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's']);
-	print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Particle_Field_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's'], '-dpng', '-r300');
+	savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Particle_Field_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's']);
+	print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Particle_Field_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's'], '-dpng', '-r300');
 
 end
 
@@ -323,8 +323,8 @@ hold off;
 
 % Save Plot
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Field_Diameter_Bar_D', num2str(minD), '_D', num2str(maxD)]);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Field_Diameter_Bar_D', num2str(minD), '_D', num2str(maxD)], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Field_Diameter_Bar_D', num2str(minD), '_D', num2str(maxD)]);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Field_Diameter_Bar_D', num2str(minD), '_D', num2str(maxD)], '-dpng', '-r300');
 
 
 %% Data Key

@@ -102,8 +102,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_x630']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_x630'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_x630']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_x630'], '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -166,8 +166,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_x922']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_x922'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_x922']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_x922'], '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -230,8 +230,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_y0']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_y0'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_y0']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_y0'], '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -294,8 +294,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
-savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_z194']);
-print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Velocity_z194'], '-dpng', '-r300');
+savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_z194']);
+print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity_z194'], '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -354,8 +354,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Velocity_x630');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW__Exp_Velocity_x630', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_x630');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW__Exp_Velocity_x630', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -414,8 +414,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Velocity_x922');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW__Exp_Velocity_x922', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_x922');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW__Exp_Velocity_x922', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -474,8 +474,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Velocity_y0');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW__Exp_Velocity_y0', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_y0');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW__Exp_Velocity_y0', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
@@ -534,8 +534,8 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-savefig(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Velocity_z194');
-print(fig, '~/MATLAB/Figures/Windsor_Square_wW_Exp_Velocity_z194', '-dpng', '-r300');
+savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_z194');
+print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_z194', '-dpng', '-r300');
 
 clearvars -except fig figHold flowFieldData;
 
@@ -558,6 +558,6 @@ set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
 		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/Velocity_Bar', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Velocity_Bar', '-dpng', '-r300');
 
 clearvars -except flowFieldData;

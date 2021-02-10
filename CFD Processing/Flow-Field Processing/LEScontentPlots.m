@@ -93,7 +93,7 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'fontName', 'LM Roman 12', 'fontSize', 11, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/LES_Content_y0', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/LES_Content_y0', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder xDims yDims zDims;
 
@@ -150,7 +150,7 @@ colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'fontName', 'LM Roman 12', 'fontSize', 11, 'layer', 'top');
 
-print(fig, '~/MATLAB/Figures/LES_Content_z194', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/LES_Content_z194', '-dpng', '-r300');
 
 clearvars -except fig figHold xDims yDims zDims;
 
@@ -172,6 +172,6 @@ c.Label.String = {' ', 'Resolved Turbulence Kinetic Energy (%)'};
 set(gca, 'fontName', 'LM Roman 12', 'fontSize', 11, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/LES_Content_Bar', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/LES_Content_Bar', '-dpng', '-r300');
 
 clearvars;

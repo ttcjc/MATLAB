@@ -138,7 +138,7 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'dataAspectRatio', [1, 1, 1]);
 hold off;
 
-print(fig, '~/MATLAB/Figures/Computational_Domain', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Computational_Domain', '-dpng', '-r300');
 
 
 %% Mesh Refinement Regions
@@ -187,7 +187,7 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'dataAspectRatio', [1, 1, 1]);
 hold off;
 
-print(fig, '~/MATLAB/Figures/Refinement_Regions', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Refinement_Regions', '-dpng', '-r300');
 
 
 %% Probe Locations
@@ -244,6 +244,6 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'dataAspectRatio', [1, 1, 1]);
 hold off;
 
-print(fig, '~/MATLAB/Figures/Probe_Locations', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Probe_Locations', '-dpng', '-r300');
 
 clearvars;

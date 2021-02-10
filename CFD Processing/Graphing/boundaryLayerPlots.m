@@ -131,7 +131,7 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'fontName', 'LM Roman 12', 'fontSize', 11, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/Boundary_Probe_A', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Boundary_Probe_A', '-dpng', '-r300');
 
 clearvars -except fig figHold caseFolder timeDirs;
 
@@ -229,6 +229,6 @@ set(gca, 'units', 'normalized', 'position', [0.125, 0.125, 0.75, 0.75], ...
          'fontName', 'LM Roman 12', 'fontSize', 11, 'layer', 'top');
 hold off;
 
-print(fig, '~/MATLAB/Figures/Boundary_Probe_B', '-dpng', '-r300');
+print(fig, '~/MATLAB/Output/Figures/Boundary_Probe_B', '-dpng', '-r300');
 
 clearvars;

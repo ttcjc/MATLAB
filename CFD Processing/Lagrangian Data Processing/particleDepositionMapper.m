@@ -274,8 +274,8 @@ for i = 1:size(times,2)
 			% Save Plot
 			namePos = max(strfind(caseFolder, '/'));
 			timeInstance = erase(num2str(particleData.time{times(i),1}), '.');
-			savefig(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Contamination_Map_Base_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's']);
-			print(fig, ['~/MATLAB/Figures/', caseFolder(namePos(end):end), '_Contamination_Map_Base_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's'], '-dpng', '-r300');
+			savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Contamination_Map_Base_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's']);
+			print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Contamination_Map_Base_D', num2str(minD), '_D', num2str(maxD), '_', timeInstance, 's'], '-dpng', '-r300');
 
 	end
 	

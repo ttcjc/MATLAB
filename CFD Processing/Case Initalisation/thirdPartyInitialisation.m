@@ -22,7 +22,7 @@ disp('--------------');
 disp(' ');
 
 % caseFolderExtract = uigetdir('~/OpenFOAM', 'Extraction Case');
-caseFolderExtract = '~/Mount/Uni/OpenFOAM/ttcjc-7/run/Test_Block';
+caseFolderExtract = '~/Mount/Uni/OpenFOAM/ttcjc-7/run/Test_Block_SC';
 
 % caseFolderInject = uigetdir('~/OpenFOAM', 'Injection Case');
 caseFolderInject = '~/Mount/Uni/OpenFOAM/ttcjc-7/run/Test_Block_TP';

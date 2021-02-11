@@ -8,7 +8,7 @@
 
 %% Main Function
 
-function[particleData, particleProps] = lagrangianData_v2(caseFolder, timeDirs)
+function[particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 
     % Identify Lagrangian Directories
     i = 1;

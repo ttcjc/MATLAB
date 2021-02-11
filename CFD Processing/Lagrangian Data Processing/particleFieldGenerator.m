@@ -8,7 +8,7 @@ fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('====================================');
-disp ('Particle Volume Field Generator v1.1');
+disp ('Particle Volume Field Generator v1.0');
 disp ('====================================');
 disp (' ');
 
@@ -36,7 +36,7 @@ while ~valid
 	if selection == 'n' | selection == 'N' %#ok<OR2>
 		disp(' ');
 		disp(' ');
-		[particleData, particleProps] = lagrangianData_v2(caseFolder, timeDirs);
+		[particleData, particleProps] = lagrangianData(caseFolder, timeDirs);
 		valid = true;
 		disp(' ');
 	elseif selection == 'y' | selection == 'Y' %#ok<OR2>
@@ -258,7 +258,7 @@ for i = 1:size(times,2)
 		patch(geometry.(part), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', [0.5, 0.5, 0.5]);
 	end
 
-	isoValue = 5e-6; % Desired Volume Fraction of Isosurface
+	isoValue = 1e-6; % Desired Volume Fraction of Isosurface
 	
 	[faces, vertices, colours] = isosurface(fieldData.x, fieldData.y, fieldData.z, fieldData.volumeFraction{i,1}, isoValue, (fieldData.dMean{i,1} * 1e6));
 	p = patch('vertices', vertices, 'faces', faces, 'faceVertexCData', colours, 'faceColor', 'interp', 'edgeColor', 'interp');

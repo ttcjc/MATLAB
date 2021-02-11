@@ -8,7 +8,7 @@ fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('=====================');
-disp ('Particle Tracker v2.1');
+disp ('Particle Tracker v1.0');
 disp ('=====================');
 disp (' ');
 
@@ -36,7 +36,7 @@ while ~valid
 	if selection == 'n' | selection == 'N' %#ok<OR2>
 		disp(' ');
 		disp(' ');
-		[particleData, particleProps] = lagrangianData_v2(caseFolder, timeDirs);
+		[particleData, particleProps] = lagrangianData(caseFolder, timeDirs);
 		valid = true;
 		disp(' ');
 	elseif selection == 'y' | selection == 'Y' %#ok<OR2>

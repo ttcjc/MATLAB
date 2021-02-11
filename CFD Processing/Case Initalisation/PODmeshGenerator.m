@@ -37,7 +37,7 @@ tic;
 disp('***********');
 disp('  Running  ');
 disp(' ');
-disp(['    Writing POD Mesh to ~/MATLAB/Output/Files/PODmesh']);
+disp('    Writing POD Mesh to ~/MATLAB/Output/Files/PODmesh');
 
 fileID = fopen('Output/Files/PODmesh', 'w');
 formatSpec = '\t\t(%g %g %g)\n';

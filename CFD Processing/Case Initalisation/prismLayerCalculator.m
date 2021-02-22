@@ -1,6 +1,6 @@
 %% Prism Layer Calculator v1.0
 
-clear variables;
+clearvars;
 close all;
 clc;
 
@@ -72,7 +72,7 @@ firstOptimal = 2*((yPlus*mu)/(rho*uFriction));
 cellSize(1) = firstOptimal;
 n = 1;
 while cellSize(end) < finalTar
-    cellSize(n,1) = cellSize(1)*(ratio^(n-1));
+    cellSize(n,1) = cellSize(1)*(ratio^(n-1)); %#ok<SAGROW>
     n = n+1;
 end
 cellSize(end) = [];
@@ -93,6 +93,7 @@ disp(' ');
 disp(['Required Prism Layers:                   ' num2str(size(cellSize,1)-1)]);
 
 
-%% Clean-up
+%% Cleaning
 
-clear data default dlg_title input n resize values;
+clearvars -except base firstOptimal cellSize;
+disp(' ');

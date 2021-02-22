@@ -21,7 +21,7 @@ disp (' ');
 %% Case Initialisation
 
 % caseFolder = uigetdir('~/OpenFOAM', 'Select Case');
-caseFolder = ('/home/cjc96/Mount/Athena/OpenFOAM/ttcjc-7/run/Windsor_Square_Sampling');
+caseFolder = ('~/Mount/Uni/OpenFOAM/ttcjc-7/results/Windsor_Square_wW_SC_Study');
 
 disp(['Case: ', caseFolder]);
 disp(' ');
@@ -97,6 +97,10 @@ if forceCoeffs
 		end
 		
 	end
+	
+	FFT.forceCoeffs.time = FFT.forceCoeffs.time(end/3:end);
+	FFT.forceCoeffs.Cd = FFT.forceCoeffs.Cd(end/3:end);
+	FFT.forceCoeffs.Cl = FFT.forceCoeffs.Cl(end/3:end);
 	
 	FFT.forceCoeffs.Cd_Mean = mean(FFT.forceCoeffs.Cd);
 	FFT.forceCoeffs.Cl_Mean = mean(FFT.forceCoeffs.Cl);
@@ -271,3 +275,9 @@ if velocityProbes
 	box on;
 	hold off;	
 end
+
+
+%% Cleaning
+
+clearvars -except FFT;
+disp(' ');

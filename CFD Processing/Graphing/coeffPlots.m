@@ -4,7 +4,7 @@ clearvars;
 close all;
 clc;
 
-fig = 0;
+fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('=======================================');
@@ -25,9 +25,8 @@ disp('--------------');
 disp(' ');
 
 disp('Select Case Folder:');
-caseFolder = uigetdir('~/OpenFOAM');
-% caseFolder = ('/home/cjc96/Mount/Athena/OpenFOAM/ttcjc-7/results/Turb_Model_Testing/Windsor_Square_SADDES');
-% caseFolder = ('/home/cjc96/Mount/Athena/OpenFOAM/ttcjc-7/results/Turb_Model_Testing/Windsor_Square_kwSSTDES');
+% caseFolder = uigetdir('~/OpenFOAM');
+caseFolder = ('~/Mount/Uni/OpenFOAM/ttcjc-7/results/Windsor_Square_wW_SC_Study');
 
 disp(['Case: ', caseFolder]);
 disp(' ');
@@ -80,7 +79,7 @@ coeffData.Cl_Exp = 0.1435;
 %% Blockage Correction
 
 % Experimental
-At = 1.94 * 1.32;
+At = ((2 * (0.96 + (1.695 * tan(atan(0.01 / 3.6))))) * 1.32) - (4 * 0.01125); 
 Am = (0.289 * 0.389) + (2 * (0.05 * 0.055));
 U = 39.56;
 rho = 1.269;
@@ -94,10 +93,10 @@ coeffData.Cd_Exp_Corr = Fd / (0.5 * rho * Ucorr^2 * Am);
 coeffData.Cl_Exp_Corr = Fl / (0.5 * rho * Ucorr^2 * Am);
 
 % Numerical
-At = 1.94 * 1.32;
-Am = (0.289 * 0.389) + (2 * (0.05 * 0.055));
+At = (2 * (0.96 + (4.704 * tan(atan(0.02613 / 9.408)))) * 1.32);
+Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
 U = 40;
-rho = 1.2047;
+rho = 1.269;
 
 Ucorr = (U * At) / (At - Am);
 
@@ -125,9 +124,9 @@ for i = 1:size(coeffData.directory,1)
 end
 
 % Figure Formatting
-xlim([0, 1.5])
+xlim([0, 3])
 ylim([-0.8, 0.8]);
-xticks(0.25:0.25:1.25);
+xticks(0.5:0.5:2.5);
 yticks(-0.6:0.2:0.6);
 xtickformat('%.2f');
 ytickformat('%.2f');
@@ -148,8 +147,8 @@ print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Force_Co
 
 %% Time-Averaged Values
 
-Cd_Corr = coeffData.Cd_Corr{i,1};
-Cl_Corr = coeffData.Cl_Corr{i,1};
+Cd_Corr = coeffData.Cd_Corr{1,1};
+Cl_Corr = coeffData.Cl_Corr{1,1};
 
 if size(coeffData.directory,1) > 1
 	
@@ -160,14 +159,14 @@ if size(coeffData.directory,1) > 1
 	
 end
 
-coeffData.Cd_Corr_Mean = round(mean(Cd_Corr((end / 3):end)),4);
-coeffData.Cl_Corr_Mean = round(mean(Cl_Corr((end / 3):end)),4);
+coeffData.Cd_Corr = Cd_Corr;
+coeffData.Cl_Corr = Cl_Corr;
 
-% coeffData.Cd_Exp = 0.3498;
-% coeffData.Cl_Exp = 0.1341;
+coeffData.Cd_Corr_Mean = round(mean(coeffData.Cd_Corr((end / 3):end)),4);
+coeffData.Cl_Corr_Mean = round(mean(coeffData.Cl_Corr((end / 3):end)),4);
 
-coeffData.Cd_Error = ((coeffData.Cd_Exp - coeffData.Cd_Corr_Mean) / coeffData.Cd_Exp_Corr) * 100;
-coeffData.Cl_Error = ((coeffData.Cl_Exp - coeffData.Cl_Corr_Mean) / coeffData.Cl_Exp_Corr) * 100;
+coeffData.Cd_Error = ((coeffData.Cd_Exp_Corr - coeffData.Cd_Corr_Mean) / coeffData.Cd_Exp_Corr) * 100;
+coeffData.Cl_Error = ((coeffData.Cl_Exp_Corr - coeffData.Cl_Corr_Mean) / coeffData.Cl_Exp_Corr) * 100;
 
 disp(['Time-Averaged Numerical Drag Coefficient = ', num2str(coeffData.Cd_Corr_Mean)]);
 disp(['Time-Averaged Numerical Lift Coefficient = ', num2str(coeffData.Cl_Corr_Mean)]);
@@ -178,4 +177,8 @@ disp(' ');
 disp(['Drag Coefficient Error = ', num2str(coeffData.Cd_Error), '%']);
 disp(['Lift Coefficient Error = ', num2str(coeffData.Cl_Error), '%']);
 
-clearvars -except coeffData
+
+%% Cleaning
+
+clearvars -except coeffData;
+disp(' ');

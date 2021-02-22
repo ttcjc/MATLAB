@@ -4,7 +4,7 @@ clearvars;
 close all;
 clc;
 
-fig = 0;
+fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('===================');
@@ -26,7 +26,7 @@ disp(' ');
 
 disp('Select Case:');
 % caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
-caseFolder = ('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW/kwSSTDES');
+caseFolder = ('~/Mount/Uni/Documents/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW_New');
 disp(['Case: ', caseFolder]);
 disp(' ');
 disp(' ');
@@ -44,13 +44,13 @@ else
 end
 
 
-%% x = 0.630 m (CFD)
+%% x = 0.628 m (CFD)
 
-if ~exist([caseFolder, '/velocityDataX628.csv'], 'file')
-    error('No y-Plane Velocity Data Found for Target Case');
+if ~exist([caseFolder, '/velocityDataX06300.csv'], 'file')
+    error('No x-Plane Velocity Data Found for Target Case');
 end
 
-import = importdata([caseFolder, '/velocityDataX628.csv']);
+import = importdata([caseFolder, '/velocityDataX06300.csv']);
 
 flowFieldData.CFD.x630.points = import.data(:,4:6) / 1.044;
 flowFieldData.CFD.x630.velocity = import.data(:,1:3) / 40;
@@ -110,11 +110,11 @@ clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flo
 
 %% x = 0.922 m (CFD)
 
-if ~exist([caseFolder, '/velocityDataX918.csv'], 'file')
+if ~exist([caseFolder, '/velocityDataX09220.csv'], 'file')
     error('No y-Plane Velocity Data Found for Target Case');
 end
 
-import = importdata([caseFolder, '/velocityDataX918.csv']);
+import = importdata([caseFolder, '/velocityDataX09220.csv']);
 
 flowFieldData.CFD.x922.points = import.data(:,4:6) / 1.044;
 flowFieldData.CFD.x922.velocity = import.data(:,1:3) / 40;
@@ -174,11 +174,11 @@ clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flo
 
 %% y = 0 m (CFD)
 
-if ~exist([caseFolder, '/velocityDataY0.csv'], 'file')
+if ~exist([caseFolder, '/velocityDataY00000.csv'], 'file')
     error('No y-Plane Velocity Data Found for Target Case');
 end
 
-import = importdata([caseFolder, '/velocityDataY0.csv']);
+import = importdata([caseFolder, '/velocityDataY00000.csv']);
 
 flowFieldData.CFD.y0.points = import.data(:,4:6) / 1.044;
 flowFieldData.CFD.y0.velocity = import.data(:,1:3) / 40;
@@ -236,13 +236,13 @@ print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Velocity
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
 
-%% z = 0.194 m (CFD)
+%% z = 0.1945 m (CFD)
 
-if ~exist([caseFolder, '/velocityDataZ194.csv'], 'file')
+if ~exist([caseFolder, '/velocityDataZ01950.csv'], 'file')
     error('No z-Plane Velocity Data Found for Target Case');
 end
 
-import = importdata([caseFolder, '/velocityDataZ194.csv']);
+import = importdata([caseFolder, '/velocityDataZ01950.csv']);
 
 flowFieldData.CFD.z194.points = import.data(:,4:6) / 1.044;
 flowFieldData.CFD.z194.velocity = import.data(:,1:3) / 40;
@@ -480,7 +480,7 @@ print(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW__Exp_Velocity_y0', '-dpng'
 clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flowFieldData;
 
 
-%% z = 0.194 m (Exp)
+%% z = 0.195 m (Exp)
 
 import = importdata('~/Documents/Engineering/PhD/Data/Experimental/Windsor Experimental Dataset/Set A - Baseline Flow/FlowField_Mean/SquareBack_WW_0_0yaw_Z=0194m_FlowField.csv');
 import.data(import.data == -9999) = NaN; % Prevents plotting of invalid vectors
@@ -560,4 +560,8 @@ hold off;
 
 print(fig, '~/MATLAB/Output/Figures/Velocity_Bar', '-dpng', '-r300');
 
+
+%% Cleaning
+
 clearvars -except flowFieldData;
+disp(' ');

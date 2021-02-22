@@ -1,6 +1,5 @@
 ## Ignore Directories
 Output/
-Teaching/
 
 ## Ignore Files
 pathdef.m

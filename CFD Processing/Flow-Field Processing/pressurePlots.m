@@ -26,7 +26,7 @@ disp(' ');
 
 disp('Select Case:');
 % caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
-caseFolder = ('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW/SADDES');
+caseFolder = ('~/Mount/Uni/Documents/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW_New');
 disp(['Case: ', caseFolder]);
 disp(' ');
 disp(' ');
@@ -36,15 +36,17 @@ if contains(caseFolder, 'Windsor_Square')
     yDims = [-(0.389 / 2) ; (0.389 / 2)] / 1.044;
     zDims = [0.05 ; 0.339] / 1.044;
 	
-	A_Model = (0.289 * 0.389) + 2 * (0.05 * 0.055);
-	A_Tunnel = (2 * (0.96 + (1.695 * tan(atan(0.01 / 3.6))))) - (4 * 0.01125); % At balance point of resolution
-	A_Domain = (2 * (0.96 + (4.704 * tan(atan(0.01 / 3.6))))); % At midpoint
+	A_Model_Exp = (0.289 * 0.389) + (2 * (0.05 * 0.055));
+	A_Tunnel_Exp = ((2 * (0.96 + (1.695 * tan(atan(0.01 / 3.6))))) * 1.32) - (4 * 0.01125); % At balance point of resolution
+	
+	A_Model_CFD = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+	A_Tunnel_CFD = (2 * (0.96 + (4.704 * tan(atan(0.02613 / 9.408)))) * 1.32); % At x = 0
 else
     error('Unsupported Case')
 end
 
-E_Exp = A_Model / A_Tunnel;
-E_CFD = A_Model / A_Domain;
+E_Exp = A_Model_Exp / A_Tunnel_Exp;
+E_CFD = A_Model_CFD / A_Tunnel_CFD;
 
 
 %% Base (Exp)
@@ -85,7 +87,7 @@ tickData = min(zDims):((max(zDims) - min(zDims)) / 6):max(zDims);
 yticks(tickData(2:end-1));
 xtickformat('%.3f');
 ytickformat('%.3f');
-caxis([-0.2007, -0.0969]);
+% caxis([0, 0]);
 xlabel({' ', 'y (\it{l})'});
 ylabel({'z (\it{l})', ' '});
 box on;
@@ -114,7 +116,7 @@ tickData = min(zDims):((max(zDims) - min(zDims)) / 6):max(zDims);
 yticks(tickData(2:end-1));
 xtickformat('%.3f');
 ytickformat('%.3f');
-% caxis([-0.2007, -0.0969]);
+% caxis([0, 0]);
 xlabel({' ', 'y (\it{l})'});
 ylabel({'z (\it{l})', ' '});
 box on;
@@ -204,7 +206,7 @@ tickData = min(zDims):((max(zDims) - min(zDims)) / 6):max(zDims);
 yticks(tickData(2:end-1));
 xtickformat('%.3f');
 ytickformat('%.3f');
-% caxis([-0.2007, -0.0969]);
+% caxis([0, 0]);
 xlabel({' ', 'y (\it{l})'});
 ylabel({'z (\it{l})', ' '});
 box on;
@@ -304,4 +306,8 @@ hold off;
 
 print(fig, '~/MATLAB/Output/Figures/Pressure_Bar', '-dpng', '-r300');
 
+
+%% Cleaning
+
 clearvars -except data;
+disp(' ');

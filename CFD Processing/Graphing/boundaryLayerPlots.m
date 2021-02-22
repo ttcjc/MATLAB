@@ -4,7 +4,7 @@ clearvars;
 close all;
 clc;
 
-fig = 0;
+fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('===========================');
@@ -231,4 +231,8 @@ hold off;
 
 print(fig, '~/MATLAB/Output/Figures/Boundary_Probe_B', '-dpng', '-r300');
 
+
+%% Cleaning
+
 clearvars;
+disp(' ');

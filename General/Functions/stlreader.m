@@ -1,4 +1,4 @@
-function varargout = stlread(file)
+function varargout = stlreader(file)
 % STLREAD imports geometry from an STL file into MATLAB.
 %    FV = STLREAD(FILENAME) imports triangular faces from the ASCII or binary
 %    STL file idicated by FILENAME, and returns the patch struct FV, with fields
@@ -56,7 +56,7 @@ function [F,V,N] = stlbinary(M)
     N = [];
     
     if length(M) < 84
-        error('MATLAB:stlread:incorrectFormat', ...
+        error('MATLAB:stlreader:incorrectFormat', ...
               'Incomplete header information in binary STL file.');
     end
     
@@ -65,7 +65,7 @@ function [F,V,N] = stlbinary(M)
     numFaces = typecast(M(81:84),'uint32');
     %numFaces = double(numFaces);
     if numFaces == 0
-        warning('MATLAB:stlread:nodata','No data in STL file.');
+        warning('MATLAB:stlreader:nodata','No data in STL file.');
         return
     end
     
@@ -111,7 +111,7 @@ end
 
 
 function [F,V,N] = stlascii(M)
-    warning('MATLAB:stlread:ascii','ASCII STL files currently not supported.');
+    warning('MATLAB:stlreader:ascii','ASCII STL files currently not supported.');
     F = [];
     V = [];
     N = [];
@@ -122,7 +122,7 @@ end
 function tf = isbinary(A)
 % ISBINARY uses the first line of an STL file to identify its format.
     if isempty(A) || length(A) < 5
-        error('MATLAB:stlread:incorrectFormat', ...
+        error('MATLAB:stlreader:incorrectFormat', ...
               'File does not appear to be an ASCII or binary STL file.');
     end    
     if strcmpi('solid',char(A(1:5)'))

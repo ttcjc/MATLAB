@@ -1,6 +1,6 @@
 %% Turbulence Boundary Condition Calculator v1.0
 
-clear variables;
+clearvars;
 close all;
 clc;
 
@@ -34,8 +34,6 @@ disp(['Turbulence Intensity:          ' num2str(I*100) ' [%]']);
 disp(['Freestream Velocity:           ' num2str(U) ' [m/s]']);
 disp(' ')
 
-clear data default dlg_title input resize values;
-
 
 %% Prism Layer Calculator
 
@@ -50,3 +48,9 @@ disp([char(954), ' {Freestream} = ', num2str(kappa), ' [m^2 s^-2]']);
 disp([char(949), ' {Freestream} = ', num2str(epsilon), ' [m^2 s^-1]']);
 disp([char(969), ' {Freestream} = ', num2str(omega), ' [s^-1]']);
 disp([char(957), ' {Freestream} = ', num2str(nuTilda), ' [m^2 s^-1]']);
+
+
+%% Cleaning
+
+clearvars -except kappa epsilon omega nuTilda;
+disp(' ');

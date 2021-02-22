@@ -174,4 +174,8 @@ hold off;
 
 print(fig, '~/MATLAB/Output/Figures/LES_Content_Bar', '-dpng', '-r300');
 
+
+%% Cleaning
+
 clearvars;
+disp(' ');

@@ -77,7 +77,7 @@ function[particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
     end
 
     % Select Lagrangian Properties
-    particleProps = {'active', 'origId', 'origProcId', 'nParticle', 'globalPos', 'd'};
+    particleProps = {'active', 'origId', 'origProcId', 'nParticle', 'positionCartesian', 'd'};
 
     valid = false;
 	while ~valid
@@ -109,12 +109,12 @@ function[particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 	disp(' ');
 
     disp('Storing the Following Lagarangian Properties:')
-	disp('    active     (Required)');
-	disp('    origId     (Required)');
-	disp('    origProcId (Required)');
-	disp('    nParticle  (Required)');
-	disp('    globalPos  (Required)');
-	disp('    d          (Required)');
+	disp('    active			(Required)');
+	disp('    origId			(Required)');
+	disp('    origProcId		(Required)');
+	disp('    nParticle			(Required)');
+	disp('    positionCartesian	(Required)');
+	disp('    d					(Required)');
 
     if exist('particlePropsUser', 'var')
         particleProps = [particleProps, particlePropsUser]';

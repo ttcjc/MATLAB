@@ -186,13 +186,13 @@ for i = 1:size(times,2)
 
 		case 'A'
 			index = find(~particleData.active{times(1,i),1} & (particleData.d{times(1,i),1} * 1e6) >= minD & (particleData.d{times(1,i),1} * 1e6) <= maxD & ...
-					round(particleData.globalPos{times(1,i),1}(:,1),5) == max(xDims));
+					round(particleData.positionCartesian{times(1,i),1}(:,1),5) == max(xDims));
 
 		case 'B'
 			index = find(~particleData.active{times(1,i),1} & (particleData.d{times(1,i),1} * 1e6) >= minD & (particleData.d{times(1,i),1} * 1e6) <= maxD & ...
-					round(particleData.globalPos{times(1,i),1}(:,1),5) >= min(xDims) & round(particleData.globalPos{times(1,i),1}(:,1),5) <= max(xDims) & ...
-					round(particleData.globalPos{times(1,i),1}(:,2),3) >= min(yDims) & round(particleData.globalPos{times(1,i),1}(:,2),3) <= max(yDims) & ...
-					round(particleData.globalPos{times(1,i),1}(:,3),3) >= min(zDims) & round(particleData.globalPos{times(1,i),1}(:,3),3) <= max(zDims));
+					round(particleData.positionCartesian{times(1,i),1}(:,1),5) >= min(xDims) & round(particleData.positionCartesian{times(1,i),1}(:,1),5) <= max(xDims) & ...
+					round(particleData.positionCartesian{times(1,i),1}(:,2),3) >= min(yDims) & round(particleData.positionCartesian{times(1,i),1}(:,2),3) <= max(yDims) & ...
+					round(particleData.positionCartesian{times(1,i),1}(:,3),3) >= min(zDims) & round(particleData.positionCartesian{times(1,i),1}(:,3),3) <= max(zDims));
 
 		case 'C'
 			% Will use caseFolder/extractionData
@@ -217,12 +217,12 @@ for i = 1:size(times,2)
 			
 			% Initialise Contaminant Map
 			cellSize = 0.01;
-			mappingData.pos{i,1} = contaminantData.globalPos{i,1};
+			mappingData.pos{i,1} = contaminantData.positionCartesian{i,1};
 		
 			% Assign Contaminant Data to Map Nodes
 			for j = 1:size(contaminantData.active{i,1},1)
-				mappingData.pos{i,1}(j,2) = (round(contaminantData.globalPos{i,1}(j,2) / cellSize)) * cellSize;
-				mappingData.pos{i,1}(j,3) = (round(contaminantData.globalPos{i,1}(j,3) / cellSize)) * cellSize;
+				mappingData.pos{i,1}(j,2) = (round(contaminantData.positionCartesian{i,1}(j,2) / cellSize)) * cellSize;
+				mappingData.pos{i,1}(j,3) = (round(contaminantData.positionCartesian{i,1}(j,3) / cellSize)) * cellSize;
 			end
 
 			mappingData.occupiedCells{i,1} = unique(mappingData.pos{i,1}, 'stable', 'rows');

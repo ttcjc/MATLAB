@@ -13,7 +13,7 @@
 
 %% Main Function
 
-function[caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase
+function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase
 
 	disp('CASE SELECTION');
 	disp('--------------');

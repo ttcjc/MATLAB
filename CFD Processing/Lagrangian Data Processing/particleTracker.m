@@ -159,7 +159,7 @@ switch method
 		index = find(~particleData.active{end,1} & (particleData.d{end,1} * 1e6) >= minD & (particleData.d{end,1} * 1e6) <= maxD);
 
 	case 'C'
-		index = find(particleData.active{end,1} & (particleData.d{end,1} * 1e6) >= minD & (particleData.d{end,1} * 1e6) <= maxD & particleData.globalPos{end,1}(:,1) > 1);
+		index = find(particleData.active{end,1} & (particleData.d{end,1} * 1e6) >= minD & (particleData.d{end,1} * 1e6) <= maxD & particleData.positionCartesian{end,1}(:,1) > 1);
 
 end
 
@@ -242,7 +242,7 @@ for i = 1:size(particleData.time,1)
 	index = find(ismember(horzcat(particleData.origId{i,1}, particleData.origProcId{i,1}), trackingID, 'rows'));
 
 	for j = 1:size(trackingID,1)
-		trackingData{j,i} = particleData.globalPos{i,1}(index(j),:);
+		trackingData{j,i} = particleData.positionCartesian{i,1}(index(j),:);
 	end
 
 end

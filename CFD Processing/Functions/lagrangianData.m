@@ -109,12 +109,12 @@ function[particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 	disp(' ');
 
     disp('Storing the Following Lagarangian Properties:')
-	disp('    active			(Required)');
-	disp('    origId			(Required)');
-	disp('    origProcId		(Required)');
-	disp('    nParticle			(Required)');
-	disp('    positionCartesian	(Required)');
-	disp('    d					(Required)');
+	disp('    active            (Required)');
+	disp('    origId            (Required)');
+	disp('    origProcId        (Required)');
+	disp('    nParticle         (Required)');
+	disp('    positionCartesian (Required)');
+	disp('    d                 (Required)');
 
     if exist('particlePropsUser', 'var')
         particleProps = [particleProps, particlePropsUser]';
@@ -251,9 +251,8 @@ function[particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             namePos = max(strfind(caseFolder, '/'));
 			disp(' ');
-			disp(' ');
-            disp(['Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat']);
-            save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat'], 'particleData', 'particleProps');
+            disp(['    Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat']);
+            save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
             valid = true;
         else
             disp('    WARNING: Invalid Entry');

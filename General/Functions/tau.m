@@ -1,5 +1,5 @@
 function output = tau
-	
-	output = 2 * pi;
-	
+
+    output = 2 * pi;
+
 end

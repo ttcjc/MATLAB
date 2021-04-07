@@ -25,20 +25,27 @@ disp('--------------');
 disp(' ');
 
 disp('Select Case:');
-% caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
-caseFolder = ('~/Mount/Uni/Documents/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW_New');
+caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
 disp(['Case: ', caseFolder]);
 disp(' ');
 disp(' ');
 
-if contains(caseFolder, 'Windsor_Square')
-	xDims = [-0.56075; 0.48325] / 1.044;
-	yDims = [-(0.389 / 2); (0.389 / 2)] / 1.044;
-	zDims = [0.05; 0.339] / 1.044;
+if contains(caseFolder, 'Windsor_Square') && contains(caseFolder, 'Balance')
+    xDims = [-0.56075; 0.48325] / 1.044;
+    yDims = [-(0.389 / 2); (0.389 / 2)] / 1.044;
+    zDims = [0.05; 0.339] / 1.044;
 
-	xLims = [0.484; 1.1] / 1.044;
-	yLims = [-0.207; 0.207] / 1.044;
-	zLims = [0.0375; 0.3515] / 1.044;
+    xLims = [0.484; 1.1] / 1.044;
+    yLims = [-0.207; 0.207] / 1.044;
+    zLims = [0.0375; 0.3515] / 1.044;
+elseif contains(caseFolder, 'Windsor_Square') && contains(caseFolder, 'Upstream')
+    xDims = [-1.88575; -0.84175] / 1.044;
+    yDims = [-(0.389 / 2); (0.389 / 2)] / 1.044;
+    zDims = [0.05; 0.339] / 1.044;
+
+    xLims = [-0.841; -0.225] / 1.044;
+    yLims = [-0.207; 0.207] / 1.044;
+    zLims = [0.0375; 0.3515] / 1.044;
 else
     error('Unsupported Case')
 end
@@ -98,7 +105,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
@@ -162,7 +169,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
@@ -174,11 +181,11 @@ clearvars -except fig figHold caseFolder xDims yDims zDims xLims yLims zLims flo
 
 %% y = 0 m (CFD)
 
-if ~exist([caseFolder, '/velocityDataY00000.csv'], 'file')
+if ~exist([caseFolder, '/velocityDataY00005.csv'], 'file')
     error('No y-Plane Velocity Data Found for Target Case');
 end
 
-import = importdata([caseFolder, '/velocityDataY00000.csv']);
+import = importdata([caseFolder, '/velocityDataY00005.csv']);
 
 flowFieldData.CFD.y0.points = import.data(:,4:6) / 1.044;
 flowFieldData.CFD.y0.velocity = import.data(:,1:3) / 40;
@@ -207,12 +214,12 @@ set(figure(fig), 'outerPosition', [25, 25, 800, 800]);
 % Plot
 contourf(x, z, velMag, 16, 'edgeColor', 'none');
 even_stream_line(x, z, u, w, 2, 4, 'color', 'k');
-scatter(0.7055, 0.2909, 50, [0.71765, 0.00000, 0.38431]);
-scatter(0.6685, 0.0899, 50, [0.71765, 0.00000, 0.38431]);
-rectangle('position', ([0.405, 0.05, 0.07825, 0.289] / 1.044), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', 'none');
+scatter(0.7055-(1.325/1.044), 0.2909, 50, [0.71765, 0.00000, 0.38431]);
+scatter(0.6685-(1.325/1.044), 0.0899, 50, [0.71765, 0.00000, 0.38431]);
+rectangle('position', ([-0.92, 0.05, 0.07825, 0.289] / 1.044), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', 'none');
 
 % Figure Formatting
-xlim([(0.44 / 1.044), max(xLims)]);
+xlim([((0.44-1.325) / 1.044), max(xLims)]);
 ylim([min(zLims), max(zLims)]);
 tickData = min(xlim):((max(xlim) - min(xlim)) / 6):max(xlim);
 xticks(tickData(2:end-1));
@@ -226,7 +233,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
@@ -271,12 +278,12 @@ set(figure(fig), 'outerPosition', [25, 25, 800, 800]);
 % Plot
 contourf(x, y, velMag, 16, 'edgeColor', 'none');
 even_stream_line(x, y, u, v, 2, 4, 'color', 'k');
-scatter(0.5895, 0.1307, 50, [0.71765, 0.00000, 0.38431]);
-scatter(0.5614, -0.1287, 50, [0.71765, 0.00000, 0.38431]);
-rectangle('position', ([0.405, -0.1945, 0.07825, 0.389] / 1.044), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', 'none');
+scatter(0.5895-(1.325/1.044), 0.1307, 50, [0.71765, 0.00000, 0.38431]);
+scatter(0.5614-(1.325/1.044), -0.1287, 50, [0.71765, 0.00000, 0.38431]);
+rectangle('position', ([-0.92, -0.1945, 0.07825, 0.389] / 1.044), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', 'none');
 
 % Figure Formatting
-xlim([(0.44 / 1.044), max(xLims)]);
+xlim([((0.44-1.325) / 1.044), max(xLims)]);
 ylim([min(yLims), max(yLims)]);
 tickData = min(xlim):((max(xlim) - min(xlim)) / 6):max(xlim);
 xticks(tickData(2:end-1));
@@ -290,7 +297,7 @@ ylabel({'y (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
@@ -351,7 +358,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_x630');
@@ -411,7 +418,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_x922');
@@ -471,7 +478,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_y0');
@@ -531,7 +538,7 @@ ylabel({'y (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Velocity_z194');
@@ -555,7 +562,7 @@ colormap viridis;
 c = colorbar('ticks', (0.1:0.2:0.9), 'location', 'south', 'axisLocation', 'out');
 c.Label.String = {' ', '\it{U}'};
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-		 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 print(fig, '~/MATLAB/Output/Figures/Velocity_Bar', '-dpng', '-r300');

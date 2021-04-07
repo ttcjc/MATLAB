@@ -4,6 +4,9 @@ clearvars;
 close all;
 clc;
 
+fig = 0; %#ok<*NASGU>
+figHold = 0; %#ok<*NASGU>
+
 disp ('====================================');
 disp ('THIRD-PARTY CASE INITIALISATION v1.0');
 disp ('====================================');
@@ -21,14 +24,12 @@ disp('CASE SELECTION');
 disp('--------------');
 disp(' ');
 
-% caseFolderExtract = uigetdir('~/OpenFOAM', 'Extraction Case');
-caseFolderExtract = '~/Mount/Uni/OpenFOAM/ttcjc-7/run/Test_Block_SC';
+caseFolderExtract = uigetdir('~/OpenFOAM', 'Extraction Case');
 
-% caseFolderInject = uigetdir('~/OpenFOAM', 'Injection Case');
-caseFolderInject = '~/Mount/Uni/OpenFOAM/ttcjc-7/run/Test_Block_TP';
+caseFolderInject = uigetdir('~/OpenFOAM', 'Injection Case');
 
 % Set Dimensions of Interest
-wallOffset = 10e-6; % Offset to Prevent Wall Interactions
+wallOffset = 1e-6; % Offset to Prevent Wall Interactions
 xDims = [(-9.408 + wallOffset); (9.408 - wallOffset)];
 yDims = [(-0.96 + wallOffset); (0.96 - wallOffset)];
 zDims = [(0 + wallOffset); (1.32 - wallOffset)];
@@ -38,15 +39,15 @@ disp(' ');
 disp('Analysing Case Structures:');
 
 if ~exist([caseFolderExtract, '/0'], 'dir') && ~exist([caseFolderExtract, '/extractionData/extractionData'], 'file') && ~exist([caseFolderExtract, '/postProcessing/planeSample'], 'dir')
-	error([caseFolderExtract, ' Invalid']);
+    error([caseFolderExtract, ' Invalid']);
 else
-	disp(['    ', caseFolderExtract, ' Valid']);
+    disp(['    ', caseFolderExtract, ' Valid']);
 end
 
 if ~exist([caseFolderInject, '/0'], 'dir')
-	error([caseFolderInject, 'Invalid']);
+    error([caseFolderInject, 'Invalid']);
 else
-	disp(['    ', caseFolderInject, ' Valid']);
+    disp(['    ', caseFolderInject, ' Valid']);
 end
 
 disp(' ');
@@ -65,9 +66,9 @@ extractionData = cell2mat(textscan(fileID, '%f %f %f %f %f %f %f %f %f', 'header
 fclose(fileID);
 
 if isempty(extractionData)
-	error('No Valid Particles Available for Third-Party Initialisation');
+    error('No Valid Particles Available for Third-Party Initialisation');
 else
-	disp(['Identified ', num2str(size(extractionData, 1)), ' Particles Available for Third-Party Initialisation']);
+    disp(['Identified ', num2str(size(extractionData, 1)), ' Particles Available for Third-Party Initialisation']);
 end
 
 disp(' ');
@@ -79,18 +80,18 @@ timeDirs = dir([caseFolderExtract, '/postProcessing/planeSample']);
 i = 1;
 while i <= size(timeDirs,1)
 
-	if isnan(str2double(timeDirs(i,1).name))
-		timeDirs(i,:) = [];
-	else
-		i = i + 1;
-	end
+    if isnan(str2double(timeDirs(i,1).name))
+        timeDirs(i,:) = [];
+    else
+        i = i + 1;
+    end
 
 end
 
 if isempty(timeDirs)
-	error('No Valid Flow Samples');
+    error('No Valid Flow Samples');
 else
-	disp(['Identified ', num2str(size(timeDirs,1)), ' Flow Variations']);
+    disp(['Identified ', num2str(size(timeDirs,1)), ' Flow Variations']);
 end
 
 disp(' ');
@@ -119,7 +120,7 @@ valid = false;
 while ~valid
     disp(' ');
     selection = input('Modify Default Position? [y/n]: ', 's');
-    
+
     if selection == 'n' | selection == 'N' %#ok<OR2>
         valid = true;
         disp(' ');
@@ -131,7 +132,7 @@ while ~valid
     else
         disp('    WARNING: Invalid Entry');
     end
-    
+
 end
 
 planeOffset = planeExtraction - planeInjection;
@@ -146,7 +147,7 @@ extractionData(extractionData(:,3) > max(zDims),:) = [];
 
 % Apply Offsets
 extractionData(:,9) = extractionData(:,9) - timeOffsetInjection;
-extractionData(:,1) = (extractionData(:,1) - planeOffset) + wallOffset;
+extractionData(:,1) = extractionData(:,1) - planeOffset;
 
 disp(' ');
 
@@ -161,9 +162,9 @@ disp(['    Writing Particle Data to ', caseFolderInject, '/constant/parcelInject
 
 % Remove Existing Particle Data
 if exist([caseFolderInject, '/constant/parcelInjectionProperties'], 'file')
-	delete([caseFolderInject, '/constant/parcelInjectionProperties']);
+    delete([caseFolderInject, '/constant/parcelInjectionProperties']);
 end
-	
+
 fopen([caseFolderInject, '/constant/parcelInjectionProperties'], 'w');
 
 % OpenFOAM Header
@@ -184,16 +185,16 @@ fprintf(fileID, '%s\n', '    object      scalarListList;');
 fprintf(fileID, '%s\n', '}');
 fprintf(fileID, '%s\n', '// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //');
 fprintf(fileID, '%s\n', ' ');
-fprintf(fileID, '%s\n', '	// (x y z) (Ux Uy Uz) d rho mDot particleCount injectionTime');
+fprintf(fileID, '%s\n', '    // (x y z) (Ux Uy Uz) d rho mDot particleCount injectionTime');
 fprintf(fileID, '%s\n', '(');
 
 % Write Particle Data
 rho = 1000;
 mDot = 1;
-formatSpec = '	(%g %g %g) (%g %g %g) %g %g %g %g %g\n';
+formatSpec = '    (%g %g %g) (%g %g %g) %g %g %g %g %g\n';
 
 for i = 1:size(extractionData,1)
-	fprintf(fileID, formatSpec, extractionData(i,1), extractionData(i,2), extractionData(i,3), extractionData(i,4), extractionData(i,5), extractionData(i,6), extractionData(i,7), rho, mDot, extractionData(i,8), extractionData(i,9));
+    fprintf(fileID, formatSpec, extractionData(i,1), extractionData(i,2), extractionData(i,3), extractionData(i,4), extractionData(i,5), extractionData(i,6), extractionData(i,7), rho, mDot, extractionData(i,8), extractionData(i,9));
 end
 
 % OpenFOAM Footer
@@ -216,12 +217,12 @@ end
 copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(1,1).name, '/thirdPartyExtraction/faceCentres'], [caseFolderInject, '/constant/boundaryData/inlet/points']);
 
 for i = 1:size(timeDirs,1)
-	inletTime = num2str(str2double(timeDirs(i,1).name) - timeOffsetFlow);
-	
-	mkdir([caseFolderInject, '/constant/boundaryData/inlet/', inletTime]);
-	copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/scalarField/nut'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/nut']);
-	copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/scalarField/nuTilda'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/nuTilda']);
-	copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/vectorField/U'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/U']);
+    inletTime = num2str(str2double(timeDirs(i,1).name) - timeOffsetFlow);
+
+    mkdir([caseFolderInject, '/constant/boundaryData/inlet/', inletTime]);
+    copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/scalarField/nut'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/nut']);
+    copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/scalarField/nuTilda'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/nuTilda']);
+    copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(i,1).name, '/thirdPartyExtraction/vectorField/U'], [caseFolderInject, '/constant/boundaryData/inlet/', num2str(inletTime), '/U']);
 end
 
 executionTime = toc;
@@ -243,22 +244,22 @@ disp(' ');
 
 function T = inputTime(type)
 
-	valid = false;
-	while ~valid
-		disp(' ');
-		T = str2double(input(['Enter Extraction Case ', type, ' Start Time [s]: '], 's'));
+    valid = false;
+    while ~valid
+        disp(' ');
+        T = str2double(input(['Enter Extraction Case ', type, ' Start Time [s]: '], 's'));
 
-		if isnan(T)
-			disp('    WARNING: Invalid Time Entry');
-		elseif length(T) > 1
-			disp('    WARNING: Invalid Time Entry');
-		else
-			valid = true;
-			disp(' ');
-		end
+        if isnan(T)
+            disp('    WARNING: Invalid Time Entry');
+        elseif length(T) > 1
+            disp('    WARNING: Invalid Time Entry');
+        else
+            valid = true;
+            disp(' ');
+        end
 
-	end
-	
+    end
+
 end
 
 function P = planeInput(type)
@@ -275,5 +276,5 @@ function P = planeInput(type)
         end
 
     end
-    
+
 end

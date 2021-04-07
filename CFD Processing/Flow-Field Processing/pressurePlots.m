@@ -25,8 +25,7 @@ disp('--------------');
 disp(' ');
 
 disp('Select Case:');
-% caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
-caseFolder = ('~/Mount/Uni/Documents/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW_New');
+caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
 disp(['Case: ', caseFolder]);
 disp(' ');
 disp(' ');
@@ -35,12 +34,12 @@ if contains(caseFolder, 'Windsor_Square')
     xDims = [-0.56075 ; 0.48325] / 1.044;
     yDims = [-(0.389 / 2) ; (0.389 / 2)] / 1.044;
     zDims = [0.05 ; 0.339] / 1.044;
-	
-	A_Model_Exp = (0.289 * 0.389) + (2 * (0.05 * 0.055));
-	A_Tunnel_Exp = ((2 * (0.96 + (1.695 * tan(atan(0.01 / 3.6))))) * 1.32) - (4 * 0.01125); % At balance point of resolution
-	
-	A_Model_CFD = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-	A_Tunnel_CFD = (2 * (0.96 + (4.704 * tan(atan(0.02613 / 9.408)))) * 1.32); % At x = 0
+
+    A_Model_Exp = (0.289 * 0.389) + (2 * (0.05 * 0.055));
+    A_Tunnel_Exp = ((2 * (0.96 + (1.695 * tan(atan(0.01 / 3.6))))) * 1.32) - (4 * 0.01125); % At balance point of resolution
+
+    A_Model_CFD = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+    A_Tunnel_CFD = (2 * (0.96 + (4.704 * tan(atan(0.02613 / 9.408)))) * 1.32); % At x = 0
 else
     error('Unsupported Case')
 end
@@ -93,7 +92,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_Cp_Base');
@@ -122,7 +121,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 savefig(fig, '~/MATLAB/Output/Figures/Windsor_Square_wW_Exp_CpRMS_Base');
@@ -212,7 +211,7 @@ ylabel({'z (\it{l})', ' '});
 box on;
 colormap viridis;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 namePos = max(strfind(caseFolder, '/'));
@@ -276,7 +275,7 @@ box on;
 legend('Experiment (Varney)', 'Numerical', 'location', 'northOutside', 'orientation', 'vertical');
 legend boxoff;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 
 namePos = max(strfind(caseFolder, '/'));
 savefig(figHold, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Cp_Centreline']);
@@ -301,7 +300,7 @@ colormap viridis;
 c = colorbar('ticks', round(tickData(2:end-1),3), 'location', 'south', 'axisLocation', 'out');
 c.Label.String = {' ', 'C_p'};
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 print(fig, '~/MATLAB/Output/Figures/Pressure_Bar', '-dpng', '-r300');

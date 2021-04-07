@@ -35,8 +35,8 @@ discrete.diameter = (min(round(continuous.diameter / binSize) * binSize):binSize
 % Adjust for Small Particles (D < 1 um)
 i = 1;
 while discrete.diameter(i) == 0
-	discrete.diameter(i) = binSize;
-	i = i + 1;
+    discrete.diameter(i) = binSize;
+    i = i + 1;
 end
 
 % Produce Equal Spacing
@@ -51,10 +51,10 @@ interpD = interp1(interpB, interpC, interpA, 'spline');
 discrete.mass = zeros(size(discrete.diameter,1),1);
 
 for i = 1:max(discrete.diameter)
-	index = find(interpA == i);
-	a = interpD(index - (0.5 / interpSize));
-	b = interpD(index + (0.5 / interpSize));
-	discrete.mass(i) = ((a + b) / 2) * 1;
+    index = find(interpA == i);
+    a = interpD(index - (0.5 / interpSize));
+    b = interpD(index + (0.5 / interpSize));
+    discrete.mass(i) = ((a + b) / 2) * 1;
 end
 
 % Figure Setup
@@ -76,7 +76,7 @@ box on;
 legend('Continuous Data', 'Continuous Interpolation', 'Discretised Data', 'location', 'northOutside', 'orientation', 'vertical');
 legend boxoff;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
 
 discrete.populationByMass = (discrete.mass ./ sum(discrete.mass)) * 100;
@@ -84,7 +84,7 @@ discrete.populationByMass = (discrete.mass ./ sum(discrete.mass)) * 100;
 discrete.frequency = zeros(size(discrete.diameter,1),1);
 
 for i = 1:size(discrete.diameter,1)
-	discrete.frequency(i) = discrete.mass(i) / (1000 * ((4 / 3) * pi * ((discrete.diameter(i) / 2) / 1e6)^3));
+    discrete.frequency(i) = discrete.mass(i) / (1000 * ((4 / 3) * pi * ((discrete.diameter(i) / 2) / 1e6)^3));
 end
 
 discrete.population = (discrete.frequency ./ sum(discrete.frequency)) * 100;
@@ -107,9 +107,9 @@ box on;
 legend('Mass-Based', 'Particle-Based', 'location', 'northOutside', 'orientation', 'vertical');
 legend boxoff;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 
-% Save Data 
+% Save Data
 save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/Particle Distributions/', dataName, '.mat'], 'continuous', 'discrete');
 
 

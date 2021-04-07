@@ -131,5 +131,3 @@ function tf = isbinary(A)
         tf = true;  % Binary
     end
 end
-
-

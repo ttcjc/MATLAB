@@ -33,8 +33,8 @@ distOut.diameter = (min(round(data.particleData.d{1,1} / binSize) * binSize):bin
 % Adjust for Small Particles (D < 1 um)
 i = 1;
 while distOut.diameter(i) == 0
-	distOut.diameter(i) = binSize;
-	i = i + 1;
+    distOut.diameter(i) = binSize;
+    i = i + 1;
 end
 
 % Discretise Population
@@ -44,8 +44,8 @@ binTotals = zeros(size(distOut.diameter,1),1);
 nParticle = zeros(size(distOut.diameter,1),1);
 
 for i = 1:size(distOut.diameter,1)
-	binTotals(i) = sum(assignments == i);
-	nParticle(i) = sum(data.particleData.nParticle{1,1}(assignments == i));
+    binTotals(i) = sum(assignments == i);
+    nParticle(i) = sum(data.particleData.nParticle{1,1}(assignments == i));
 end
 
 parcelProb = (binTotals / sum(binTotals)) * 100;
@@ -55,13 +55,13 @@ particleProb = (nParticle / sum(nParticle)) * 100;
 mass = zeros(size(distOut.diameter,1),1);
 
 % for i = 1:size(distOut.diameter,1)
-% 	mass(i) = binTotals(i) * (1000 * (4 / 3) * pi * (distOut.diameter(i) / 2)^3);
+%     mass(i) = binTotals(i) * (1000 * (4 / 3) * pi * (distOut.diameter(i) / 2)^3);
 % end
-% 
+%
 % massProb = (mass / sum(mass)) * 100;
 
 for i = 1:size(distOut.diameter,1)
-	mass(i) = nParticle(i) * (1000 * (4 / 3) * pi * (distOut.diameter(i) / 2)^3);
+    mass(i) = nParticle(i) * (1000 * (4 / 3) * pi * (distOut.diameter(i) / 2)^3);
 end
 
 massProb = (mass / sum(mass)) * 100;
@@ -88,4 +88,4 @@ box on;
 legend('Original (Mass-Based)', 'Original (Particle-Based)', 'Output (Mass Dist)', 'Output (Parcel Dist)', 'Output (Particle Dist)', 'location', 'northOutside', 'orientation', 'vertical');
 legend boxoff;
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-	     'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');

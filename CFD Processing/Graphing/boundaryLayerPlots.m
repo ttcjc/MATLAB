@@ -25,15 +25,14 @@ disp('--------------');
 disp(' ');
 
 disp('Select Case Folder:');
-% caseFolder = uigetdir('~/OpenFOAM');
-caseFolder = ('~/Mount/Uni/OpenFOAM/ttcjc-7/results/BL_Test/BL_Test_9.408_SA');
+caseFolder = uigetdir('~/OpenFOAM');
 disp(['Case: ', caseFolder]);
 disp(' ');
 [timeDirs, deltaT] = timeDirectories(caseFolder);
 disp(' ');
 disp(' ');
 
-if ~exist([caseFolder, '/postProcessing/probes'], 'dir')
+if ~exist([caseFolder, '/postProcessing/probesBL'], 'dir')
     error('No Probe Data Found for Target Case');
 end
 
@@ -86,7 +85,7 @@ disp(['    Boundary Layer Momentum Thickness (', char(952), ') ~ ', num2str(thet
 disp(' ');
 
 % Numerical Data (Crickmore)
-fileID = fopen([caseFolder, '/postProcessing/probes/', timeDirs(end,1).name, '/boundaryLayerLocationA_U.xy']);
+fileID = fopen([caseFolder, '/postProcessing/probesBL/', timeDirs(end,1).name, '/boundaryLayerLocationA_UMean.xy']);
 probeData = textscan(fileID, '%f %f %f %f', 'headerLines', 1, 'delimiter', ' ', 'MultipleDelimsAsOne', 1);
 u = vertcat(0, probeData{1,2});
 z = vertcat(0, probeData{1,1} / 1.044);
@@ -184,7 +183,7 @@ disp(['    Boundary Layer Momentum Thickness (', char(952), ') ~ ', num2str(thet
 disp(' ');
 
 % Numerical Data (Crickmore)
-fileID = fopen([caseFolder, '/postProcessing/probes/', timeDirs(end,1).name, '/boundaryLayerLocationB_U.xy']);
+fileID = fopen([caseFolder, '/postProcessing/probesBL/', timeDirs(end,1).name, '/boundaryLayerLocationB_UMean.xy']);
 probeData = textscan(fileID, '%f %f %f %f', 'headerLines', 1, 'delimiter', ' ', 'MultipleDelimsAsOne', 1);
 u = vertcat(0, probeData{1,2});
 z = vertcat(0, probeData{1,1} /1.044);

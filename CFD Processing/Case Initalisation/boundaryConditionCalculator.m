@@ -1,11 +1,14 @@
-%% Turbulence Boundary Condition Calculator v1.0
+%% Turbulence Boundary Condition Calculator v1.1
 
 clearvars;
 close all;
 clc;
 
+fig = 0; %#ok<*NASGU>
+figHold = 0; %#ok<*NASGU>
+
 disp ('=============================================');
-disp ('Turbulence Boundary Condition Calculator v1.0');
+disp ('Turbulence Boundary Condition Calculator v1.1');
 disp ('=============================================');
 disp (' ');
 
@@ -13,24 +16,42 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Added Basic Error Catching
 
 
 %% Data Input
 
-data = {'Characteristic Length [m]', 'Turbulence Intensity [%]', ...
-        'Freestream Velocity [m/s]'};
-dlg_title = 'Turbulence Parameters';
-default = {'1.044', '0.2', '40'};
-resize = 'on';
-values = inputdlg(data, dlg_title, [1,60], default, resize);
-input = str2double(values);
+variables = {
+             'Characteristic Length [m]'
+             'Turbulence Intensity [%]'
+             'Freestream Velocity [m/s]'
+            };
 
-L = input(1);
-I = input(2)/100;
-U = input(3);
+valid = false;
+while ~valid
+    userInput = inputdlg(variables, 'Input Turbulence Parameters', ...
+                         [1, 50], {'1.044', '0.2', '40'});
+    
+    values = str2double(userInput);
+    
+    if any(isnan(values))
+        disp('WARNING: Invalid Entry (Numeric Values Expected)');
+        disp(' ');
+    elseif size(values,1) ~= 3
+        disp('WARNING: Incomplete Entry');
+        disp(' ');
+    else
+        valid = true;
+    end
+    
+end
+
+L = values(1);
+I = values(2) / 100;
+U = values(3);
 
 disp(['Characteristic Length:         ' num2str(L) ' [m]']);
-disp(['Turbulence Intensity:          ' num2str(I*100) ' [%]']);
+disp(['Turbulence Intensity:          ' num2str(I * 100) ' [%]']);
 disp(['Freestream Velocity:           ' num2str(U) ' [m/s]']);
 disp(' ')
 

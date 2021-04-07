@@ -1,4 +1,9 @@
 %% Lagrangian Data Storage v1.0
+% ----
+% Executes 'lagrangianData.m' Without Further Processing
+% ----
+% Usage: [particleData, particleProps] = storeLagrangianData(caseFolder)
+%        'caseFolder' -> Case Path Stored as String
 
 
 %% Changelog
@@ -8,22 +13,13 @@
 
 %% Main Function
 
-function [] = storeLagrangianData(caseFolder)
+function [particleData, particleProps] = storeLagrangianData(caseFolder)
 
-	clc;
+    [timeDirs, ~] = timeDirectories(caseFolder);
 
-	% Confirm Support
-	if ~contains(caseFolder, ["Lag_Test", "Test_Block", "Windsor_Square"])
-		error('Unsupported Case');
-	end
-	
-	% Identify Time Directories
-	[timeDirs, ~] = timeDirectories(caseFolder);
-	
-	disp(' ');
-	disp(' ');
-	
-	%  Store Lagrangian Data
-	lagrangianData(caseFolder, timeDirs);
+    disp(' ');
+    disp(' ');
+
+    [particleData, particleProps] = lagrangianData(caseFolder, timeDirs);
 
 end

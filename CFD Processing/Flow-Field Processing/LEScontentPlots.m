@@ -25,8 +25,7 @@ disp('--------------');
 disp(' ');
 
 disp('Select Case:');
-% caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
-caseFolder = ('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM/Windsor_Square_wW');
+caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM');
 disp(['Case: ', caseFolder]);
 disp(' ');
 disp(' ');

@@ -571,4 +571,3 @@ else
 end
 
 end % function validstring
-

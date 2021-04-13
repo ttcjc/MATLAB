@@ -1,14 +1,16 @@
-%% Case Initialisation v1.1
+%% Case Initialisation v1.2
 % ----
 % Collates Basic Case Data for Further Processing
 % ----
 % Usage: [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase
+%        'format' -> Required Time Directory Type Stored as String
+%                    'global' or 'PODprobe'
 
 %% Changelog
 
 % v1.0 - Initial Commit
 % v1.1 - Added Support for Balance and Upstream Windsor Case Variants
-
+% v1.1 - Added Support for Global and PODprobe Directory Identification
 
 %% Supported Case Types
 
@@ -20,7 +22,7 @@
 
 %% Main Function
 
-function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase
+function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase(format)
 
     disp('CASE SELECTION');
     disp('--------------');
@@ -33,7 +35,7 @@ function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initial
     disp(' ');
 
     % Confirm Case Validity and Identify Time Directories
-    [timeDirs, deltaT] = timeDirectories(caseFolder);
+    [timeDirs, deltaT] = timeDirectories(caseFolder, format);
     
     % Confirm Support
     if ~contains(caseFolder, ["Lag_Test", "Test_Block", "Windsor"])

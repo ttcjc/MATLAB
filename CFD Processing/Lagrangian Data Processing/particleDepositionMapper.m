@@ -1,4 +1,4 @@
-%% Particle Deposition Mapper v1.0
+%% Particle Deposition Mapper v1.2
 
 clearvars;
 close all;
@@ -8,7 +8,7 @@ fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('===============================');
-disp ('Particle Deposition Mapper v1.0');
+disp ('Particle Deposition Mapper v1.2');
 disp ('===============================');
 disp (' ');
 
@@ -16,11 +16,13 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit (Base Contamination Only)
+% v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
+% v1.2 - Updated to Support Changes to 'timeDirectories.m'
 
 
 %% Case Initialisation
 
-[caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase;
+[caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase('global');
 
 disp(' ');
 disp(' ');

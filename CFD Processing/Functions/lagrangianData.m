@@ -10,7 +10,7 @@
 %% Changelog
 
 % v1.0 - Initial Commit
-% v1.1 - Updated calls to 'globalPos' to 'positionCartesian' 
+% v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
 
 
 %% Main Function
@@ -256,10 +256,12 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-            namePos = max(strfind(caseFolder, '/'));
+            namePos = max(strfind(caseFolder, '/')) + 1;
+            startInst = erase(num2str(str2double(timeDirs(1,1).name), '%.4f'), '.');
+            endInst = erase(num2str(str2double(timeDirs(end,1).name), '%.4f'), '.');
             disp(' ');
-            disp(['    Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat']);
-            save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData', caseFolder(namePos(end):end), '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
+            disp(['    Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData/', caseFolder(namePos(end):end), '_T', startInst, '_T', endInst, '.mat']);
+            save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData/', caseFolder(namePos(end):end), '_T', startInst, '_T', endInst, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
             valid = true;
         else
             disp('    WARNING: Invalid Entry');

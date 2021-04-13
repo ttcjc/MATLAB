@@ -1,4 +1,4 @@
-%% Particle Tracker v1.0
+%% Particle Tracker v1.2
 
 clearvars;
 close all;
@@ -8,7 +8,7 @@ fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('=====================');
-disp ('Particle Tracker v1.0');
+disp ('Particle Tracker v1.2');
 disp ('=====================');
 disp (' ');
 
@@ -16,11 +16,13 @@ disp (' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
+% v1.2 - Updated to Support Changes to 'timeDirectories.m'
 
 
 %% Case Initialisation
 
-[caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase;
+[caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase('global');
 
 disp(' ');
 disp(' ');
@@ -139,6 +141,7 @@ while ~valid
 
         if maxD < round(min(particleData.d{end,1}) * 1e6) || minD > round(max(particleData.d{end,1}) * 1e6)
             disp('        WARNING: No Lagrangian Data in Selected Data Range');
+            disp(' ');
         elseif maxD < minD
             disp('        WARNING: Invalid Entry');
             disp(' ');
@@ -398,7 +401,7 @@ switch method
         hold off;
 
         % Save Plot
-        namePos = max(strfind(caseFolder, '/'));
+        namePos = max(strfind(caseFolder, '/')) + 1;
         savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)]);
         print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)], '-dpng', '-r300');
 

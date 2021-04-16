@@ -22,13 +22,13 @@ disp (' ');
 
 % [caseFolder, ~, ~, ~, timeDirs, deltaT, geometry] = initialiseCase('PODprobe');
 
-% caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_Square_wW_Balance_SC';
+caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_Square_wW_Balance_SC';
 % format = 'PODprobe';
 % [timeDirs, deltaT] = timeDirectories(caseFolder, format);
 load('geometryTest.mat');
 
 
-disp(' ');
+% disp(' ');
 disp(' ');
 
 
@@ -235,9 +235,16 @@ end
 % Collect Planar Velocity Data
 planarPODdata.time = probeData.time;
 planarPODdata.position = probeData.position(index,:);
+planarPODdata.u = [];
+planarPODdata.v = [];
+planarPODdata.w = [];
 planarPODdata.uMean = probeData.uMean(index,:);
 planarPODdata.vMean = probeData.vMean(index,:);
 planarPODdata.wMean = probeData.wMean(index,:);
+planarPODdata.uPrime = [];
+planarPODdata.vPrime = [];
+planarPODdata.wPrime = [];
+
 
 for i = 1:size(probeData.time,1)
     planarPODdata.u{i,1} = probeData.u{i,1}(index,:);
@@ -286,10 +293,15 @@ end
 planarPODdata.eValue(length(planarPODdata.eValue)) = 0; % last eigenvalue should be zero
 planarPODdata.modeEnergy = planarPODdata.eValue / sum(planarPODdata.eValue); % relative energy associated with mode
 
-for i = 1:20
+i = 1;
+while planarPODdata.modeEnergy(i) * 100 >= 1
     tmp = planarPODdata.primeMatrix * planarPODdata.eVec(:,i);
     planarPODdata.phi(:,i) = tmp / norm(tmp);
+    i = i + 1;
 end
+
+disp(' ');
+disp(['    First ', num2str(i-1), ' Modes Contain Greater Than 1% Of Total Energy']);
 
 planarPODdata.An = (planarPODdata.phi' * planarPODdata.primeMatrix)';
 executionTime = toc;
@@ -299,6 +311,40 @@ disp(['    Execution Time: ', num2str(executionTime), 's']);
 disp(' ');
 disp('  Success  ');
 disp('***********');
+disp(' ');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save POD Data for Future Use? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        namePos = max(strfind(caseFolder, '/')) + 1;
+        
+        if ~exist(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/planarPODdata/', caseFolder(namePos(end):end)], 'dir')
+            mkdir(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/planarPODdata/', caseFolder(namePos(end):end)]);
+        end
+        
+        startInst = erase(num2str(planarPODdata.time(1,1), '%.4f'), '.');
+        endInst = erase(num2str(planarPODdata.time(end,1), '%.4f'), '.');
+        x1 = erase(num2str(xDimsPlane(1), '%.4f'), '.');
+        x2 = erase(num2str(xDimsPlane(2), '%.4f'), '.');
+        y1 = erase(num2str(yDimsPlane(1), '%.4f'), '.');
+        y2 = erase(num2str(yDimsPlane(2), '%.4f'), '.');
+        z1 = erase(num2str(zDimsPlane(1), '%.4f'), '.');
+        z2 = erase(num2str(zDimsPlane(2), '%.4f'), '.');
+        disp(' ');
+        disp(['    Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/planarPODdata/', caseFolder(namePos(end):end), '/S', startInst, '_E', endInst, '_x', x1, '_y', y1, '_z', z1, '_x', x2, '_y', y2, '_z', z2, '.mat']);
+        save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/planarPODdata/', caseFolder(namePos(end):end), '/S', startInst, '_E', endInst, '_x', x1, '_y', y1, '_z', z1, '_x', x2, '_y', y2, '_z', z2, '.mat'], 'planarPODdata', '-v7.3', '-noCompression');
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+        disp(' ');
+    end
+
+end
 
 % Figure Setup
 fig = fig + 1;
@@ -307,7 +353,7 @@ hold on;
 set(figure(fig), 'outerPosition', [25, 25, 800, 800], 'name', 'POD: Mode Energy Content');
 
 % Plot
-bar(planarPODdata.modeEnergy(1:20) * 100);
+bar(planarPODdata.modeEnergy(1:i-1) * 100);
 
 % Figure Formatting
 xlabel({' ', 'Mode'});
@@ -315,6 +361,11 @@ ylabel({'Energy Content (\it{%})', ' '});
 set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
          'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
 hold off;
+
+
+%% Reconstruction
+
+
 
 %% Local Functions
 

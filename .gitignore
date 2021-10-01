@@ -1,6 +1,4 @@
-# Ignore Directories
-Figures/
-Teaching/
+## Ignore Directories
+Output/
 
-# Ignore Files
-pathdef.m
+## Ignore Files

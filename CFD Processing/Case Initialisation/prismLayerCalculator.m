@@ -19,7 +19,7 @@ disp (' ');
 % v1.1 - Added Basic Error Catching
 
 
-%% Flow Properties
+%% Data Input
 
 variables = {
              'Density'
@@ -62,7 +62,7 @@ disp(' ');
 disp(' ');
 
 
-%% Prism Layer Calculator
+%% Prism Layer Property Calculation
 
 variables = {
              'Target y+'

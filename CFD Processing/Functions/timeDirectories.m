@@ -42,7 +42,7 @@ function [timeDirs, deltaT] = timeDirectories(caseFolder, format)
 
     % Identify Time Directories
     i = 1;
-    while i <= size(timeDirs,1)
+    while i <= height(timeDirs)
 
         if str2double(timeDirs(i,1).name) == 0 || isnan(str2double(timeDirs(i,1).name))
             timeDirs(i,:) = [];
@@ -53,6 +53,7 @@ function [timeDirs, deltaT] = timeDirectories(caseFolder, format)
     end
 
     deltaT = str2double(timeDirs(end,1).name) - str2double(timeDirs(end-1,1).name);
+    deltaT = str2double(num2str(deltaT));
     
     disp(['    Identified ', num2str(size(timeDirs,1)), ' Time Directories']);
     disp(['    ', char(916), 'T = ' num2str(deltaT), 's']);

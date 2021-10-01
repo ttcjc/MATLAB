@@ -56,7 +56,7 @@ disp(['Freestream Velocity:           ' num2str(U) ' [m/s]']);
 disp(' ')
 
 
-%% Prism Layer Calculator
+%% Boundary Condition Calculation
 
 Lt = 0.07 * L;
 

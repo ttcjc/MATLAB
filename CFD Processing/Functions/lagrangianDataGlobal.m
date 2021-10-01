@@ -1,8 +1,8 @@
-%% Lagrangian Data Reader v1.1
+%% Global Lagrangian Data Reader v2.0
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Lagrangian Data Output
 % ----
-% Usage: [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
+% Usage: [particleDataGlobal, particlePropsGlobal] = lagrangianDataGlobal(caseFolder, timeDirs)
 %        'caseFolder' -> Case Path Stored as String
 %        'timeDirs'   -> Case Directories as Collated by 'timeDirectories.m'
 
@@ -11,15 +11,16 @@
 
 % v1.0 - Initial Commit
 % v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
+% v2.0 - Rewrite to Support 'LagrangianExtractionPlaneData'
 
 
 %% Main Function
 
-function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
+function [particleDataGlobal, particlePropsGlobal] = lagrangianDataGlobal(caseFolder, timeDirs)
 
     % Identify Lagrangian Directories
     i = 1;
-    while i <= size(timeDirs,1)
+    while i <= height(timeDirs)
 
         if ~exist([caseFolder, '/', timeDirs(i,1).name, '/lagrangian/kinematicCloud/active'], 'file')
             timeDirs(i,:) = [];
@@ -29,19 +30,18 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 
     end
 
-    if size(timeDirs,1) ~= 0
+    if ~isempty(timeDirs)
         disp('Lagrangian Data Identified in the Following Time Subdirectories:');
 
-        for i = 1:size(timeDirs,1)
+        for i = 1:height(timeDirs)
             disp(['    /', timeDirs(i,1).name]);
         end
 
-        disp(' ');
     else
         error('No Lagrangian Data Available in Specified Case');
     end
-
-    % Select Directories of Interest
+    
+    % Select Times of Interest
     valid = false;
     while ~valid
         disp(' ');
@@ -49,20 +49,17 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
-            disp(' ');
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             startTime = inputTime('Start');
             endTime = inputTime('End');
 
             if endTime < str2double(timeDirs(1,1).name) || startTime > str2double(timeDirs(end,1).name)
                 disp('        WARNING: No Lagrangian Data in Selected Data Range');
-                disp(' ');
             elseif endTime < startTime
                 disp('        WARNING: Invalid Entry');
-                disp(' ');
             else
                 i = 1;
-                while i <= size(timeDirs,1)
+                while i <= height(timeDirs)
 
                     if str2double(timeDirs(i,1).name) < startTime || str2double(timeDirs(i,1).name) > endTime
                         timeDirs(i,:) = [];
@@ -73,18 +70,16 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
                 end
 
                 valid = true;
-                disp(' ');
             end
 
         else
             disp('    WARNING: Invalid Entry');
-            disp(' ');
         end
 
     end
-
+    
     % Select Lagrangian Properties
-    particleProps = {'active', 'origId', 'origProcId', 'nParticle', 'positionCartesian', 'd'};
+    particlePropsGlobal = {'active'; 'origId'; 'origProcId'; 'nParticle'; 'positionCartesian'; 'd'};
 
     valid = false;
     while ~valid
@@ -93,28 +88,23 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
-            disp(' ');
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             [particlePropsUser, path] = uigetfile([caseFolder, '/', timeDirs(end,1).name, '/lagrangian/kinematicCloud/*.*'], 'Select Additional Lagrangian Properties', 'multiSelect', 'on');
 
             if contains(path, '/lagrangian/kinematicCloud/')
                 valid = true;
-                disp(' ');
             else
                 clear particlePropsUser path;
                 disp('    WARNING: Invalid File Selection');
-                disp(' ');
             end
 
         else
                 disp('    WARNING: Invalid Entry');
-                disp(' ');
         end
 
     end
 
     disp(' ');
-
     disp('Storing the Following Lagrangian Properties:')
     disp('    active                (Required)');
     disp('    origId                (Required)');
@@ -124,50 +114,50 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
     disp('    d                     (Required)');
     
     if exist('particlePropsUser', 'var')
-        particleProps = [particleProps, particlePropsUser]';
+        particlePropsGlobal = [particlePropsGlobal; particlePropsUser'];
 
         if isa(particlePropsUser, 'char')
             disp(['    ', particlePropsUser]);
         else
 
-            for i = 1:size(particlePropsUser,2)
+            for i = 1:width(particlePropsUser)
                 disp(['    ', particlePropsUser{1,i}]);
             end
 
         end
-
-    else
-        particleProps = particleProps';
+        
     end
 
-    for i = 1:size(timeDirs,1)
-        particleData.time{i,1} = timeDirs(i,1).name;
+    for i = 1:height(timeDirs)
+        particleDataGlobal.time{i,1} = timeDirs(i,1).name;
 
-        for j = 1:size(particleProps,1)
-            prop = particleProps{j,1};
-            particleData.(prop) = [];
+        for j = 1:height(particlePropsGlobal)
+            prop = particlePropsGlobal{j,1};
+            particleDataGlobal.(prop) = [];
         end
 
     end
-
+    
     disp(' ');
-    disp(' ');
-
-    % Collate Lagrangian Data
+    
+    % Collate Global Lagrangian Data
     disp('***********');
     disp('  Reading  ');
     disp(' ');
-
+    
     tic;
-    for i = 1:size(particleData.time,1)
-        disp(['    /', particleData.time{i,1}, '/lagrangian/kinematicCloud/']);
+    
+    disp('    Global Data:');
+    
+    for i = 1:height(particleDataGlobal.time)
+        disp(['        /', particleDataGlobal.time{i,1}, '/lagrangian/kinematicCloud/']);
 
-        for j = 1:size(particleProps,1)
-            prop = particleProps{j,1};
-            fileID = fopen([caseFolder, '/' particleData.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
+        for j = 1:height(particlePropsGlobal)
+            prop = particlePropsGlobal{j,1};
+            fileID = fopen([caseFolder, '/' particleDataGlobal.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
             content = textscan(fileID, '%s', 'headerLines', 15, 'delimiter', '\n', 'collectOutput', 1);
 
-            if size(content{1,1},1) == 5
+            if height(content{1,1}) == 5
                 format = 'A';
             else
                 line = textscan(content{1,1}{6,1}, '(%f %f %f', 'delimiter', ' ');
@@ -192,30 +182,30 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
                         dataEnd = strfind(line, ')');
                         nParticles = str2double(line(1:dataStart-2));
                         data = str2double(line(dataStart+1:dataEnd-1));
-                        particleData.(prop){i,1} = data .* ones(nParticles,3);
+                        particleDataGlobal.(prop){i,1} = data .* ones(nParticles,3);
                     elseif contains(line, '1(')
                         dataStart = strfind(line, '(');
                         dataEnd = strfind(line, ')');
                         nParticles = str2double(line(1:dataStart-1));
                         data = str2double(line(dataStart+1:dataEnd-1));
-                        particleData.(prop){i,1} = data * ones(nParticles,1);
+                        particleDataGlobal.(prop){i,1} = data * ones(nParticles,1);
 
                     else
                         dataStart = strfind(line, '{');
                         dataEnd = strfind(line, '}');
                         nParticles = str2double(line(1:dataStart-1));
                         data = str2double(line(dataStart+1:dataEnd-1));
-                        particleData.(prop){i,1} = data * ones(nParticles,1);
+                        particleDataGlobal.(prop){i,1} = data * ones(nParticles,1);
                     end
 
                 case 'B'
-                    fileID = fopen([caseFolder, '/' particleData.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
-                    particleData.(prop){i,1} = cell2mat(textscan(fileID, '%f', 'headerLines', 20, 'delimiter', '\n', 'collectOutput', 1));
+                    fileID = fopen([caseFolder, '/' particleDataGlobal.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
+                    particleDataGlobal.(prop){i,1} = cell2mat(textscan(fileID, '%f', 'headerLines', 20, 'delimiter', '\n', 'collectOutput', 1));
                     fclose(fileID);
 
                 case 'C'
-                    fileID = fopen([caseFolder, '/' particleData.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
-                    particleData.(prop){i,1} = cell2mat(textscan(fileID, '(%f %f %f %*[^\n]', 'headerLines', 20, 'delimiter', '\n', 'collectOutput', 1));
+                    fileID = fopen([caseFolder, '/' particleDataGlobal.time{i,1}, '/lagrangian/kinematicCloud/', prop]);
+                    particleDataGlobal.(prop){i,1} = cell2mat(textscan(fileID, '(%f %f %f %*[^\n]', 'headerLines', 20, 'delimiter', '\n', 'collectOutput', 1));
                     fclose(fileID);
 
             end
@@ -224,21 +214,22 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
 
     end
 
-    for i = 1:size(particleData.time,1)
-        [particleData.origId{i,1}, index] = sort(particleData.origId{i,1});
+    for i = 1:height(particleDataGlobal.time)
+        [particleDataGlobal.origId{i,1}, index] = sort(particleDataGlobal.origId{i,1});
 
-        for j = 1:size(particleProps,1)
-            prop = particleProps{j,1};
+        for j = 1:height(particlePropsGlobal)
+            prop = particlePropsGlobal{j,1};
 
             if j == 2 % Don't Sort 'origId' Twice
                 continue
             else
-                particleData.(prop){i,1} = particleData.(prop){i,1}(index,:);
+                particleDataGlobal.(prop){i,1} = particleDataGlobal.(prop){i,1}(index,:);
             end
 
         end
 
     end
+    
     executionTime = toc;
 
     disp(' ');
@@ -246,8 +237,8 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
     disp(' ');
     disp('  Success  ')
     disp('***********');
-    disp(' ');
-
+    
+    % Save Lagrangian Data
     valid = false;
     while ~valid
         disp(' ');
@@ -257,19 +248,23 @@ function [particleData, particleProps] = lagrangianData(caseFolder, timeDirs)
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             namePos = max(strfind(caseFolder, '/')) + 1;
+            
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/particleData/', caseFolder(namePos:end)], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/particleData/', caseFolder(namePos:end)]);
+            end
+        
             startInst = erase(num2str(str2double(timeDirs(1,1).name), '%.4f'), '.');
             endInst = erase(num2str(str2double(timeDirs(end,1).name), '%.4f'), '.');
-            disp(' ');
-            disp(['    Saving to: ~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData/', caseFolder(namePos(end):end), '_T', startInst, '_T', endInst, '.mat']);
-            save(['~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData/', caseFolder(namePos(end):end), '_T', startInst, '_T', endInst, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/particleData/', caseFolder(namePos:end), '/T', startInst, '_T', endInst, '_Global.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/particleData/', caseFolder(namePos:end), '/T', startInst, '_T', endInst, '_Global.mat'], 'particleDataGlobal', 'particlePropsGlobal', '-v7.3', '-noCompression');
+            
             valid = true;
         else
             disp('    WARNING: Invalid Entry');
-            disp(' ');
         end
 
     end
-
+    
 end
 
 
@@ -279,7 +274,6 @@ function T = inputTime(type)
 
     valid = false;
     while ~valid
-        disp(' ');
         T = str2double(input(['    ', type, ' Time [s]: '], 's'));
 
         if isnan(T) || length(T) > 1

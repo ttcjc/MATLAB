@@ -1,4 +1,4 @@
-%% Particle Tracker v1.2
+%% Lagrangian Particle Tracker v2.0
 
 clearvars;
 close all;
@@ -8,7 +8,7 @@ fig = 0; %#ok<*NASGU>
 figHold = 0; %#ok<*NASGU>
 
 disp ('=====================');
-disp ('Particle Tracker v1.2');
+disp ('Particle Tracker v2.0');
 disp ('=====================');
 disp (' ');
 
@@ -18,6 +18,7 @@ disp (' ');
 % v1.0 - Initial Commit
 % v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
 % v1.2 - Updated to Support Changes to 'timeDirectories.m'
+% v2.0 - Rewritten to Support Tracking of Specific Times Instances
 
 
 %% Case Initialisation
@@ -40,32 +41,41 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         disp(' ');
-        disp(' ');
         [particleData, particleProps] = lagrangianData(caseFolder, timeDirs);
         valid = true;
-        disp(' ');
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        [particleData, path] = uigetfile('~/Documents/Engineering/PhD/Data/Numerical/MATLAB/particleData/*.*', 'Select Lagrangian Data');
+        [fileName, filePath] = uigetfile('/mnt/Processing/Data/Numerical/MATLAB/particleData/*.*', ...
+                                         'Select Lagrangian Data');
 
-        if contains(path, '/MATLAB/particleData/')
-            disp(' ');
-            disp(['    Loading: ', particleData]);
-            load([path, particleData])
-            valid = true;
-            disp(' ');
+        if contains(filePath, '/MATLAB/particleData/') 
+            variableInfo = who('-file', [filePath, fileName]);
+            
+            if ismember('particleDataGlobal', variableInfo)
+                disp(['    Loading: ', fileName]);
+                load([filePath, fileName]);
+                particleData = particleDataGlobal;
+                particleProps = particlePropsGlobal;
+                clearvars particleDataGlobal particlePropsGlobal
+                valid = true;
+            else
+                disp('    WARNING: Global Lagrangian Data Not Available in Specified File');
+                clearvars fileName filePath;
+            end
+            
         else
-            clear lagrangianData path;
             disp('    WARNING: Invalid File Selection');
-            disp(' ');
+            clearvars fileName filePath;
         end
 
     else
         disp('    WARNING: Invalid Entry');
-        disp(' ');
     end
 
 end
 
+clearvars variableInfo;
+
+disp(' ');
 disp(' ');
 
 
@@ -75,32 +85,92 @@ disp('TRACKING OPTIONS');
 disp('----------------');
 
 disp(' ');
+
 disp('Possible Tracking Methods:');
 disp('    A: Base Contamination');
-disp('    B: Full-Body Contamination');
+disp('    B: Full-Body Contamination (NYI)');
 disp('    C: Far-Field Particle Transport');
-disp(' ');
 
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Select Tracking Method [A/B/C]: ', 's');
+    selection = input('Select Mapping Location [A/B/C]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         method = 'A';
         valid = true;
-        disp(' ');
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         method = 'B';
         valid = true;
-        disp(' ');
     elseif selection == 'c' | selection == 'C' %#ok<OR2>
         method = 'C';
         valid = true;
-        disp(' ');
     else
         disp('    WARNING: Invalid Entry');
+    end
+
+end
+
+switch method
+    
+    case {'A', 'B'}
         disp(' ');
+        
+        disp('Lagrangian Data Available for the Following Time Instances:');
+        
+        for i = 1:height(particleData.time)
+            disp(['        T = ', num2str(str2double(particleData.time{i,1}), '%.4f'), ' s']);
+        end
+        
+        valid = false;
+        while ~valid
+            disp(' ');
+            selection = input('Track Impacts at Specific Time Instance? [y/n]: ', 's');
+
+            if selection == 'n' | selection == 'N' %#ok<OR2>
+                valid = true;
+            elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+                impactTime = inputTime(particleData.time);
+                
+                if isempty(impactTime)
+                    disp('        WARNING: No Lagrangian Data Available for Selected Time Instance');
+                elseif impactTime == 1
+                    disp('        WARNING: Unable to Track Particles Impacts for First Time Instance');
+                else
+                    valid = true;
+                end
+                
+            else
+                disp('    WARNING: Invalid Entry');
+            end
+
+        end
+        
+end
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Filter Particle Diameters? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        minD = floor(min(particleData.d{end,1}) * 1e6);
+        maxD = ceil(max(particleData.d{end,1}) * 1e6);
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        minD = inputD('Minimum');
+        maxD = inputD('Maximum');
+
+        if maxD < floor(min(particleData.d{end,1}) * 1e6) || minD > ceil(max(particleData.d{end,1}) * 1e6)
+            disp('        WARNING: No Lagrangian Data in Selected Data Range');
+        elseif maxD < minD
+            disp('        WARNING: Invalid Entry');
+        else
+            valid = true;
+        end
+
+    else
+        disp('    WARNING: Invalid Entry');
     end
 
 end
@@ -113,85 +183,190 @@ while ~valid
     if selection == 'n' | selection == 'N' %#ok<OR2>
         interp = false;
         valid = true;
-        disp(' ');
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         interp = true;
         valid = true;
-        disp(' ');
     else
         disp('    WARNING: Invalid Entry');
-        disp(' ');
     end
 
 end
 
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        minD = round(min(particleData.d{end,1}) * 1e6);
-        maxD = round(max(particleData.d{end,1}) * 1e6);
-        valid = true;
-        disp(' ');
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        minD = inputD('Minimum');
-        maxD = inputD('Maximum');
+disp(' ');
+disp(' ');
 
-        if maxD < round(min(particleData.d{end,1}) * 1e6) || minD > round(max(particleData.d{end,1}) * 1e6)
-            disp('        WARNING: No Lagrangian Data in Selected Data Range');
-            disp(' ');
-        elseif maxD < minD
-            disp('        WARNING: Invalid Entry');
-            disp(' ');
-            else
-            valid = true;
-            disp(' ');
+% Temporary Implementation Control
+if method == 'B' 
+    error('Mapping Location Not Yet Implemented');
+end
+
+
+%% Particle Tracking
+
+disp('PARTICLE TRACKING');
+disp('-----------------');
+
+disp(' ');
+
+disp('Initialising... ');
+
+% Shift Data Origin
+if contains(caseFolder, 'Upstream')
+    xDims = xDims + 1.325;
+    
+    for i = 1:height(particleData.time)
+        particleData.positionCartesian{i,1}(:,1) = particleData.positionCartesian{i,1}(:,1) + 1.325;
+    end
+    
+else
+    % Add Support for Future Configurations
+end
+
+% Set and Normalise Dimensions
+xPre = max(width(extractAfter(num2str(xDims(1), 8), '.')), width(extractAfter(num2str(xDims(2), 8), '.')));
+yPre = max(width(extractAfter(num2str(yDims(1), 8), '.')), width(extractAfter(num2str(yDims(2), 8), '.')));
+zPre = max(width(extractAfter(num2str(zDims(1), 8), '.')), width(extractAfter(num2str(zDims(2), 8), '.')));
+
+if contains(caseFolder, 'Test_Block') || contains(caseFolder, 'Windsor')    
+    xDims = round(xDims / 1.044, xPre);
+    yDims = round(yDims / 1.044, yPre);
+    zDims = round(zDims / 1.044, zPre);
+    
+    switch method
+        
+        case 'A'
+            xLims = round([0.31875; 1.075] / 1.044, xPre);
+            yLims = round([-0.3945; 0.3945] / 1.044, yPre);
+            zLims = round([0; 0.539] / 1.044, zPre);
+            
+        case 'B'
+            % Add Support for Full-Body Tracking
+            
+        case 'C'
+            xLims = round([0.31875; 2.573] / 1.044, xPre);
+            yLims = round([-0.3945; 0.3945] / 1.044, yPre);
+            zLims = round([0; 0.539] / 1.044, zPre);
+            
+    end
+    
+    for i = 1:height(particleData.time)
+        particleData.positionCartesian{i,1}(:,1) = round(particleData.positionCartesian{i,1}(:,1) / 1.044, xPre);
+        particleData.positionCartesian{i,1}(:,2) = round(particleData.positionCartesian{i,1}(:,2) / 1.044, yPre);
+        particleData.positionCartesian{i,1}(:,3) = round(particleData.positionCartesian{i,1}(:,3) / 1.044, zPre);
+    end
+    
+else
+    % Add Support for Future Geometries
+end
+
+% Identify Model Boundaries
+switch method
+    
+    case 'A'
+        part = fieldnames(geometry);
+        for i = 1:height(part)
+
+            if round(max(geometry.(part{i,1}).vertices(:,1)), xPre) == xDims(2)
+                break
+            end
+
+            if i == height(part)
+                disp(' ');
+                error('Mismatch Between ''xDims'' and Geometry Bounding Box')
+            end
+
         end
 
-    else
-        disp('    WARNING: Invalid Entry');
-        disp(' ');
-    end
+        geoPoints = unique(geometry.(part{i,1}).vertices, 'stable', 'rows');
+        index = find(round(geoPoints(:,1), xPre) == xDims(2));
+
+        xDimsBase = xDims(2);
+        yDimsBase = round([min(geoPoints(index,2)); max(geoPoints(index,2))], yPre);
+        zDimsBase = round([min(geoPoints(index,3)); max(geoPoints(index,3))], zPre);
+        
+        
+    case 'B'
+        % Add Support for Full-Body Mapping
 
 end
 
-% Identify Particles of Interest
+disp(' ');
+
+% Identify All Impinging Particles
+disp('Identifying Particles of Interest...');
+
 switch method
-
-    case {'A', 'B'}
-        index = find(~particleData.active{end,1} & (particleData.d{end,1} * 1e6) >= minD & (particleData.d{end,1} * 1e6) <= maxD & round(particleData.positionCartesian{end,1}(:,1),5) == max(xDims));
-
+    
+    case 'A'
+        index = find(~particleData.active{end,1} & ...
+                     (particleData.d{end,1} * 1e6) >= minD & ...
+                     (particleData.d{end,1} * 1e6) <= maxD & ...
+                     particleData.positionCartesian{end,1}(:,1) == xDimsBase & ...
+                     particleData.positionCartesian{end,1}(:,2) >= yDimsBase(1) & ...
+                     particleData.positionCartesian{end,1}(:,2) <= yDimsBase(2) & ...
+                     particleData.positionCartesian{end,1}(:,3) >= zDimsBase(1) & ...
+                     particleData.positionCartesian{end,1}(:,3) <= zDimsBase(2));
+                 
+    case 'B'
+        % Add Support for Full-Body Mapping
+            
     case 'C'
-        index = find(particleData.active{end,1} & (particleData.d{end,1} * 1e6) >= minD & (particleData.d{end,1} * 1e6) <= maxD & particleData.positionCartesian{end,1}(:,1) > 1);
-
+        index = find(~particleData.active{end,1} & ...
+                     (particleData.d{end,1} * 1e6) >= minD & ...
+                     (particleData.d{end,1} * 1e6) <= maxD & ...
+                     particleData.positionCartesian{end,1}(:,1) >= xDims(2) +  1);
+                 
 end
 
-% Collate Particles of Interest
-for i = 1:size(particleProps,1)
+% Collate All Impinging Particles
+for i = 1:height(particleProps)
     prop = particleProps{i,1};
     contaminantData.(prop) = particleData.(prop){end,1}(index,:);
 end
 
+% Identify Particles of Interest
+if exist('impactTime', 'var')
+    index = find(~particleData.active{impactTime,1});
+    impactsCurrent = intersect(horzcat(particleData.origId{impactTime,1}(index,1), particleData.origProcId{impactTime,1}(index,1)), ...
+                      horzcat(contaminantData.origId, contaminantData.origProcId), 'rows', 'stable');
+                  
+    index = find(~particleData.active{(impactTime - 1),1});
+    impactPrevious = intersect(horzcat(particleData.origId{(impactTime - 1),1}(index,1), particleData.origProcId{(impactTime - 1),1}(index,1)), ...
+                      horzcat(contaminantData.origId, contaminantData.origProcId), 'rows', 'stable');
+                  
+    impactsOfInterest = setdiff(impactsCurrent, impactPrevious, 'rows', 'stable');
+    
+    index = find(ismember(horzcat(particleData.origId{end,1}, particleData.origProcId{end,1}), ...
+                 impactsOfInterest, 'rows'));
+             
+    % Collate Particles of Interest
+    clearvars contaminantData impactsCurrent impactsPrevious impactsOfInterest;
+    
+    for i = 1:height(particleProps)
+        prop = particleProps{i,1};
+        contaminantData.(prop) = particleData.(prop){end,1}(index,:);
+    end
+    
+end
+
 disp(' ');
 
+% Limit Tracking Count
 switch method
 
     case {'A', 'B'}
-        disp([num2str(size(contaminantData.active,1)), ' Valid Particles Recorded on Surface']);
+        disp([num2str(height(contaminantData.active)), ' Valid Particles Recorded on Surface']);
 
     case 'C'
-        disp([num2str(size(contaminantData.active,1)), ' Valid Particles Recorded in the Far-Field']);
+        disp([num2str(height(contaminantData.active)), ' Valid Particles Recorded in the Far-Field']);
 
 end
 
-if size(contaminantData.active,1) > 500
+if height(contaminantData.active) > 500
     disp('    WARNING: Tracking a Large Number of Particles Will Be Computationally Expensive and Difficult to Visualise');
     disp('             It Is Recommended to Track No More Than 500 Particles');
 end
-
-disp(' ');
 
 valid = false;
 while ~valid
@@ -199,31 +374,28 @@ while ~valid
     selection = input('Limit Tracking Count? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        count = size(contaminantData.active,1);
+        count = height(contaminantData.active);
         valid = true;
-        disp(' ');
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         count = inputCount();
 
-        if count > size(contaminantData.active,1)
+        if count > height(contaminantData.active)
             disp('    WARNING: Value Exceeds Available Particle Count');
         else
             valid = true;
-            disp(' ');
         end
 
     else
         disp('        WARNING: Invalid Entry');
-        disp(' ');
     end
 
 end
 
 % Select a Random Set of Particles to Track
-if count ~= size(contaminantData.active,1)
-    index = sort(randperm(size(contaminantData.active,1),count))';
+if count ~= height(contaminantData.active)
+    index = sort(randperm(height(contaminantData.active), count))';
 
-    for i = 1:size(particleProps,1)
+    for i = 1:height(particleProps)
         prop = particleProps{i,1};
         contaminantData.(prop) = contaminantData.(prop)(index,:);
     end
@@ -232,248 +404,117 @@ end
 
 disp(' ');
 
-
-%% Tracking
-
-tic;
 disp('***********');
 disp('  Running  ');
+
+tic;
+
 disp(' ');
-disp(['    Tracking ', num2str(size(contaminantData.active,1)), ' Particles']);
 
-trackingData = cell(size(contaminantData.origId,1), size(particleData.origId,1));
+% Perform Tracking
+disp(['    Tracking ', num2str(height(contaminantData.active)), ' Particles']);
 
-for i = 1:size(particleData.time,1)
-    trackingID = intersect(horzcat(particleData.origId{i,1}, particleData.origProcId{i,1}), horzcat(contaminantData.origId, contaminantData.origProcId), 'rows', 'stable');
-    index = find(ismember(horzcat(particleData.origId{i,1}, particleData.origProcId{i,1}), trackingID, 'rows'));
+for i = 1:height(particleData.time)    
+    trackingData.ID = intersect(horzcat(particleData.origId{i,1}, particleData.origProcId{i,1}), horzcat(contaminantData.origId, contaminantData.origProcId), 'rows', 'stable');
+    index = find(ismember(horzcat(particleData.origId{i,1}, particleData.origProcId{i,1}), trackingData.ID, 'rows'));
 
-    for j = 1:size(trackingID,1)
-        trackingData{j,i} = particleData.positionCartesian{i,1}(index(j),:);
+    for j = 1:height(trackingData.ID)
+        trackingData.position{j,i} = particleData.positionCartesian{i,1}(index(j,1),:);
     end
 
 end
 
-switch method
-
-    case 'A'
-        % Figure Setup
-        fig = fig + 1;
-        figure(fig);
-        hold on;
-        set(figure(fig), 'outerPosition', [25, 25, 800, 800], 'name', 'Tracking: Base Contamination');
-        caxis([minD, maxD]);
-        colormap viridis;
-        map = colormap;
-
-        % Plot
-        parts = fieldnames(geometry);
-
-        for i = 1:size(parts,1)
-            part = parts{i,1};
-            patch(geometry.(part), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', [0.5, 0.5, 0.5]);
-        end
-
-        for i = 1:size(trackingData,1)
-            particlePath = unique(cell2mat(trackingData(i,:)'), 'stable', 'rows');
-
-            if size(particlePath,1) == 1
-                continue
-            elseif interp && size(particlePath,1) > 2
-                particlePath = interparc((round(deltaT / 0.001) * size(particlePath,1)), particlePath(:,1), particlePath(:,2), particlePath(:,3), 'spline');
-            end
-
-            x = particlePath(:,1);
-            y = particlePath(:,2);
-            z = particlePath(:,3);
-
-            index = round(1 + (size(map,1) - 1) * ((contaminantData.d(i) * 1e6) - minD) / (maxD - minD));
-
-            plot3(x, y, z, 'color', map(index,:));
-            scatter3(x(end), y(end), z(end), 10, (contaminantData.d(i) * 1e6), 'filled');
-        end
-
-        % Figure Formatting
-        view([45, 15]);
-        axis off
-        set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-                 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top', ...
-                 'dataAspectRatio', [1, 1, 1]);
-        hold off;
-
-        % Save Plot
-        namePos = max(strfind(caseFolder, '/'));
-        savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Base_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)]);
-        print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Base_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)], '-dpng', '-r300');
-
-    case 'B'
-        % Figure Setup
-        fig = fig + 1;
-        figure(fig);
-        hold on;
-        set(figure(fig), 'outerPosition', [25, 25, 800, 800], 'name', 'Tracking: Full-Body Contamination');
-        caxis([minD, maxD]);
-        colormap viridis;
-        map = colormap;
-
-        % Plot
-        parts = fieldnames(geometry);
-
-        for i = 1:size(parts,1)
-            part = parts{i,1};
-            patch(geometry.(part), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', [0.5, 0.5, 0.5]);
-        end
-
-        for i = 1:size(trackingData,1)
-            particlePath = unique(cell2mat(trackingData(i,:)'), 'stable', 'rows');
-
-            if size(particlePath,1) == 1
-                continue
-            elseif interp && size(particlePath,1) > 2
-                particlePath = interparc((round(deltaT / 0.001) * size(particlePath,1)), particlePath(:,1), particlePath(:,2), particlePath(:,3), 'spline');
-            end
-
-            x = particlePath(:,1);
-            y = particlePath(:,2);
-            z = particlePath(:,3);
-
-            index = round(1 + (size(map,1) - 1) * ((contaminantData.d(i) * 1e6) - minD) / (maxD - minD));
-
-            plot3(x, y, z, 'color', map(index,:));
-            scatter3(x(end), y(end), z(end), 10, (contaminantData.d(i) * 1e6), 'filled');
-        end
-
-        % Figure Formatting
-        view([-45, 15]);
-        axis off
-        set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-                 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top', ...
-                 'dataAspectRatio', [1, 1, 1]);
-        hold off;
-
-        % Save Plot
-        namePos = max(strfind(caseFolder, '/'));
-        savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Body_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)]);
-        print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_Body_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)], '-dpng', '-r300');
-
-    case 'C'
-        % Figure Setup
-        fig = fig + 1;
-        figure(fig);
-        hold on;
-        set(figure(fig), 'outerPosition', [25, 25, 800, 800], 'name', 'Tracking: Far-Field Contaminants');
-        caxis([minD, maxD]);
-        colormap viridis;
-        map = colormap;
-
-        % Plot
-        parts = fieldnames(geometry);
-
-        for i = 1:size(parts,1)
-            part = parts{i,1};
-            patch(geometry.(part), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', [0.5, 0.5, 0.5]);
-        end
-
-        for i = 1:size(trackingData,1)
-            particlePath = unique(cell2mat(trackingData(i,:)'), 'stable', 'rows');
-
-            if size(particlePath,1) == 1
-                continue
-            elseif interp && size(particlePath,1) > 2
-                particlePath = interparc((round(deltaT / 0.001) * size(particlePath,1)), particlePath(:,1), particlePath(:,2), particlePath(:,3), 'spline');
-            end
-
-            x = particlePath(:,1);
-            y = particlePath(:,2);
-            z = particlePath(:,3);
-
-            index = round(1 + (size(map,1) - 1) * ((contaminantData.d(i) * 1e6) - minD) / (maxD - minD));
-
-            plot3(x, y, z, 'color', map(index,:));
-            scatter3(x(end), y(end), z(end), 10, (contaminantData.d(i) * 1e6), 'filled');
-        end
-
-        % Figure Formatting
-        view([45, 15]);
-        axis off
-        set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-                 'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top', ...
-                 'dataAspectRatio', [1, 1, 1]);
-        hold off;
-
-        % Save Plot
-        namePos = max(strfind(caseFolder, '/')) + 1;
-        savefig(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)]);
-        print(fig, ['~/MATLAB/Output/Figures/', caseFolder(namePos(end):end), '_Tracking_FF_D', num2str(minD), '_D', num2str(maxD), '_C', num2str(count)], '-dpng', '-r300');
-
+for i = 1:height(trackingData.position)
+    trackingData.path{i,1} = unique(cell2mat(trackingData.position(i,:)'), 'stable', 'rows');
+    
+    if interp && height(trackingData.path{i,1}) >= 3
+        trackingData.path{i,1} = interparc((round(deltaT / 1e-3) * height(trackingData.path{i,1})), ...
+                                           trackingData.path{i,1}(:,1), ...
+                                           trackingData.path{i,1}(:,2), ...
+                                           trackingData.path{i,1}(:,3), 'spline');
+    end
+    
 end
+
+disp(' ');
+
+% Plot Particle Tracks
+disp('    Plotting Particle Tracks');
+
+switch method
+    
+    case 'A'
+        trackingType = 'Base';
+        
+    case 'B'
+        trackingType = 'Body';
+        
+    case 'C'
+        trackingType = 'Far_Field';
+        
+end
+
+if exist('impactTime', 'var')
+    timeInst = erase(num2str(str2double(particleData.time{impactTime,1}), '%.4f'), '.');
+    figName = ['Particle_Tracking', trackingType, '_T', timeInst, '_D', num2str(minD), ...
+               '_D', num2str(maxD), '_C', num2str(count)];
+else
+    figName = ['Particle_Tracking', trackingType, '_D', num2str(minD), '_D', num2str(maxD), ...
+               '_C', num2str(count)];
+end
+
+cMap = viridis(256);
+particlePath = trackingData.path;
+particleD = contaminantData.d;
+figTitle = {' ', ' '};
+
+fig = trackingPlots(fig, figName, cMap, geometry, particlePath, ...
+                    particleD, maxD, minD, figTitle, ...
+                    xLims, yLims, zLims);
+
+disp(' ');
 
 executionTime = toc;
 
+disp(['    Run Time: ', num2str(executionTime), 's']);
 disp(' ');
-disp(['    Tracking Time: ', num2str(executionTime), 's']);
-disp(' ');
-disp('  Success  ');
+disp('  Success  ')
 disp('***********');
 
 disp(' ');
-disp(' ');
-
-
-%% Colour Bar
-
-% Figure Setup
-fig = fig + 1;
-figure('name', 'Colour Bar');
-hold on;
-set(figure(fig), 'outerPosition', [25, 75, 800, 800]);
-
-% Figure Formatting
-caxis([minD, maxD]);
-tickData = min(caxis):((max(caxis) - min(caxis)) / 6):max(caxis);
-axis off;
-colormap viridis;
-c = colorbar('ticks', tickData(2:end-1), 'location', 'south', 'axisLocation', 'out');
-c.Label.String = {' ', 'Particle Diameter (\it{\mum})'};
-set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
-hold off;
-
-% Save Plot
-savefig(fig, ['~/MATLAB/Output/Figures/Colour_Bar_Tracking_D', num2str(minD), '_D', num2str(maxD)]);
-print(fig, ['~/MATLAB/Output/Figures/Colour_Bar_Tracking_D', num2str(minD), '_D', num2str(maxD)], '-dpng', '-r300');
-
-
-%% Data Key
-
-disp('LAGRANGIAN DATA KEY');
-disp('-------------------');
-disp(' ');
-
-disp('ParticleData:');
-disp('    All Recorded Particles');
-disp(' ');
-
-disp('contaminantData:');
-disp('    Particles of Interest');
-disp(' ');
-
-disp('trackingData:');
-disp('    Cartesian Positions of Tracked Particles');
 
 
 %% Cleaning
 
-clearvars -except particleData contaminantData trackingData;
+clearvars -except contaminantData TrackingData impactTime count minD maxD ;
 disp(' ');
 
 
 %% Local Functions
 
+function T = inputTime(time)
+
+    valid = false;
+    while ~valid
+        T = str2double(input('    Impact Time [s]: ', 's'));
+
+        if isnan(T) || length(T) > 1
+            disp('        WARNING: Invalid Entry');
+        else
+            valid = true;
+        end
+
+    end
+    
+    T = find(ismember(time, num2str(T)));
+
+end
+
+
 function D = inputD(type)
 
     valid = false;
     while ~valid
-        disp(' ');
         D = str2double(input(['    ', type, ' Diameter of Interest [', char(956), 'm]: '], 's'));
 
         if isnan(D) || length(D) > 1
@@ -486,15 +527,15 @@ function D = inputD(type)
 
 end
 
+
 function C = inputCount()
 
     valid = false;
     while ~valid
-        disp(' ');
-        C = str2double(input('        Number of Particles to Track: ', 's'));
+        C = str2double(input('    Number of Particles to Track: ', 's'));
 
         if isnan(C) || length(C) > 1
-            disp('            WARNING: Invalid Entry');
+            disp('        WARNING: Invalid Entry');
         else
             valid = true;
         end

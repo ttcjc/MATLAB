@@ -16,10 +16,6 @@ Post-processing of single-phase flow-field data
 
 Functions used throughout CFD Processing
 
-### Graphing
-
-Post-processing of sample data
-
 ### Lagrangian Data Processing
 
 Post-processing of Lagrangian multi-phase particle data

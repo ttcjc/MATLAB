@@ -1,16 +1,15 @@
-%% Case Initialisation v1.2
+%% ParaView Data Initialisation v1.0
 % ----
-% Collates Basic Case Data for Further Processing
+% Collates Basic Case Data for Further Processing of ParaView Exports
 % ----
-% Usage: [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase
-%        'format' -> Required Time Directory Type Stored as String
-%                    'global' or 'PODprobe'
+% Usage: [caseFolder, xDims, yDims, zDims, geometry] = initialisePVdata(field)
+%        'field' -> Desired Field Stored as String
+
 
 %% Changelog
 
 % v1.0 - Initial Commit
-% v1.1 - Added Support for Balance and Upstream Windsor Case Variants
-% v1.1 - Added Support for Global and PODprobe Directory Identification
+
 
 %% Supported Case Types
 
@@ -22,26 +21,42 @@
 
 %% Main Function
 
-function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initialiseCase(format)
+function [caseFolder, data, xDims, yDims, zDims, geometry] = initialisePVdata(field)
 
     disp('CASE SELECTION');
     disp('--------------');
-    
     disp(' ');
 
-    caseFolder = uigetdir('~/OpenFOAM', 'Select Case');
+    caseFolder = uigetdir('~/Documents/Engineering/PhD/Data/Numerical/OpenFOAM', ...
+                          'Select Case');
+
     disp(['Case: ', caseFolder]);
-    
-    disp(' ');
-
-    % Confirm Case Validity and Identify Time Directories
-    [timeDirs, deltaT] = timeDirectories(caseFolder, format);
-    
     disp(' ');
     
     % Confirm Support
     if ~contains(caseFolder, ["Lag_Test", "Test_Block", "Windsor"])
         error('Invalid Case Directory (Unsupported Case Type)');
+    end
+    
+    % Confirm Data Availability
+    dataFiles = dir([caseFolder, '/*.csv']);
+
+    if isempty(dataFiles)
+        error('Invalid Case Directory (No Data Files Available)');
+    end
+
+    j = 1;
+    for i = 1:height(dataFiles)
+
+        if contains(dataFiles(i,1).name, [field, '_'])
+            data.files{j,1} = dataFiles(i,1).name;
+            j = j + 1;
+        end
+
+    end
+
+    if isempty(data.files)
+        error('Invalid Case Directory (No Valid Data Available)');
     end
 
     % Set Dimensions of Interest
@@ -67,7 +82,6 @@ function [caseFolder, xDims, yDims, zDims, timeDirs, deltaT, geometry] = initial
 
     disp('GEOMETRY SELECTION');
     disp('------------------');
-    
     disp(' ');
 
     if contains(caseFolder, 'Lag_Test')

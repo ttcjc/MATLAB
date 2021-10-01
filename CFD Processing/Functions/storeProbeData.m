@@ -2,9 +2,10 @@
 % ----
 % Executes 'PODprobeData.m' Without Further Processing
 % ----
-% Usage: [probeData] = storePODprobeData(caseFolder)
+% Usage: [deltaT, probeData] = storePODprobeData(caseFolder, format)
 %        'caseFolder' -> Case Path Stored as String
 %        'format'     -> Required Time Directory Type Stored as String
+%                        'PODprobe'
 
 
 %% Changelog
@@ -14,11 +15,11 @@
 
 %% Main Function
 
-function [deltaT, probeData] = storePODprobeData(caseFolder, format)
+function [probeData] = storePODprobeData(caseFolder, format)
 
     clc;
 
-    [timeDirs, deltaT] = timeDirectories(caseFolder, format);
+    [timeDirs, ~] = timeDirectories(caseFolder, format);
 
     disp(' ');
     disp(' ');

@@ -67,13 +67,17 @@ if exist(['Output/Files/PODmesh_', caseType, '_', num2str(cellSize * 1e3), 'mm']
 end
 
 
-%% Generate New Mesh
+%% Mesh Generation
 
-tic;
+disp('MESH GENERATION');
+disp('---------------');
+
+disp(' ');
+
 disp('***********');
 disp('  Running  ');
-disp(' ');
-disp('    Generating POD Mesh');
+
+tic;
 
 % Ensure Mesh Includes 'xRange(2)'
 xRange(1) = xRange(2) - (floor((xRange(2) - xRange(1)) / cellSize) * cellSize);
@@ -86,19 +90,26 @@ yRange = [-yLim; yLim];
 zRange(2) = 0.339 + (yRange(2) - 0.1945);
 zRange(1) = zRange(2) - (floor(sum(abs(zRange)) / cellSize) * cellSize);
 
+disp(' ');
+
 % Define Basic Mesh
-[x, y, z] = meshgrid(min(xRange):cellSize:max(xRange), min(yRange):cellSize:max(yRange), min(zRange):cellSize:max(zRange));
+disp('    Generating Initial POD Mesh');
+
+[x, y, z] = meshgrid(min(xRange):cellSize:max(xRange), ...
+                     min(yRange):cellSize:max(yRange), ...
+                     min(zRange):cellSize:max(zRange));
 meshPoints = [x(:), y(:), z(:)];
 
-% Remove Mesh Points Intersecting Geometry
 disp(' ');
+
+% Remove Mesh Points Intersecting Geometry
 disp('    Removing Points Intersecting Geometry');
 
 [file, path] = uigetfile('~/CAD/CFD Geometries/*.stl', 'Select Subject Geometry', 'multiSelect', 'on');
 
 if isa(file, 'cell')
 
-    for i = 1:size(file,2)
+    for i = 1:width(file)
         part = file{1,i}(1:end-4);
         geometry.(part) = stlreader([path, file{1,i}]);
 
@@ -122,22 +133,24 @@ else
     meshPoints(intersect,:) = [];
 end
 
-% Write Mesh
 disp(' ');
+
+% Write Mesh
 disp(['    Writing POD Mesh to ~/MATLAB/Output/Files/PODmesh_', caseType, '_', num2str(cellSize * 1e3), 'mm']);
 
 fileID = fopen(['Output/Files/PODmesh_', caseType, '_', num2str(cellSize * 1e3), 'mm'], 'w');
 formatSpec = '                (%g %g %g)\n';
 
-for i = 1:size(meshPoints,1)
+for i = 1:height(meshPoints)
     fprintf(fileID, formatSpec, meshPoints(i,1), meshPoints(i,2), meshPoints(i,3));
 end
 
 fclose(fileID);
 
+disp(' ');
+
 executionTime = toc;
 
-disp(' ');
 disp(['    Write Time: ', num2str(executionTime), 's']);
 disp(' ');
 disp('  Success  ');
@@ -145,26 +158,28 @@ disp('***********');
 
 % Figure Setup
 fig = fig + 1;
-figure('name', 'POD Volume Probes');
+figName = 'POD_Mesh_Probes';
+set(figure(fig), 'outerPosition', [25, 25, 850, 850], 'name', figName);
+set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+         'fontSize', 18, 'layer', 'top');
 hold on;
-set(figure(fig), 'outerPosition', [25, 25, 800, 800]);
 
 % Plot
 parts = fieldnames(geometry);
 
-for i = 1:size(parts,1)
-    part = parts{i,1};
-    patch(geometry.(part), 'faceColor', [0.5, 0.5, 0.5], 'edgeColor', [0.5, 0.5, 0.5]);
+% Plot
+part = fieldnames(geometry);
+for i = 1:height(part)
+    patch(geometry.(part{i,1}), 'faceColor', [0.5, 0.5, 0.5], ...
+                                'edgeColor', [0.5, 0.5, 0.5], ...
+                                'lineStyle', 'none');
 end
 
 scatter3(meshPoints(:,1), meshPoints(:,2), meshPoints(:,3), 5, [0.21176, 0.06667, 0.38824], 'filled');
 
 % Figure Formatting
 view([45, 15]);
-axis off
-set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top', ...
-         'dataAspectRatio', [1, 1, 1]);
+axis off;
 hold off;
 
 

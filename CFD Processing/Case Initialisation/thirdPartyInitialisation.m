@@ -22,6 +22,7 @@ disp (' ');
 
 disp('CASE SELECTION');
 disp('--------------');
+
 disp(' ');
 
 caseFolderExtract = uigetdir('~/OpenFOAM', 'Extraction Case');
@@ -34,8 +35,9 @@ xDims = [(-9.408 + wallOffset); (9.408 - wallOffset)];
 yDims = [(-0.96 + wallOffset); (0.96 - wallOffset)];
 zDims = [(0 + wallOffset); (1.32 - wallOffset)];
 
-% Confirm Valid Case Directories
 disp(' ');
+
+% Confirm Valid Case Directories
 disp('Analysing Case Structures:');
 
 if ~exist([caseFolderExtract, '/0'], 'dir') && ~exist([caseFolderExtract, '/extractionData/extractionData'], 'file') && ~exist([caseFolderExtract, '/postProcessing/planeSample'], 'dir')
@@ -58,6 +60,7 @@ disp(' ');
 
 disp('EXTRACTION DATA ACQUISITION');
 disp('---------------------------');
+
 disp(' ');
 
 % Particle Data
@@ -72,13 +75,12 @@ else
 end
 
 disp(' ');
-disp(' ');
 
 % Flow Sample Data
 timeDirs = dir([caseFolderExtract, '/postProcessing/planeSample']);
 
 i = 1;
-while i <= size(timeDirs,1)
+while i <= height(timeDirs)
 
     if isnan(str2double(timeDirs(i,1).name))
         timeDirs(i,:) = [];
@@ -103,18 +105,23 @@ disp(' ');
 disp('THIRD-PARTY INITIALISATION');
 disp('--------------------------');
 
+disp(' ');
+
 % Particles Injected Relative to Start of Injection Time
 timeOffsetInjection = inputTime('Injection');
 
 % Third-Party Inlet Flow Variations Start at T = 0 [s]
 timeOffsetFlow = inputTime('Flow Sampling');
 
+disp(' ');
+
 % Particles Injected Upstream of Extraction Point
 planeExtraction = planeInput('Extraction');
 planeInjection = -planeExtraction;
 
-disp(['    Default (Symmetric) Injection Plane [m]: ', num2str(planeInjection)]);
 disp(' ');
+
+disp(['Default (Symmetric) Injection Plane [m]: ', num2str(planeInjection)]);
 
 valid = false;
 while ~valid
@@ -123,12 +130,8 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         valid = true;
-        disp(' ');
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        disp(' ');
         planeInjection = planeInput('Injection');
-        valid = true;
-        disp(' ');
     else
         disp('    WARNING: Invalid Entry');
     end
@@ -150,22 +153,27 @@ extractionData(:,9) = extractionData(:,9) - timeOffsetInjection;
 extractionData(:,1) = extractionData(:,1) - planeOffset;
 
 disp(' ');
+disp(' ');
 
 
 %% Intialisation
 
-tic;
+disp('THIRD-PARTY INITIALISATION');
+disp('--------------------------');
+
+disp(' ');
+
 disp('***********');
 disp('  Running  ');
-disp(' ');
-disp(['    Writing Particle Data to ', caseFolderInject, '/constant/parcelInjectionProperties']);
+
+tic;
 
 % Remove Existing Particle Data
 if exist([caseFolderInject, '/constant/parcelInjectionProperties'], 'file')
     delete([caseFolderInject, '/constant/parcelInjectionProperties']);
 end
 
-fopen([caseFolderInject, '/constant/parcelInjectionProperties'], 'w');
+fileID = fopen([caseFolderInject, '/constant/parcelInjectionProperties'], 'w');
 
 % OpenFOAM Header
 fprintf(fileID, '%s\n', '/*--------------------------------*- C++ -*----------------------------------*\');
@@ -188,12 +196,15 @@ fprintf(fileID, '%s\n', ' ');
 fprintf(fileID, '%s\n', '    // (x y z) (Ux Uy Uz) d rho mDot particleCount injectionTime');
 fprintf(fileID, '%s\n', '(');
 
+disp(' ');
+
 % Write Particle Data
+disp(['    Writing Particle Data to ', caseFolderInject, '/constant/parcelInjectionProperties']);
 rho = 1000;
 mDot = 1;
 formatSpec = '    (%g %g %g) (%g %g %g) %g %g %g %g %g\n';
 
-for i = 1:size(extractionData,1)
+for i = 1:height(extractionData)
     fprintf(fileID, formatSpec, extractionData(i,1), extractionData(i,2), extractionData(i,3), extractionData(i,4), extractionData(i,5), extractionData(i,6), extractionData(i,7), rho, mDot, extractionData(i,8), extractionData(i,9));
 end
 
@@ -201,9 +212,6 @@ end
 fprintf(fileID, '%s\n', ');');
 fprintf(fileID, '%s\n', ' ');
 fprintf(fileID, '%s\n', '// ************************************************************************* //');
-
-disp(' ');
-disp(['    Copying Flow Samples to', caseFolderInject, '/constant/boundaryData/inlet']);
 
 % Remove Existing Sample Data
 if ~exist([caseFolderInject, '/constant/boundaryData/inlet'], 'dir')
@@ -213,10 +221,14 @@ else
     mkdir([caseFolderInject, '/constant/boundaryData/inlet']);
 end
 
+disp(' ');
+
 % Copy Sample Data
+disp(['    Copying Flow Samples to', caseFolderInject, '/constant/boundaryData/inlet']);
+
 copyfile([caseFolderExtract, '/postProcessing/planeSample/', timeDirs(1,1).name, '/thirdPartyExtraction/faceCentres'], [caseFolderInject, '/constant/boundaryData/inlet/points']);
 
-for i = 1:size(timeDirs,1)
+for i = 1:height(timeDirs)
     inletTime = num2str(str2double(timeDirs(i,1).name) - timeOffsetFlow);
 
     mkdir([caseFolderInject, '/constant/boundaryData/inlet/', inletTime]);
@@ -228,6 +240,7 @@ end
 executionTime = toc;
 
 disp(' ');
+
 disp(['    Initialisation Time: ', num2str(executionTime), 's']);
 disp(' ');
 disp('  Success  ');
@@ -246,16 +259,12 @@ function T = inputTime(type)
 
     valid = false;
     while ~valid
-        disp(' ');
         T = str2double(input(['Enter Extraction Case ', type, ' Start Time [s]: '], 's'));
 
-        if isnan(T)
-            disp('    WARNING: Invalid Time Entry');
-        elseif length(T) > 1
+        if isnan(T) || length(T) > 1
             disp('    WARNING: Invalid Time Entry');
         else
             valid = true;
-            disp(' ');
         end
 
     end
@@ -266,7 +275,6 @@ function P = planeInput(type)
 
     valid = false;
     while ~valid
-        disp(' ');
         P = str2double(input(['Enter x-Coordinate of ', type, ' Plane [m]: '], 's'));
 
         if isnan(P) || length(P) > 1

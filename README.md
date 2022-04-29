@@ -2,7 +2,7 @@
 
 MATLAB files providing pre- and post-processing functionality to Lagrangian multi-phase simulations in OpenFOAM v7. Used to support research into automotive surface contamination at Loughborough University
 
-## CFD Processing
+## PhD
 
 ### Case Initialisation
 
@@ -16,13 +16,13 @@ Post-processing of single-phase flow-field data
 
 Functions used throughout CFD Processing
 
-### Lagrangian Data Processing
+### Lagrangian Particle Processing
 
 Post-processing of Lagrangian multi-phase particle data
 
-## General
+## Miscellaneous
 
 ### Functions
 
-General purposes functions providing additional functionality to MATLAB
+General purpose functions providing additional functionality to MATLAB
 

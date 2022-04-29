@@ -1,8 +1,8 @@
-%% Probe Data Reader v.1.2
+%% Probe Data Reader v1.2
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Probe Data Generated using 'PODmeshGenerator.m'
 % ----
-% Usage: [data] = readProbeData(caseFolder, timeDirs, field, nProc);
+% Usage: data = readProbeData(caseFolder, timeDirs, field, nProc);
 %        'caseFolder' -> Case Path Stored as String
 %        'timeDirs'   -> Time Directories Identified Using 'timeDirectories.m'
 %        'field'      -> Desired Field Stored as String
@@ -30,7 +30,7 @@
 
 %% Main Function
 
-function [data] = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
+function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -235,12 +235,20 @@ function [data] = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
             if ~exist(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType], 'dir')
                 mkdir(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType]);
             end
-            
+
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType]);
+            end
+
             startInst = erase(num2str(str2double(timeDirs(1).name), '%.4f'), '.');
             endInst = erase(num2str(str2double(timeDirs(end).name), '%.4f'), '.');
             
             save(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat'], 'data', '-v7.3', '-noCompression');
             disp(['    Saved to: ~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+            
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat'], 'data', '-v7.3', '-noCompression');
+            disp(['    Saved to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+            
             valid = true;
         else
             disp('    WARNING: Invalid Entry');

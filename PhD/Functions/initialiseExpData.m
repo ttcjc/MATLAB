@@ -2,8 +2,7 @@
 % ----
 % Initialisation of OpenFOAM v7 Probe Data for Further Processing
 % ----
-% Usage: [data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise);
-%        'campaign'  -> Experimental Campaign Stored as String
+% Usage: [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise);
 %        'field'     -> Desired Field Stored as String
 %        'normalise' -> Normalise Geometry Dimensions [True/False]
 
@@ -26,7 +25,7 @@
 
 %% Main Function
 
-function [data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise)
+function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise)
 
     % Select Case
     disp('Case Selection');

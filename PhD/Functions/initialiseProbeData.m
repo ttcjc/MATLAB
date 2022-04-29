@@ -73,7 +73,7 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            [data] = readProbeData(caseFolder, timeDirs, field, nProc);
+            data = readProbeData(caseFolder, timeDirs, field, nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/*.*'], ...

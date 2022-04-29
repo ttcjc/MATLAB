@@ -176,7 +176,7 @@ switch format
         disp('    Adhering Mesh to Base Boundaries...');
         
         basePerim = boundary(basePoints(:,2), basePoints(:,3), 1);
-        basePerim = [basePoints(basePerim,1), basePoints(basePerim,2), basePoints(basePerim,3)];
+        basePerim = basePoints(basePerim,:);
         
         [indexA, indexB] = inpolygon(meshPoints(:,2), meshPoints(:,3), basePerim(:,2), basePerim(:,3));
         meshPoints = meshPoints([indexA, indexB],:);
@@ -285,7 +285,7 @@ set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
          'fontSize', 20, 'layer', 'top');
 hold on;
 
-% Plot
+% Figure Plotting
 parts = fieldnames(geometry);
 
 for i = 1:height(parts)

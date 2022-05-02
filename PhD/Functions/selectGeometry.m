@@ -48,9 +48,9 @@ function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
 
     disp (' ');
 
-    disp('Defining Bounding Box...');
-
-    % Define Bounding Box
+    disp('Defining Geometry Boundaries...');
+    
+    % Define Generic Bounding Box
     if contains(path, 'Run_Test')
         xDims = [-1.88575; -0.84175];
         yDims = [-0.1945; 0.1945];
@@ -65,7 +65,36 @@ function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
         zDims = [0.05; 0.339];
     else
         error('Invalid Geometry (Unsupported Case Type)');
+    end
 
+    % Define Exact Geometric Boundaries
+    parts = fieldnames(geometry);
+
+    for i = 1:height(parts)
+        geometry.(parts{i}).boundaries.X = cell(height(parts),1);
+        geometry.(parts{i}).boundaries.Y = geometry.(parts{i}).boundaries.X;
+        geometry.(parts{i}).boundaries.Z = geometry.(parts{i}).boundaries.X;
+
+        geoPoints = geometry.(parts{i}).vertices;
+
+        % 3D Boundaries
+        index = boundary(geoPoints(:,1), geoPoints(:,2), geoPoints(:,3), 1);
+        geoPoints = geoPoints(index,:);
+
+        % X Boundaries
+        index = boundary(geoPoints(:,2), geoPoints(:,3), 0);
+        geometry.(parts{i}).boundaries.X = nan(height(index),3);
+        geometry.(parts{i}).boundaries.X(:,[2,3]) = geoPoints(index,[2,3]);
+
+        % Y Boundaries
+        index = boundary(geoPoints(:,1), geoPoints(:,3), 0);
+        geometry.(parts{i}).boundaries.Y = nan(height(index),3);
+        geometry.(parts{i}).boundaries.Y(:,[1,3]) = geoPoints(index,[1,3]);
+
+        % Z Boundaries
+        index = boundary(geoPoints(:,1), geoPoints(:,2), 0);
+        geometry.(parts{i}).boundaries.Z = nan(height(index),3);
+        geometry.(parts{i}).boundaries.Z(:,[1,2]) = geoPoints(index,[1,2]);
     end
     
     % Define Rounding Precision and Normalise Dimensions
@@ -85,10 +114,11 @@ function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
             yDims = round(yDims / 1.044, precision);
             zDims = round(zDims / 1.044, precision);
 
-            parts = fieldnames(geometry);
-
             for i = 1:height(parts)
                 geometry.(parts{i}).vertices = round(geometry.(parts{i}).vertices / 1.044, precision);
+                geometry.(parts{i}).boundaries.X(:,[2,3]) = round(geometry.(parts{i}).boundaries.X(:,[2,3]) / 1.044, precision);
+                geometry.(parts{i}).boundaries.Y(:,[1,3]) = round(geometry.(parts{i}).boundaries.Y(:,[1,3]) / 1.044, precision);
+                geometry.(parts{i}).boundaries.Z(:,[1,2]) = round(geometry.(parts{i}).boundaries.Z(:,[1,2]) / 1.044, precision);
             end
 
         else

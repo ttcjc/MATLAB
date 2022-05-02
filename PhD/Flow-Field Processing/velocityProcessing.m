@@ -88,8 +88,8 @@ switch format
         if contains(caseFolder, ["Run_Test", "Windsor"]) && contains(caseFolder, 'Upstream')
             
             for i = 1:height(planes)
-                data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + 1.325;
-                data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + 1.325;
+                data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round(1.325 / 1.044, precision);
+                data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
             end
             
         end
@@ -201,7 +201,7 @@ for i = plotPlanes
     planeOrientation = data.(planes{i}).planeOrientation;
     caseType = 'Windsor';
     normalise = true;
-    precision = precision;
+%     precision = precision;
     xLimsData = [min(data.(planes{i}).position(:,1)); max(data.(planes{i}).position(:,1))];
     yLimsData = [min(data.(planes{i}).position(:,2)); max(data.(planes{i}).position(:,2))];
     zLimsData = [min(data.(planes{i}).position(:,3)); max(data.(planes{i}).position(:,3))];
@@ -210,19 +210,19 @@ for i = plotPlanes
     vectorData = [data.(planes{i}).u, data.(planes{i}).v, data.(planes{i}).w];
     nComponents = 3;
     component = [];
-    modelOutline = [];
-    geometry = geometry;
-    fig = fig;
-    figName = 'Test';
+%     geometry = geometry;
+%     fig = fig;
+    figName = planes{i};
     cMap = viridis(24);
     streamlines = true;
-    figTitle = 'Test';
+    plotOutline = true;
+    figTitle = ' ';
     cLims = [0, 1];
     
     fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
-                           xLimsData, yLimsData, zLimsData, planePosition, positionData, vectorData, ...
-                           nComponents, component, modelOutline, geometry, fig, figName, ...
-                           cMap, streamlines, figTitle, cLims);
+                      xLimsData, yLimsData, zLimsData, planePosition, positionData, vectorData, ...
+                      nComponents, component, geometry, fig, figName, ...
+                      cMap, streamlines, plotOutline, figTitle, cLims);
 end    
     
 

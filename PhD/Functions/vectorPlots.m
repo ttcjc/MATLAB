@@ -17,8 +17,8 @@
 
 function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                            xLimsData, yLimsData, zLimsData, planePosition, positionData, vectorData, ...
-                           nComponents, component, modelOutline, geometry, fig, figName, ...
-                           cMap, streamlines, figTitle, cLims)
+                           nComponents, component, geometry, fig, figName, ...
+                           cMap, streamlines, plotOutline, figTitle, cLims)
     
     cellSize = 1e-3; % [m or l]
     
@@ -38,12 +38,12 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                     xLimsPlot(2) = ceil(xLimsPlot(2) / 0.05) * 0.05;
                     
                     yLimsPlot = round(yLimsPlot / 1.044, precision);
-                    yLimsPlot(1) = floor(yLimsPlot(1) / 0.05) * 0.05;
-                    yLimsPlot(2) = ceil(yLimsPlot(2) / 0.05) * 0.05;
+                    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
+                    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
 
                     zLimsPlot = round(zLimsPlot / 1.044, precision);
-                    zLimsPlot(1) = floor(zLimsPlot(1) / 0.05) * 0.05;
-                    zLimsPlot(2) = ceil(zLimsPlot(2) / 0.05) * 0.05;
+                    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
+                    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
                 end
                 
             end
@@ -87,37 +87,6 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                 error('Invalid Number of Vector Components');
             end
             
-%             if modelOutline
-%                 % Identify Model Outline
-%                 parts = fieldnames(geometry);
-%                 
-%                 boundingGeometries = 1:height(parts);
-%                 
-%                 i = 1;
-%                 while i <= height(parts)
-%                     
-%                     if ~any(round(geometry.(parts{i}).vertices(:,1), precision) == xLimsPlot(1), 'all')
-%                         boundingGeometries(i) = [];
-%                     else
-%                         i = i + 1;
-%                     end
-%                     
-%                 end
-%                 
-%                 geoPoints = [];
-%                 
-%                 for i = boundingGeometries
-%                     geoPoints = vertcat(geoPoints, geometry.(parts{i}).vertices); %#ok<AGROW>
-%                 end
-%                 
-%                 geoPoints = geoPoints((round(geoPoints(:,1), precision) == xLimsPlot(1)),:);
-%                 
-%                 modelOutline = boundary(geoPoints(:,2), geoPoints(:,3), 1);
-%                 modelOutline = geoPoints(modelOutline,:);
-%             else
-%                 modelOutline = [];
-%             end
-            
         case 'Y'
             
         case 'Z'
@@ -140,23 +109,33 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             parts = fieldnames(geometry);
 
             for i = 1:height(parts)
-                patch(geometry.(parts{i}), 'faceColor', ([128, 128, 128] / 255), ...
-                                           'edgeColor', ([128, 128, 128] / 255), ...
-                                           'lineStyle', 'none');
+                patch('faces', geometry.(parts{i}).faces, ...
+                      'vertices', geometry.(parts{i}).vertices, ...
+                      'faceColor', ([128, 128, 128] / 255), ...
+                      'edgeColor', ([128, 128, 128] / 255), ...
+                      'lineStyle', 'none');
             end
             
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-            
-            if streamlines
+             
+             if streamlines
                 streams = streamslice(x, y, z, zeros(size(x)), v, w, planePosition, [], [], ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
-            end
+             end
             
-            if ~isempty(modelOutline)
-                plot3(modelOutline(:,1), modelOutline(:,2), modelOutline(:,3), ...
-                      'color', 'w', 'lineStyle', '-', 'lineWidth', 1.25);
+            if plotOutline
+
+                for i = 1:height(parts)
+                    geometry.(parts{i}).boundaries.X(:,1) = planePosition;
+
+                    plot3(geometry.(parts{i}).boundaries.X(:,1), ...
+                          geometry.(parts{i}).boundaries.X(:,2), ...
+                          geometry.(parts{i}).boundaries.X(:,3), ...
+                          'color', ([230, 0, 126] / 255), 'lineStyle', '-', 'lineWidth', 1.5);
+                end
+
             end
             
             % Figure Formatting
@@ -176,9 +155,9 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             yticks(tickData(2:end-1));
             tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
             zticks(tickData(2:end-1));
-            xtickformat('%+.3f');
-            ytickformat('%+.3f');
-            ztickformat('%+.3f');
+            xtickformat('%+.2f');
+            ytickformat('%+.2f');
+            ztickformat('%+.2f');
             xT = xlabel([]);
             yT = ylabel('y_{\it{l}}');
             zT = zlabel('z_{\it{l}}');

@@ -4,7 +4,7 @@
 % ----
 % Usage: [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialiseProbeData(field, normalise, nProc);
 %        'field'     -> Desired Field Stored as String
-%        'normalise' -> Normalise Geometry Dimensions [True/False]
+%        'normalise' -> Normalise Dimensions [True/False]
 %        'nProc'      -> Number of Processors Used for Parallel Collation
 
 

@@ -102,24 +102,6 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
 
         end
         
-%         % Adjust for Small Values
-%         data.(plane).position(abs(data.(plane).position) < 1e-9) = 0;
-        
-        % Remove Duplicate Entries
-        [data.(plane).position, index] = unique(data.(plane).position, 'rows', 'stable');
-
-        switch field
-
-            case 'p'
-                data.(plane).p = data.(plane).p(index);
-
-            case 'U'
-                data.(plane).u = data.(plane).u(index);
-                data.(plane).v = data.(plane).v(index);
-                data.(plane).w = data.(plane).w(index);
-
-        end
-        
         % Check for Unwanted Planar Deviations
         uniqueX = unique(data.(plane).position(:,1));
         uniqueY = unique(data.(plane).position(:,2));
@@ -186,6 +168,26 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
 
             end
 
+        end
+        
+    end
+    
+    % Remove Duplicate Entries
+    for i = 1:height(dataFiles)
+        plane = dataFiles(i).name(1:(end - 4));
+        
+        [data.(plane).position, index] = unique(data.(plane).position, 'rows', 'stable');
+        
+        switch field
+            
+            case 'p'
+                data.(plane).p = data.(plane).p(index);
+
+            case 'U'
+                data.(plane).u = data.(plane).u(index);
+                data.(plane).v = data.(plane).v(index);
+                data.(plane).w = data.(plane).w(index);
+        
         end
         
     end

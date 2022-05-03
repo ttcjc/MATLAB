@@ -2,7 +2,28 @@
 % ----
 % Plots Previously Processed Vector Fields
 % ----
-% Usage: fig = vectorPlots();
+% Usage: fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
+%                          xLims, yLims, zLims, planePosition, positionData, vectorData, ...
+%                          nComponents, component, geometry, fig, figName, ...
+%                          cMap, streamlines, xDims, yDims, zDims, figTitle, cLims);
+%        'planeOrientation' -> ['X', 'Y', 'Z']
+%        'caseType'         -> Case Format for Setting Figure Limits
+%        'normalise'        -> Normalise Dimensions [True/False]
+%        'precision'        -> Rounding Precision
+%        '*Lims'            -> Contour Plot Limits
+%        'planePosition'    -> Cartesian Position in 'planeOrientation' Direction
+%        'positionData'     -> Cartesian Positions of Data Points
+%        'vectorData'       -> Three-Components of Vector @ 'positionData' Points
+%        'nComponents'      -> Number of Components Included in Contour
+%        'component'        -> Which Component(s) to Include, ['u', 'v', 'w']
+%        'geometry'         -> STL to Include in Plot
+%        'fig'              -> Figure Number
+%        'figName'          -> Figure Name
+%        'cMap'             -> Colour Map
+%        'streamlines'      -> Include Streamlines [True/False]
+%        '*Dims'            -> Simple Bounding Box of Geometry
+%        'figTitle'         -> Figure Title
+%        'cLims'            -> Colour Map Limits
 
 
 %% Changelog
@@ -10,13 +31,10 @@
 % v1.0 - Initial Commit
 
 
-%% Supported Fields
-
-
 %% Main Function
 
 function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
-                           xLimsData, yLimsData, zLimsData, planePosition, positionData, vectorData, ...
+                           xLims, yLims, zLims, planePosition, positionData, vectorData, ...
                            nComponents, component, geometry, fig, figName, ...
                            cMap, streamlines, xDims, yDims, zDims, figTitle, cLims)
     
@@ -27,39 +45,39 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
         
         case 'X'
             % Set Plot Limits and Normalise
-            if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 3.61525]; % [m]
-                yLimsPlot = [-0.4945; 0.4945];
-                zLimsPlot = [0; 0.639];
+            if isempty(xLims)
                 
-                if normalise
-                    xLimsPlot = round(xLimsPlot / 1.044, precision);
-                    xLimsPlot(1) = floor(xLimsPlot(1) / 0.05) * 0.05;
-                    xLimsPlot(2) = ceil(xLimsPlot(2) / 0.05) * 0.05;
-                    
-                    yLimsPlot = round(yLimsPlot / 1.044, precision);
-                    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
-                    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
+                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
+                    xLims = [0.31875; 3.61525]; % [m]
+                    yLims = [-0.4945; 0.4945];
+                    zLims = [0; 0.639];
 
-                    zLimsPlot = round(zLimsPlot / 1.044, precision);
-                    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
-                    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
+                    if normalise
+                        xLims = round(xLims / 1.044, precision);
+                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
+                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
+
+                        yLims = round(yLims / 1.044, precision);
+                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
+                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
+
+                        zLims = round(zLims / 1.044, precision);
+                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
+                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
+                    end
+
                 end
                 
             end
-
-            xLimsData = xLimsPlot;
-            yLimsData = yLimsPlot;
-            zLimsData = zLimsPlot;
             
             % Generate Gridded Data
             cellSizeX = cellSize;
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
+            cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
+            cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
             
             [x, y, z] = meshgrid((planePosition - cellSizeX):cellSizeX:(planePosition + cellSizeX), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+                                 yLims(1):cellSizeY:yLims(2), ...
+                                 zLims(1):cellSizeZ:zLims(2));
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'linear');
@@ -93,39 +111,39 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             
         case 'Y'
             % Set Plot Limits and Normalise
-            if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 1.075]; % [m]
-                yLimsPlot = [-0.3445; 0.3445];
-                zLimsPlot = [0; 0.489];
+            if isempty(xLims)
                 
-                if normalise
-                    xLimsPlot = round(xLimsPlot / 1.044, precision);
-                    xLimsPlot(1) = floor(xLimsPlot(1) / 0.05) * 0.05;
-                    xLimsPlot(2) = ceil(xLimsPlot(2) / 0.05) * 0.05;
-                    
-                    yLimsPlot = round(yLimsPlot / 1.044, precision);
-                    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
-                    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
+                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
+                    xLims = [0.31875; 1.075]; % [m]
+                    yLims = [-0.3445; 0.3445];
+                    zLims = [0; 0.489];
 
-                    zLimsPlot = round(zLimsPlot / 1.044, precision);
-                    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
-                    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
+                    if normalise
+                        xLims = round(xLims / 1.044, precision);
+                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
+                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
+
+                        yLims = round(yLims / 1.044, precision);
+                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
+                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
+
+                        zLims = round(zLims / 1.044, precision);
+                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
+                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
+                    end
+
                 end
                 
             end
-
-            xLimsData = xLimsPlot;
-            yLimsData = yLimsPlot;
-            zLimsData = zLimsPlot;
             
             % Generate Gridded Data
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
+            cellSizeX = (xLims(2) - xLims(1)) / round((xLims(2) - xLims(1)) / cellSize);
             cellSizeY = cellSize;
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
+            cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
             
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+            [x, y, z] = meshgrid(xLims(1):cellSizeX:xLims(2), ...
                                  (planePosition - cellSizeY):cellSizeY:(planePosition + cellSizeY), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+                                 zLims(1):cellSizeZ:zLims(2));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'linear');
@@ -159,38 +177,38 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             
         case 'Z'
             % Set Plot Limits and Normalise
-            if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 1.075]; % [m]
-                yLimsPlot = [-0.3445; 0.3445];
-                zLimsPlot = [0; 0.489];
+            if isempty(xLims)
                 
-                if normalise
-                    xLimsPlot = round(xLimsPlot / 1.044, precision);
-                    xLimsPlot(1) = floor(xLimsPlot(1) / 0.05) * 0.05;
-                    xLimsPlot(2) = ceil(xLimsPlot(2) / 0.05) * 0.05;
-                    
-                    yLimsPlot = round(yLimsPlot / 1.044, precision);
-                    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
-                    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
+                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
+                    xLims = [0.31875; 1.075]; % [m]
+                    yLims = [-0.3445; 0.3445];
+                    zLims = [0; 0.489];
 
-                    zLimsPlot = round(zLimsPlot / 1.044, precision);
-                    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
-                    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
+                    if normalise
+                        xLims = round(xLims / 1.044, precision);
+                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
+                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
+
+                        yLims = round(yLims / 1.044, precision);
+                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
+                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
+
+                        zLims = round(zLims / 1.044, precision);
+                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
+                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
+                    end
+
                 end
                 
             end
-
-            xLimsData = xLimsPlot;
-            yLimsData = yLimsPlot;
-            zLimsData = zLimsPlot;
             
             % Generate Gridded Data
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
+            cellSizeX = (xLims(2) - xLims(1)) / round((xLims(2) - xLims(1)) / cellSize);
+            cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
             cellSizeZ = cellSize;
             
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
+            [x, y, z] = meshgrid(xLims(1):cellSizeX:xLims(2), ...
+                                 yLims(1):cellSizeY:yLims(2), ...
                                  (planePosition - cellSizeZ):cellSizeZ:(planePosition + cellSizeZ));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,1), ...
@@ -278,14 +296,14 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([90, 0]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
+            xlim([xLims(1), xLims(2)]);
+            ylim([yLims(1), yLims(2)]);
+            zlim([zLims(1), zLims(2)]);
             tickData = [];
             xticks(tickData);
-            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
+            tickData = yLims(1):((yLims(2) - yLims(1)) / 5):yLims(2);
             yticks(tickData(2:end-1));
-            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
+            tickData = zLims(1):((zLims(2) - zLims(1)) / 5):zLims(2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
@@ -299,6 +317,7 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             hold off;
             
             pause(2);
+            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
             
         case 'Y'
             % Figure Setup
@@ -350,14 +369,14 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([0, 0]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
+            xlim([xLims(1), xLims(2)]);
+            ylim([yLims(1), yLims(2)]);
+            zlim([zLims(1), zLims(2)]);
+            tickData = xLims(1):((xLims(2) - xLims(1)) / 5):xLims(2);
             xticks(tickData(2:end-1));
             tickData = [];
             yticks(tickData);
-            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
+            tickData = zLims(1):((zLims(2) - zLims(1)) / 5):zLims(2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
@@ -371,6 +390,7 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             hold off;
             
             pause(2);
+            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
         case 'Z'
             % Figure Setup
@@ -422,12 +442,12 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([0, 90]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
+            xlim([xLims(1), xLims(2)]);
+            ylim([yLims(1), yLims(2)]);
+            zlim([zLims(1), zLims(2)]);
+            tickData = xLims(1):((xLims(2) - xLims(1)) / 5):xLims(2);
             xticks(tickData(2:end-1));
-            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
+            tickData = yLims(1):((yLims(2) - yLims(1)) / 5):yLims(2);
             yticks(tickData(2:end-1));
             tickData = [];
             zticks(tickData);
@@ -443,5 +463,6 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             hold off;
             
             pause(2);
+            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
     
     end       

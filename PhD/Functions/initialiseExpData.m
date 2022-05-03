@@ -4,7 +4,7 @@
 % ----
 % Usage: [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise);
 %        'field'     -> Desired Field Stored as String
-%        'normalise' -> Normalise Geometry Dimensions [True/False]
+%        'normalise' -> Normalise Dimensions [True/False]
 
 
 %% Changelog

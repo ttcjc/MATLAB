@@ -89,7 +89,11 @@ switch format
             
             for i = 1:height(planes)
                 data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round(1.325 / 1.044, precision);
-                data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
+
+                if strcmp(data.(planes{i}).planeOrientation, 'X')
+                    data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
+                end
+
             end
             
         end
@@ -215,14 +219,16 @@ for i = plotPlanes
     figName = planes{i};
     cMap = viridis(24);
     streamlines = true;
-    plotOutline = true;
+%     xDims = xDims;
+%     yDims = yDims;
+%     zDims = zDims;
     figTitle = ' ';
     cLims = [0, 1];
     
     fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                       xLimsData, yLimsData, zLimsData, planePosition, positionData, vectorData, ...
                       nComponents, component, geometry, fig, figName, ...
-                      cMap, streamlines, plotOutline, figTitle, cLims);
+                      cMap, streamlines, xDims, yDims, zDims, figTitle, cLims);
 end    
     
 

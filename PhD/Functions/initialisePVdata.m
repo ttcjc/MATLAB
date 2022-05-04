@@ -90,15 +90,15 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
                 data.(plane).position(:,1) = content(:,1);
                 data.(plane).position(:,2) = content(:,2);
                 data.(plane).position(:,3) = content(:,3);
-                data.(plane).p = content(:,4);
+                data.(plane).pMean = content(:,4);
 
             case 'U'
                 data.(plane).position(:,1) = content(:,1);
                 data.(plane).position(:,2) = content(:,2);
                 data.(plane).position(:,3) = content(:,3);
-                data.(plane).u = content(:,4);
-                data.(plane).v = content(:,5);
-                data.(plane).w = content(:,6);
+                data.(plane).uMean = content(:,4);
+                data.(plane).vMean = content(:,5);
+                data.(plane).wMean = content(:,6);
 
         end
         
@@ -181,15 +181,18 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         switch field
             
             case 'p'
-                data.(plane).p = data.(plane).p(index);
+                data.(plane).pMean = data.(plane).pMean(index);
 
             case 'U'
-                data.(plane).u = data.(plane).u(index);
-                data.(plane).v = data.(plane).v(index);
-                data.(plane).w = data.(plane).w(index);
+                data.(plane).uMean = data.(plane).uMean(index);
+                data.(plane).vMean = data.(plane).vMean(index);
+                data.(plane).wMean = data.(plane).wMean(index);
         
         end
         
+        data.(plane) = orderfields(data.(plane));
     end
+    
+    data = orderfields(data);
 
 end

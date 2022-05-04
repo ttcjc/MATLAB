@@ -111,22 +111,16 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                         data.(testID).position(:,2) = content.xyz(4).values(:,2) / 1000;
                         data.(testID).position(:,3) = content.xyz(4).values(:,3) / 1000;
                         
-                        data.(testID).position(:,1) = data.(testID).position(:,1) + (0.48325 - min(data.(testID).position(:,1))); % Adjust Origin
-
                         data.(testID).CpMean = content.Cpmean(4).values;
                         data.(testID).CpRMS = content.Cprms(4).values;
 
                         data.(testID).planeOrientation = 'X';
-                        data.(testID).planePosition = data.(testID).position(1,1);
-        
+                    
                     case 'U'
                         data.(testID).position(:,1) = content.x.values(:) / 1000;
                         data.(testID).position(:,2) = content.y.values(:) / 1000;
                         data.(testID).position(:,3) = content.z.values(:) / 1000;
                         
-                        data.(testID).position(:,1) = data.(testID).position(:,1) + (0.48325 - min(data.(testID).position(:,1))); % Adjust Origin
-                        data.(testID).position(:,3) = data.(testID).position(:,3) + (0.029 - min(data.(testID).position(:,3)));
-
                         if contains(testID, '_x')
                             data.(testID).uMean = double(content.Vx_mean.values(:));
                             data.(testID).vMean = double(content.Vy_mean.values(:));
@@ -136,10 +130,10 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).wRMS = double(content.Vz_std.values(:));
 
                             data.(testID).planeOrientation = 'X';
-                            data.(testID).planePosition = str2double([testID(end - 4), '.', testID((end - 3):end)]);
+                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
                             data.(testID).position(:,1) = data.(testID).planePosition;
                         elseif contains(testID, '_y')
-                            data.(testID).uMean = double(content.Vx_mean.values(:));
+                            data.(testID).uMean = double(-content.Vx_mean.values(:));
                             data.(testID).vMean = nan(height(data.(testID).position),1);
                             data.(testID).wMean = double(content.Vz_mean.values(:));
                             data.(testID).uRMS = double(content.Vx_std.values(:));
@@ -147,7 +141,8 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).wRMS = double(content.Vz_std.values(:));
 
                             data.(testID).planeOrientation = 'Y';
-                            data.(testID).planePosition = str2double([testID(end - 4), '.', testID((end - 3):end)]);
+                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
+                            data.(testID).position(:,1) = -data.(testID).position(:,1);
                             data.(testID).position(:,2) = data.(testID).planePosition;
                         elseif contains(testID, '_z')
                             data.(testID).uMean = double(content.Vx_mean.values(:));
@@ -158,7 +153,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).wRMS = nan(height(data.(testID).position),1);
 
                             data.(testID).planeOrientation = 'Z';
-                            data.(testID).planePosition = str2double([testID(end - 4), '.', testID((end - 3):end)]);
+                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
                             data.(testID).position(:,3) = data.(testID).planePosition;
                         else
                             error('Invalid Test File (No Orientation Information Available)');
@@ -227,7 +222,30 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                 end
 
         end
+        
+        % Adjust Data Origin
+        switch campaign
 
+            case 'Varney'
+                
+                switch field
+
+                    case 'p'
+                        data.(testID).position(:,1) = data.(testID).position(:,1) + ...
+                                                      (0.48325 - min(data.(testID).position(:,1)));
+                                                  
+                        data.(testID).planePosition = data.(testID).position(1,1);
+
+                    case 'U'
+                        data.(testID).position(:,1) = data.(testID).position(:,1) + ...
+                                                      (0.48325 - min(data.(testID).position(:,1)));
+                        data.(testID).position(:,3) = data.(testID).position(:,3) + ...
+                                                      (0.029 - min(data.(testID).position(:,3)));
+
+                end
+
+        end
+        
     end
 
     disp(' ');
@@ -237,9 +255,12 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
     [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);
     
     % Normalise Data Dimensions
-    if normalise
+    for i = 1:height(testFiles)
+        testID = testFiles(i).name(1:(end - 4));
         
-        switch campaign
+        if normalise
+
+            switch campaign
 
             case 'Varney'
                 data.(testID).position(:,1) = round(data.(testID).position(:,1) / 1.044, precision);
@@ -247,9 +268,14 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                 data.(testID).position(:,3) = round(data.(testID).position(:,3) / 1.044, precision);
 
                 data.(testID).planePosition = round(data.(testID).planePosition / 1.044, precision);
-        
+
+            end
+
         end
         
+        data.(testID) = orderfields(data.(testID));
     end
-
+    
+    data = orderfields(data);
+    
 end

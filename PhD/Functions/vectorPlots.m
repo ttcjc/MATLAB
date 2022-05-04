@@ -2,10 +2,10 @@
 % ----
 % Plots Previously Processed Vector Fields
 % ----
-% Usage: fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
-%                          xLims, yLims, zLims, planePosition, positionData, vectorData, ...
-%                          nComponents, component, geometry, fig, figName, ...
-%                          cMap, streamlines, xDims, yDims, zDims, figTitle, cLims);
+% Usage: fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
+%                          planeOrientation, planePosition, positionData, vectorData, ...
+%                          nComponents, component, fig, figName, cMap, geometry, streamlines, ...
+%                          xDims, yDims, zDims, figTitle, cLims, normalise);
 %        'planeOrientation' -> ['X', 'Y', 'Z']
 %        'caseType'         -> Case Format for Setting Figure Limits
 %        'normalise'        -> Normalise Dimensions [True/False]
@@ -33,51 +33,39 @@
 
 %% Main Function
 
-function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
-                           xLims, yLims, zLims, planePosition, positionData, vectorData, ...
-                           nComponents, component, geometry, fig, figName, ...
-                           cMap, streamlines, xDims, yDims, zDims, figTitle, cLims)
+function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
+                           planeOrientation, planePosition, positionData, vectorData, ...
+                           nComponents, component, fig, figName, cMap, geometry, streamlines, ...
+                           xDims, yDims, zDims, figTitle, cLims, normalise)
     
     cellSize = 1e-3; % [m or l]
+        
+    % Set Plot Limits
+    xLimsPlot = [min(xLimsPlot(1), xLimsData(1)); max(xLimsPlot(2), xLimsData(2))];
+    yLimsPlot = [min(yLimsPlot(1), yLimsData(1)); max(yLimsPlot(2), yLimsData(2))];
+    zLimsPlot = [min(zLimsPlot(1), zLimsData(1)); max(zLimsPlot(2), zLimsData(2))];
+
+    xLimsPlot(1) = ceil(xLimsPlot(1) / 0.05) * 0.05;
+    xLimsPlot(2) = floor(xLimsPlot(2) / 0.05) * 0.05;
+
+    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
+    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
+
+    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
+    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
     
     % Format Data
     switch planeOrientation
         
         case 'X'
-            % Set Plot Limits and Normalise
-            if isempty(xLims)
-                
-                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                    xLims = [0.31875; 3.61525]; % [m]
-                    yLims = [-0.4945; 0.4945];
-                    zLims = [0; 0.639];
-
-                    if normalise
-                        xLims = round(xLims / 1.044, precision);
-                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
-                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
-
-                        yLims = round(yLims / 1.044, precision);
-                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
-                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
-
-                        zLims = round(zLims / 1.044, precision);
-                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
-                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
-                    end
-
-                end
-                
-            end
-            
             % Generate Gridded Data
             cellSizeX = cellSize;
-            cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
-            cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
+            cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
+            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
             [x, y, z] = meshgrid((planePosition - cellSizeX):cellSizeX:(planePosition + cellSizeX), ...
-                                 yLims(1):cellSizeY:yLims(2), ...
-                                 zLims(1):cellSizeZ:zLims(2));
+                                 yLimsData(1):cellSizeY:yLimsData(2), ...
+                                 zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'linear');
@@ -110,40 +98,14 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             end
             
         case 'Y'
-            % Set Plot Limits and Normalise
-            if isempty(xLims)
-                
-                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                    xLims = [0.31875; 1.075]; % [m]
-                    yLims = [-0.3445; 0.3445];
-                    zLims = [0; 0.489];
-
-                    if normalise
-                        xLims = round(xLims / 1.044, precision);
-                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
-                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
-
-                        yLims = round(yLims / 1.044, precision);
-                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
-                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
-
-                        zLims = round(zLims / 1.044, precision);
-                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
-                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
-                    end
-
-                end
-                
-            end
-            
             % Generate Gridded Data
-            cellSizeX = (xLims(2) - xLims(1)) / round((xLims(2) - xLims(1)) / cellSize);
+            cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
             cellSizeY = cellSize;
-            cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
+            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
-            [x, y, z] = meshgrid(xLims(1):cellSizeX:xLims(2), ...
+            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                  (planePosition - cellSizeY):cellSizeY:(planePosition + cellSizeY), ...
-                                 zLims(1):cellSizeZ:zLims(2));
+                                 zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'linear');
@@ -168,7 +130,7 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                 vector = eval(component);
                 vector = vector(2,:,:);
             elseif nComponents == 2
-                vector = sqrt(v(2,:,:).^2 + w(2,:,:).^2);
+                vector = sqrt(u(2,:,:).^2 + w(2,:,:).^2);
             elseif nComponents == 3
                 vector = sqrt(u(2,:,:).^2 + v(2,:,:).^2 + w(2,:,:).^2);
             else
@@ -176,39 +138,13 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             end
             
         case 'Z'
-            % Set Plot Limits and Normalise
-            if isempty(xLims)
-                
-                if contains(caseType, ["Run_Test", "Windsor", "Varney"])
-                    xLims = [0.31875; 1.075]; % [m]
-                    yLims = [-0.3445; 0.3445];
-                    zLims = [0; 0.489];
-
-                    if normalise
-                        xLims = round(xLims / 1.044, precision);
-                        xLims(1) = floor(xLims(1) / 0.05) * 0.05;
-                        xLims(2) = ceil(xLims(2) / 0.05) * 0.05;
-
-                        yLims = round(yLims / 1.044, precision);
-                        yLims(1) = ceil(yLims(1) / 0.05) * 0.05;
-                        yLims(2) = floor(yLims(2) / 0.05) * 0.05;
-
-                        zLims = round(zLims / 1.044, precision);
-                        zLims(1) = ceil(zLims(1) / 0.05) * 0.05;
-                        zLims(2) = floor(zLims(2) / 0.05) * 0.05;
-                    end
-
-                end
-                
-            end
-            
             % Generate Gridded Data
-            cellSizeX = (xLims(2) - xLims(1)) / round((xLims(2) - xLims(1)) / cellSize);
-            cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
+            cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
+            cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
             cellSizeZ = cellSize;
             
-            [x, y, z] = meshgrid(xLims(1):cellSizeX:xLims(2), ...
-                                 yLims(1):cellSizeY:yLims(2), ...
+            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                                 yLimsData(1):cellSizeY:yLimsData(2), ...
                                  (planePosition - cellSizeZ):cellSizeZ:(planePosition + cellSizeZ));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,1), ...
@@ -234,7 +170,7 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
                 vector = eval(component);
                 vector = vector(:,:,2);
             elseif nComponents == 2
-                vector = sqrt(v(:,:,2).^2 + w(:,:,2).^2);
+                vector = sqrt(u(:,:,2).^2 + v(:,:,2).^2);
             elseif nComponents == 3
                 vector = sqrt(u(:,:,2).^2 + v(:,:,2).^2 + w(:,:,2).^2);
             else
@@ -296,21 +232,29 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([90, 0]);
-            xlim([xLims(1), xLims(2)]);
-            ylim([yLims(1), yLims(2)]);
-            zlim([zLims(1), zLims(2)]);
+            xlim([xLimsPlot(1), xLimsPlot(2)]);
+            ylim([yLimsPlot(1), yLimsPlot(2)]);
+            zlim([zLimsPlot(1), zLimsPlot(2)]);
             tickData = [];
             xticks(tickData);
-            tickData = yLims(1):((yLims(2) - yLims(1)) / 5):yLims(2);
+            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
             yticks(tickData(2:end-1));
-            tickData = zLims(1):((zLims(2) - zLims(1)) / 5):zLims(2);
+            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
-            xT = xlabel([]);
-            yT = ylabel('y_{\it{l}}');
-            zT = zlabel('z_{\it{l}}');
+            
+            if normalise
+                xT = xlabel([]);
+                yT = ylabel('y_{\it{l}}');
+                zT = zlabel('z_{\it{l}}');
+            else
+                xT = xlabel([]);
+                yT = ylabel('y_{\it{m}}');
+                zT = zlabel('z_{\it{m}}');
+            end
+            
             xT.FontName = 'LM Roman 12';
             yT.FontName = 'LM Roman 12';
             zT.FontName = 'LM Roman 12';
@@ -369,21 +313,29 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([0, 0]);
-            xlim([xLims(1), xLims(2)]);
-            ylim([yLims(1), yLims(2)]);
-            zlim([zLims(1), zLims(2)]);
-            tickData = xLims(1):((xLims(2) - xLims(1)) / 5):xLims(2);
+            xlim([xLimsPlot(1), xLimsPlot(2)]);
+            ylim([yLimsPlot(1), yLimsPlot(2)]);
+            zlim([zLimsPlot(1), zLimsPlot(2)]);
+            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
             xticks(tickData(2:end-1));
             tickData = [];
             yticks(tickData);
-            tickData = zLims(1):((zLims(2) - zLims(1)) / 5):zLims(2);
+            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
-            xT = xlabel('x_{\it{l}}');
-            yT = ylabel([]);
-            zT = zlabel('z_{\it{l}}');
+            
+            if normalise
+                xT = xlabel('x_{\it{l}}');
+                yT = ylabel([]);
+                zT = zlabel('z_{\it{l}}');
+            else
+                xT = xlabel('x_{\it{m}}');
+                yT = ylabel([]);
+                zT = zlabel('z_{\it{m}}');
+            end
+            
             xT.FontName = 'LM Roman 12';
             yT.FontName = 'LM Roman 12';
             zT.FontName = 'LM Roman 12';
@@ -442,21 +394,29 @@ function fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
             box on;
             caxis(cLims);
             view([0, 90]);
-            xlim([xLims(1), xLims(2)]);
-            ylim([yLims(1), yLims(2)]);
-            zlim([zLims(1), zLims(2)]);
-            tickData = xLims(1):((xLims(2) - xLims(1)) / 5):xLims(2);
+            xlim([xLimsPlot(1), xLimsPlot(2)]);
+            ylim([yLimsPlot(1), yLimsPlot(2)]);
+            zlim([zLimsPlot(1), zLimsPlot(2)]);
+            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
             xticks(tickData(2:end-1));
-            tickData = yLims(1):((yLims(2) - yLims(1)) / 5):yLims(2);
+            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
             yticks(tickData(2:end-1));
             tickData = [];
             zticks(tickData);
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
-            xT = xlabel('z_{\it{l}}');
-            yT = ylabel('y_{\it{l}}');
-            zT = zlabel([]);
+            
+            if normalise
+                xT = xlabel('z_{\it{l}}');
+                yT = ylabel('y_{\it{l}}');
+                zT = zlabel([]);
+            else
+                xT = xlabel('z_{\it{m}}');
+                yT = ylabel('y_{\it{m}}');
+                zT = zlabel([]);
+
+            end
             xT.FontName = 'LM Roman 12';
             yT.FontName = 'LM Roman 12';
             zT.FontName = 'LM Roman 12';

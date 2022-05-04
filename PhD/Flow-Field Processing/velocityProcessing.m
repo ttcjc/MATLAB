@@ -7,6 +7,8 @@ clc;
 fig = 0;
 figHold = 0;
 
+field = 'U';
+normalise = true; % Normalise Dimensions
 nProc = 4; % Number of Processors Used for Parallel Collation
 
 disp ('========================');
@@ -66,13 +68,13 @@ disp (' ');
 switch format
 
     case 'A'
-        [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialisePVdata('U', true);
+        [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialisePVdata(field, normalise);
 
     case 'B'
-%         [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialiseProbeData('U', true, nProc);
+        [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialiseProbeData(field, normalise, nProc);    
 
     case 'C'
-        [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData('U', true);
+        [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise);
 
 end
 
@@ -81,7 +83,7 @@ switch format
     case {'A', 'B'}
         
         if contains(caseFolder, 'Run_Test')
-            caseType ='Run_Test';
+            caseType = 'Run_Test';
         elseif contains(caseFolder, 'Windsor')
             caseType = 'Windsor';
         end
@@ -98,15 +100,26 @@ planes = fieldnames(data);
 
 switch format
 
-    case 'A'        
+    case 'A'       
         % Adjust Data Origin
-        if contains(caseFolder, ["Run_Test", "Windsor"]) && contains(caseFolder, 'Upstream')
+        if (strcmp(caseType, 'Run_Test') || strcmp(caseType, 'Windsor')) && contains(caseFolder, 'Upstream')
             
             for i = 1:height(planes)
-                data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round(1.325 / 1.044, precision);
+                
+                if normalise
+                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round(1.325 / 1.044, precision);
 
-                if strcmp(data.(planes{i}).planeOrientation, 'X')
-                    data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
+                    if strcmp(data.(planes{i}).planeOrientation, 'X')
+                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
+                    end
+                    
+                else
+                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
+
+                    if strcmp(data.(planes{i}).planeOrientation, 'X')
+                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + 1.325;
+                    end
+                    
                 end
 
             end
@@ -114,29 +127,48 @@ switch format
         end
         
         % Normalise Velocity
-        if contains(caseFolder, ["Run_Test", "Windsor"])
+        if strcmp(caseType, 'Run_Test') || strcmp(caseType, 'Windsor')
             
             for i = 1:height(planes)
-                data.(planes{i}).u = data.(planes{i}).u / 40;
-                data.(planes{i}).v = data.(planes{i}).v / 40;
-                data.(planes{i}).w = data.(planes{i}).w / 40;
+                data.(planes{i}).uMean = data.(planes{i}).uMean / 40;
+                data.(planes{i}).vMean = data.(planes{i}).vMean / 40;
+                data.(planes{i}).wMean = data.(planes{i}).wMean / 40;
             end
             
         end
         
     case 'B'
-%         % Adjust Data Origin
-%         if contains(caseFolder, ["Run_Test", "Windsor"]) && contains(caseFolder, 'Upstream')
-%             data.position(:,1) = data.position(:,1) + 1.325;
-%             data..planePosition(:,1) = data..planePosition(:,1) + 1.325;
-%         end
-%         
-%         % Normalise Velocity
-%         if contains(caseFolder, ["Run_Test", "Windsor"])
-%             data.uMean = data.uMean / 40;
-%             data.vMean = data.vMean / 40;
-%             data.wMean = data.wMean / 40;
-% 
+        % Adjust Data Origin
+        if (strcmp(caseType, 'Run_Test') || strcmp(caseType, 'Windsor')) && contains(caseFolder, 'Upstream')
+            
+            for i = 1:height(planes)
+                
+                if normalise
+                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round(1.325 / 1.044, precision);
+
+                    if strcmp(data.(planes{i}).planeOrientation, 'X')
+                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round(1.325 / 1.044, precision);
+                    end
+                    
+                else
+                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + 1.325;
+
+                    if strcmp(data.(planes{i}).planeOrientation, 'X')
+                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + 1.325;
+                    end
+                    
+                end
+
+            end
+            
+        end
+        
+        % Normalise Velocity
+        if strcmp(caseType, 'Run_Test') || strcmp(caseType, 'Windsor')
+            data.uMean = data.uMean / 40;
+            data.vMean = data.vMean / 40;
+            data.wMean = data.wMean / 40;
+
 %             for i = 1:height(data.time)
 %                 data.u{i} = data.u{i} / 40;
 %                 data.v{i} = data.v{i} / 40;
@@ -145,12 +177,12 @@ switch format
 %                 data.vPrime{i} = data.vPrime{i} / 40;
 %                 data.wPrime{i} = data.wPrime{i} / 40;
 %             end
-%             
-%         end
+            
+        end
     
     case 'C'
         % Normalise Velocity
-        if contains(campaign, 'Varney')
+        if strcmp(campaign, 'Varney')
             
             for i = 1:height(planes)
                     data.(planes{i}).uMean = data.(planes{i}).uMean / 40;
@@ -218,25 +250,73 @@ for i = plotPlanes
     disp(['    Presenting ', planes{i}, '...']);
     
     planeOrientation = data.(planes{i}).planeOrientation;
-    normalise = true;
-    xLims = [];
-    yLims = [];
-    zLims = [];
+    
+    switch planeOrientation
+
+        case 'X'
+
+            if contains(caseType, ["Run_Test", "Windsor", "Varney"])
+                xLimsPlot = [0.31875; 4.65925]; % [m]
+                yLimsPlot = [-0.4945; 0.4945];
+                zLimsPlot = [0; 0.639];
+            end
+
+        case {'Y', 'Z'}
+
+            if contains(caseType, ["Run_Test", "Windsor", "Varney"])
+                xLimsPlot = [0.31875; 1.075]; % [m]
+                yLimsPlot = [-0.3445; 0.3445];
+                zLimsPlot = [0; 0.489];
+            end
+
+    end
+
+    if normalise
+        xLimsPlot = round(xLimsPlot / 1.044, precision);
+        yLimsPlot = round(yLimsPlot / 1.044, precision);
+        zLimsPlot = round(zLimsPlot / 1.044, precision);
+    end
+    
+    switch format
+        
+        case 'A'
+            xLimsData = xLimsPlot;
+            yLimsData = yLimsPlot;
+            zLimsData = zLimsPlot;
+            
+        case 'B'
+            xLimsData = data.(planes{i}).xLims;
+            yLimsData = data.(planes{i}).yLims;
+            zLimsData = data.(planes{i}).zLims;
+            
+        case 'C'
+            xLimsData = [min(data.(planes{i}).position(:,1)); max(data.(planes{i}).position(:,1))];
+            yLimsData = [min(data.(planes{i}).position(:,2)); max(data.(planes{i}).position(:,2))];
+            zLimsData = [min(data.(planes{i}).position(:,3)); max(data.(planes{i}).position(:,3))];
+            
+    end
+    
     planePosition = data.(planes{i}).planePosition;
     positionData = data.(planes{i}).position;
-    vectorData = [data.(planes{i}).u, data.(planes{i}).v, data.(planes{i}).w];
-    nComponents = 3;
+    vectorData = [data.(planes{i}).uMean, data.(planes{i}).vMean, data.(planes{i}).wMean];
+    
+    if strcmp(caseType, 'Varney')
+        nComponents = 2;
+    else
+        nComponents = 3;
+    end
+    
     component = [];
-    figName = planes{i};
+    figName = [caseType, '_', planes{i}];
     cMap = viridis(24);
     streamlines = true;
     figTitle = ' ';
     cLims = [0, 1];
     
-    fig = vectorPlots(planeOrientation, caseType, normalise, precision, ...
-                      xLims, yLims, zLims, planePosition, positionData, vectorData, ...
-                      nComponents, component, geometry, fig, figName, ...
-                      cMap, streamlines, xDims, yDims, zDims, figTitle, cLims);
+    fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
+                      planeOrientation, planePosition, positionData, vectorData, ...
+                      nComponents, component, fig, figName, cMap, geometry, streamlines, ...
+                      xDims, yDims, zDims, figTitle, cLims, normalise);
 end    
     
 
@@ -246,7 +326,7 @@ function [P] = inputPlanes
 
     valid = false;
     while ~valid
-        P = str2num(input('    List Desired Planes (Row Vector Form): ', 's')); %#ok<ST2NM>
+        P = str2num(input('    List Desired Planes [Row Vector]: ', 's')); %#ok<ST2NM>
 
         if any(isnan(P)) || ~isrow(P)
             disp('        WARNING: Invalid Entry');

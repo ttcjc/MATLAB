@@ -215,6 +215,8 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
             end
 
     end
+    
+    data = orderfields(data);
 
     disp(' ');
 

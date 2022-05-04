@@ -62,9 +62,9 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
     disp(' ');
     disp(' ');
 
-    % Acquire Probe Data
-    disp('Probe Data Acquisition');
-    disp('-----------------------');
+    % Acquire Volumetric Probe Data
+    disp('Volumetric Probe Data Acquisition');
+    disp('----------------------------------');
     
     valid = false;
     while ~valid
@@ -76,7 +76,7 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
             data = readProbeData(caseFolder, timeDirs, field, nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/*.*'], ...
+            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/*.*'], ...
                                              'Select Probe Data');
     
             if contains(filePath, [caseFolder(namePos(end):end), '/', probeType])
@@ -94,9 +94,16 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         end
     
     end
+    
+    disp(' ');
+    disp(' ');
+    
+    % Extract Planar Probe Data
+    data = extractPlanarProbeData(caseFolder, data);
+    
+    disp(' ');
+    disp(' ');
 
-    disp(' ');
-    disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
     [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);

@@ -87,15 +87,11 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         switch field
 
             case 'p'
-                data.(plane).position(:,1) = content(:,1);
-                data.(plane).position(:,2) = content(:,2);
-                data.(plane).position(:,3) = content(:,3);
+                data.(plane).position = content(:,[1,2,3]);
                 data.(plane).pMean = content(:,4);
 
             case 'U'
-                data.(plane).position(:,1) = content(:,1);
-                data.(plane).position(:,2) = content(:,2);
-                data.(plane).position(:,3) = content(:,3);
+                data.(plane).position = content(:,[1,2,3]);
                 data.(plane).uMean = content(:,4);
                 data.(plane).vMean = content(:,5);
                 data.(plane).wMean = content(:,6);

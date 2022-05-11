@@ -25,7 +25,7 @@
 function [timeDirs, deltaT] = timeDirectories(caseFolder, format)
 
     % Confirm Data Availability
-    disp('Analysing Case Structure:');
+    disp('Analysing Case Structure...');
 
     switch format
 

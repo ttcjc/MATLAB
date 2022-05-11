@@ -5,7 +5,7 @@
 % Usage: fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
 %                          planeOrientation, planePosition, positionData, vectorData, ...
 %                          nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-%                          xDims, yDims, zDims, figTitle, cLims, normalise);
+%                          xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise);
 %        'planeOrientation' -> ['X', 'Y', 'Z']
 %        'caseType'         -> Case Format for Setting Figure Limits
 %        'normalise'        -> Normalise Dimensions [True/False]
@@ -22,7 +22,8 @@
 %        'cMap'             -> Colour Map
 %        'streamlines'      -> Include Streamlines [True/False]
 %        '*Dims'            -> Simple Bounding Box of Geometry
-%        'figTitle'         -> Figure Title
+%        'figTitle'         -> Leave Blank ('-') for Formatting Purposes
+%        'figSubtitle'      -> Figure Title
 %        'cLims'            -> Colour Map Limits
 
 
@@ -36,23 +37,19 @@
 function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
                            planeOrientation, planePosition, positionData, vectorData, ...
                            nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-                           xDims, yDims, zDims, figTitle, cLims, normalise)
+                           xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise)
     
     cellSize = 1e-3; % [m or l]
         
     % Set Plot Limits
-    xLimsPlot = [min(xLimsPlot(1), xLimsData(1)); max(xLimsPlot(2), xLimsData(2))];
-    yLimsPlot = [min(yLimsPlot(1), yLimsData(1)); max(yLimsPlot(2), yLimsData(2))];
-    zLimsPlot = [min(zLimsPlot(1), zLimsData(1)); max(zLimsPlot(2), zLimsData(2))];
+    xLimsPlot(1) = floor(xLimsPlot(1) / 0.1) * 0.1;
+    xLimsPlot(2) = floor(xLimsPlot(2) / 0.1) * 0.1;
 
-    xLimsPlot(1) = ceil(xLimsPlot(1) / 0.05) * 0.05;
-    xLimsPlot(2) = floor(xLimsPlot(2) / 0.05) * 0.05;
+    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.1) * 0.1;
+    yLimsPlot(2) = floor(yLimsPlot(2) / 0.1) * 0.1;
 
-    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.05) * 0.05;
-    yLimsPlot(2) = floor(yLimsPlot(2) / 0.05) * 0.05;
-
-    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.05) * 0.05;
-    zLimsPlot(2) = floor(zLimsPlot(2) / 0.05) * 0.05;
+    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.1) * 0.1;
+    zLimsPlot(2) = floor(zLimsPlot(2) / 0.1) * 0.1;
     
     % Format Data
     switch planeOrientation
@@ -185,7 +182,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
         case 'X'
             % Figure Setup
             fig = fig + 1;
-            set(figure(fig), 'outerPosition', [25, 25, 850, 850], 'name', figName);
+            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             colormap(cMap);
@@ -225,8 +222,8 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             end
             
             % Figure Formatting
-            title(' ', 'color', ([254, 254, 254] / 255));
-            subtitle(figTitle);
+            title(figTitle, 'color', ([254, 254, 254] / 255));
+            subtitle(figSubtitle);
             lightangle(90, 45);
             axis on;
             box on;
@@ -266,7 +263,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
         case 'Y'
             % Figure Setup
             fig = fig + 1;
-            set(figure(fig), 'outerPosition', [25, 25, 850, 850], 'name', figName);
+            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             colormap(cMap);
@@ -306,8 +303,8 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             end
             
             % Figure Formatting
-            title(' ', 'color', ([254, 254, 254] / 255));
-            subtitle(figTitle);
+            title(figTitle, 'color', ([254, 254, 254] / 255));
+            subtitle(figSubtitle);
             lightangle(0, 45);
             axis on;
             box on;
@@ -347,7 +344,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
         case 'Z'
             % Figure Setup
             fig = fig + 1;
-            set(figure(fig), 'outerPosition', [25, 25, 850, 850], 'name', figName);
+            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             colormap(cMap);
@@ -387,8 +384,8 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             end
             
             % Figure Formatting
-            title(' ', 'color', ([254, 254, 254] / 255));
-            subtitle(figTitle);
+            title(figTitle, 'color', ([254, 254, 254] / 255));
+            subtitle(figSubtitle);
             lightangle(0, 45);
             axis on;
             box on;

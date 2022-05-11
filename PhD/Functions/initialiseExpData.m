@@ -107,10 +107,8 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                 switch field
         
                     case 'p'
-                        data.(testID).position(:,1) = content.xyz(4).values(:,1) / 1000; % [mm -> m]
-                        data.(testID).position(:,2) = content.xyz(4).values(:,2) / 1000;
-                        data.(testID).position(:,3) = content.xyz(4).values(:,3) / 1000;
-                        
+                        data.(testID).position = content.xyz(4).values(:,[1,2,3]) / 1000; % [mm -> m]
+
                         data.(testID).CpMean = content.Cpmean(4).values;
                         data.(testID).CpRMS = content.Cprms(4).values;
 

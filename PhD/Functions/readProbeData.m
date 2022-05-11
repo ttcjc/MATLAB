@@ -43,7 +43,7 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
         error('No Probe Data Available in Specified Case');
     end
 
-    % Select Directories of Interest
+    % Select Times of Interest
     valid = false;
     while ~valid
         disp(' ');
@@ -56,7 +56,7 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
             endTime = inputTime('End');
 
             if endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
-                disp('        WARNING: No Probe Data in Selected Data Range');
+                disp('        WARNING: No Probe Data in Selected Time Range');
             elseif endTime < startTime
                 disp('        WARNING: Invalid Entry');
             else
@@ -118,13 +118,20 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
     tic;
     evalc('parpool(nProc);');
 
+    wB = waitbar(0, ['Collating ''', probeType, ''' Data...']);
+    dQ = parallel.pool.DataQueue;
+    afterEach(dQ, @parforWaitBar);
+
+    parforWaitBar(wB, height(timeDirs));
+
     switch field
 
         case 'p'
             p = cell(height(timeDirs),1);
 
             parfor i = 1:height(timeDirs)
-                [p{i}] = readInstPressureData(caseFolder, probeType, timeDirs, i, index);
+                p{i} = readInstPressureData(caseFolder, probeType, timeDirs, i, index);
+                send(dQ, []);
             end
 
             data.p = p;
@@ -138,6 +145,7 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
 
             parfor i = 1:height(timeDirs)
                 [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, timeDirs, i, index);
+                send(dQ, []);
             end
 
             data.u = u;
@@ -147,6 +155,8 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
             clear u v w;
 
     end
+    
+    delete(wB);
 
     evalc('delete(gcp(''nocreate''));');
     executionTime = toc;
@@ -263,7 +273,7 @@ end
 
 %% Local Functions
 
-function [T] = inputTime(type)
+function T = inputTime(type)
 
     valid = false;
     while ~valid
@@ -280,7 +290,7 @@ function [T] = inputTime(type)
 end
 
 
-function  [p] = readInstPressureData(caseFolder, probeType, timeDirs, i, index)
+function  p = readInstPressureData(caseFolder, probeType, timeDirs, i, index)
 
     fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', timeDirs(i).name, '/base_p.xy']);
     content = cell2mat(textscan(fileID, '%*f %*f %*f %f', 'delimiter', '\n', 'collectOutput', 1));

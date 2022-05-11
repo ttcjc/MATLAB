@@ -137,6 +137,7 @@ function data = extractPlanarProbeData(caseFolder, vData)
                data.(['p', num2str(i)]).yLims(1) < yLimsData(1) || data.(['p', num2str(i)]).yLims(2) > yLimsData(2) || ...
                data.(['p', num2str(i)]).zLims(1) < zLimsData(1) || data.(['p', num2str(i)]).zLims(2) > zLimsData(2)
                 disp('        WARNING: Plane Lies Outside Probe Volume');
+                disp(' ');
             else
                 valid = true;
             end

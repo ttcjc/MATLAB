@@ -22,10 +22,10 @@
 
 %% Main Function
 
-function [timeDirs, deltaT] = timeDirectories(caseFolder, format)
+function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
 
     % Confirm Data Availability
-    disp('Analysing Case Structure...');
+    disp('    Analysing Directory Structure...');
 
     switch format
 
@@ -68,8 +68,10 @@ function [timeDirs, deltaT] = timeDirectories(caseFolder, format)
     end
 
     deltaT = str2double(timeDirs(end).name) - str2double(timeDirs(end - 1).name);
+    timePrecision = width(extractAfter(num2str(deltaT, 8), '.'));
+    deltaT = round(deltaT, timePrecision);
     
-    disp(['    Identified ', num2str(height(timeDirs)), ' Time Directories']);
-    disp(['    ', char(916), 'T = ' num2str(deltaT), 's']);
+    disp(['        Identified ', num2str(height(timeDirs)), ' Time Directories']);
+    disp(['        ', char(916), 'T = ' num2str(deltaT), 's']);
     
 end

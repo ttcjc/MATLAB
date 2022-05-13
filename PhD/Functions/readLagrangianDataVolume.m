@@ -2,11 +2,13 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
-% Usage: [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, cloudName, nProc)
-%        'caseFolder' -> Case Path Stored as String
-%        'timeDirs'   -> Time Directories Identified Using 'timeDirectories.m'
-%        'cloudName'  -> OpenFOAM Cloud Name Stored as String
-%        'nProc'      -> Number of Processors Used for Parallel Collation
+% Usage: [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, deltaT, timePrecision, cloudName, nProc)
+%        'caseFolder'    -> Case Path Stored as String
+%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
+%        'deltaT'        -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
+%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%        'cloudName'     -> OpenFOAM Cloud Name Stored as String
+%        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -16,7 +18,7 @@
 
 %% Main Function
 
-function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, cloudName, nProc) %#ok<INUSD>
+function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, deltaT, timePrecision, cloudName, nProc) %#ok<INUSD>
     
     % Confirm Data Availability
     i = 1;
@@ -51,14 +53,23 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             startTime = inputTime('Start');
+            
+            if startTime == -1
+                continue
+            end
+            
             endTime = inputTime('End');
-
-            if endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
+            
+            if endTime == -1
+                continue
+            end
+            
+            if endTime < startTime
+                disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
+            elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
                 disp('        WARNING: No Lagrangian Data in Selected Time Range');
-            elseif endTime < startTime
-                disp('        WARNING: Invalid Entry');
             else
-
+                
                 i = 1;
                 while i <= height(timeDirs)
 
@@ -79,11 +90,38 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
 
     end
     
+    % Specify Sampling Frequency
+    valid = false;
+    while ~valid
+        disp(' ');
+        disp(['Default Sampling Frequency: ', num2str(round((1 / deltaT), timePrecision)), ' Hz']);
+        selection = input('    Reduce Recording Frequency? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            sampleInterval = 1;
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            sampleInterval = inputFreq(round((1 / deltaT), timePrecision));
+            
+            if sampleInterval == -1
+                continue
+            end
+            
+            if sampleInterval >= (floor(height(timeDirs) / 2))
+                disp('            WARNING: Sampling Interval Must Fall Within Data Range');
+            else
+                valid = true;
+            end                
+            
+        else
+            disp('        WARNING: Invalid Entry');
+        end
+
+    end
+    
     % Select Lagrangian Properties
     particleProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'};
     
-    % -> Add Support for Additional Properties
-
     disp(' ');
 
     disp('Storing the Following Lagrangian Properties:')
@@ -100,27 +138,34 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
     disp('***********');
     disp('  Reading  ');
 
-    particleData.time = zeros(height(timeDirs),1);
-    
-    for i = 1:height(timeDirs)
-        particleData.time(i) = (str2double(timeDirs(i).name));
-    end
-    
     tic;
     evalc('parpool(nProc);');
     
+    % Reduce Time Instances to Desired Sampling Frequency
+    particleData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
+    
+    j = height(timeDirs);
+    for i = height(particleData.time):-1:1
+        particleData.time(i) = str2double(timeDirs(j).name);
+        j = j - sampleInterval;
+    end
+    
+    % Read Particle Properties
     for i = 1:height(particleProps)
         prop = particleProps{i};
-        propData = cell(height(timeDirs),1);
+        propData = cell(height(particleData.time),1);
         
-        wB = waitbar(0, ['Collating ''', prop, ''' Data...']);
+        % Initialise Progress Bar
+        wB = waitbar(0, ['Collating ''', prop, ''' Data...'], 'name', 'Progress');
         dQ = parallel.pool.DataQueue;
         afterEach(dQ, @parforWaitBar);
         
-        parforWaitBar(wB, height(timeDirs));        
+        parforWaitBar(wB, height(particleData.time));      
         
-        parfor j = 1:height(timeDirs)
-            propData{j} = readInstPropData(caseFolder, timeDirs, cloudName, prop, j);
+        % Collate Data
+        time = particleData.time;
+        parfor j = 1:height(particleData.time)
+            propData{j} = readInstPropData(caseFolder, num2str(time(j), ['%.', num2str(timePrecision), 'g']), cloudName, prop);
             send(dQ, []);
         end
         
@@ -128,7 +173,7 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
         
         delete(wB);
     end
-
+    
     evalc('delete(gcp(''nocreate''));');
     executionTime = toc;
 
@@ -141,7 +186,7 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
     % Sort Particles in ID Order
     disp('    Sorting Particles...');
     
-    for i = 1:height(timeDirs)
+    for i = 1:1:height(particleData.time)
         [particleData.origId{i}, index] = sort(particleData.origId{i});
         
         for j = 1:height(particleProps)
@@ -182,14 +227,16 @@ function [particleData, particleProps] = readLagrangianDataVolume(caseFolder, ti
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end)]);
             end
 
-            startInst = erase(num2str(str2double(timeDirs(1).name), '%.4f'), '.');
-            endInst = erase(num2str(str2double(timeDirs(end).name), '%.4f'), '.');
+            startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
+            endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
+            
+            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
-            save(['~/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
-            disp(['    Saved to: ~/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '.mat']);
+            save(['~/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
+            disp(['    Saved to: ~/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
 
-            save(['/mnt/Processing/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
-            disp(['    Saved to: /mnt/Processing/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'particleData', 'particleProps', '-v7.3', '-noCompression');
+            disp(['    Saved to: /mnt/Processing/Data/Numerical/MATLAB/particleData/Volumetric/', caseFolder(namePos(end):end), '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
 
             valid = true;
         else
@@ -203,26 +250,38 @@ end
 
 %% Local Functions
 
-function T = inputTime(type)
+function time = inputTime(type)
 
-    valid = false;
-    while ~valid
-        T = str2double(input(['    ', type, ' Time [s]: '], 's'));
-
-        if isnan(T) || length(T) > 1
-            disp('        WARNING: Invalid Entry');
-        else
-            valid = true;
-        end
-
+    time = str2double(input(['    Input ', type, ' Time [s]: '], 's'));
+    
+    if isnan(time) || length(time) > 1 || time <= 0
+        disp('        WARNING: Invalid Entry');
+        time = -1;
     end
 
 end
 
 
-function propData = readInstPropData(caseFolder, timeDirs, cloudName, prop, j)
+function sampleInterval = inputFreq(origFreq)
     
-    fileID = fopen([caseFolder, '/', timeDirs(j).name, '/lagrangian/', cloudName, '/', prop]);
+    newFreq = str2double(input('        Input Frequency [Hz]: ', 's'));
+    
+    if isnan(newFreq) || length(newFreq) > 1 || newFreq <= 0
+        disp('            WARNING: Invalid Entry');
+        sampleInterval = -1;
+    elseif mod(origFreq, newFreq) ~= 0
+        disp(['            WARNING: New Frequency Must Be a Factor of ', num2str(origFreq),' Hz']);
+        sampleInterval = -1;
+    else
+        sampleInterval = origFreq / newFreq;
+    end
+    
+end
+
+
+function propData = readInstPropData(caseFolder, time, cloudName, prop)
+    
+    fileID = fopen([caseFolder, '/', time, '/lagrangian/', cloudName, '/', prop]);
     content = textscan(fileID, '%s', 'headerLines', 15, 'delimiter', '\n', 'collectOutput', true);
     frewind(fileID);
     

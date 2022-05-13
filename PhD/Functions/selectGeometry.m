@@ -19,7 +19,7 @@
 
 %% Main Function
 
-function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
+function [geometry, xDims, yDims, zDims, spacePrecision] = selectGeometry(normalise)
 
     disp('Geometry Selection');
     disp('-------------------');
@@ -102,7 +102,7 @@ function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
     yPre = max(width(extractAfter(num2str(yDims(1), 8), '.')), width(extractAfter(num2str(yDims(2), 8), '.')));
     zPre = max(width(extractAfter(num2str(zDims(1), 8), '.')), width(extractAfter(num2str(zDims(2), 8), '.')));
     
-    precision = max([xPre, yPre, zPre]);
+    spacePrecision = max([xPre, yPre, zPre]);
 
     if normalise
         disp (' ');
@@ -110,15 +110,15 @@ function [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise)
         disp('Normalising Dimensions...');
         
         if contains(path, ["Run_Test", "Windsor"])
-            xDims = round(xDims / 1.044, precision);
-            yDims = round(yDims / 1.044, precision);
-            zDims = round(zDims / 1.044, precision);
+            xDims = round((xDims / 1.044), spacePrecision);
+            yDims = round((yDims / 1.044), spacePrecision);
+            zDims = round((zDims / 1.044), spacePrecision);
 
             for i = 1:height(parts)
-                geometry.(parts{i}).vertices = round(geometry.(parts{i}).vertices / 1.044, precision);
-                geometry.(parts{i}).boundaries.X(:,[2,3]) = round(geometry.(parts{i}).boundaries.X(:,[2,3]) / 1.044, precision);
-                geometry.(parts{i}).boundaries.Y(:,[1,3]) = round(geometry.(parts{i}).boundaries.Y(:,[1,3]) / 1.044, precision);
-                geometry.(parts{i}).boundaries.Z(:,[1,2]) = round(geometry.(parts{i}).boundaries.Z(:,[1,2]) / 1.044, precision);
+                geometry.(parts{i}).vertices = round((geometry.(parts{i}).vertices / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.X(:,[2,3]) = round((geometry.(parts{i}).boundaries.X(:,[2,3]) / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.Y(:,[1,3]) = round((geometry.(parts{i}).boundaries.Y(:,[1,3]) / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.Z(:,[1,2]) = round((geometry.(parts{i}).boundaries.Z(:,[1,2]) / 1.044), spacePrecision);
             end
 
         else

@@ -2,11 +2,13 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Planar Lagrangian Data Output
 % ----
-% Usage: [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, cloudName, nProc)
-%        'caseFolder' -> Case Path Stored as String
-%        'timeDirs'   -> Time Directories Identified Using 'timeDirectories.m'
-%        'cloudName'  -> OpenFOAM Cloud Name Stored as String
-%        'freq'       -> Desired Binning Frequency [Hz]
+% Usage: [particleData, particleProps] = readLagrangianDataVolume(caseFolder, timeDirs, deltaT, timePrecision, cloudName, nProc)
+%        'caseFolder'    -> Case Path Stored as String
+%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
+%        'deltaT'        -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
+%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%        'cloudName'     -> OpenFOAM Cloud Name Stored as String
+%        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -16,7 +18,7 @@
 
 %% Main Function
 
-function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, timeDirs, cloudName, freq)
+function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, timeDirs, deltaT, timePrecision, cloudName, nProc) %#ok<INUSD>
     
     % Confirm Data Availability
     if ~exist([caseFolder, '/LagrangianExtractionPlane'], 'dir')
@@ -61,14 +63,23 @@ function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, ti
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             startTime = inputTime('Start');
+            
+            if startTime == -1
+                continue
+            end
+            
             endTime = inputTime('End');
-
-            if endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
+            
+            if endTime == -1
+                continue
+            end
+            
+            if endTime < startTime
+                disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
+            elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
                 disp('        WARNING: No Lagrangian Data in Selected Time Range');
-            elseif endTime < startTime
-                disp('        WARNING: Invalid Entry');
             else
-
+                
                 i = 1;
                 while i <= height(timeDirs)
 
@@ -89,10 +100,31 @@ function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, ti
 
     end
     
+    % Specify Binning Frequency
+    valid = false;
+    while ~valid
+        disp(' ');
+        disp(['Default Binning Frequency: ', num2str(round(1 / deltaT, timePrecision)), ' Hz']);
+        selection = input('    Reduce Binning Frequency? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            binInterval = 1;
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            binInterval = inputFreq(round(1 / deltaT, timePrecision));
+            
+            if binInterval ~= -1
+                valid = true;
+            end
+            
+        else
+            disp('        WARNING: Invalid Entry');
+        end
+
+    end
+    
     % Select Lagrangian Properties
     particleProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'};
-    
-    % -> Add Support for Additional Properties
 
     disp(' ');
 
@@ -113,9 +145,10 @@ function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, ti
     disp(' ');
     
     tic;
+    evalc('parpool(nProc);');
     for i = 1:height(dataFiles)
-        disp(['    ', dataFiles(i).name]);
-                
+        disp(['    Loading ''', dataFiles(i).name, '''...']);
+        
         % Read Data File
         content = readmatrix([caseFolder, '/LagrangianExtractionPlane/', dataFiles(i).name], 'fileType', 'text', 'trailingDelimitersRule', 'ignore');
         
@@ -123,34 +156,62 @@ function [particleData, particleProps] = readLagrangianDataPlanar(caseFolder, ti
         plane = ['X_', erase(dataFiles(i).name(planePos:end), '.')];
         
         % Bin Particle Impacts Into Desired Frequency Windows
-        particleData.(plane).time = (str2double(timeDirs(1).name):(1 / freq):str2double(timeDirs(end).name))';
+        particleData.(plane).time = zeros((height(timeDirs) / binInterval),1);
         
-        for j = 1:height(particleProps)
-            prop = particleProps{j};
-            particleData.(plane).(prop) = cell(height(particleData.(plane).time),1);
+        k = height(timeDirs);
+        for j = height(particleData.(plane).time):-1:1
+            particleData.(plane).time(j) = str2double(timeDirs(k).name);
+            k = k - binInterval;
         end
         
-        for j = 1:height(particleData.(plane).time)
+        % Initialise Particle Properties
+        origId = cell(height(particleData.(plane).time),1);
+        origProcId = origId;
+        d = origId;
+        nParticle = origId;
+        positionCartesian = origId;
+        U = origId;
+        
+        % Initialise Progress Bar
+        wB = waitbar(0, ['Collating ''', plane, ''' Data...'], 'name', 'Progress', 'windowStyle', 'docked');
+        dQ = parallel.pool.DataQueue;
+        afterEach(dQ, @parforWaitBar);
+
+        parforWaitBar(wB, height(particleData.(plane).time));     
+
+        % Collate Data
+        parfor j = 1:height(particleData.(plane).time)
             
             if j == 1
-                index = find(content(:,1) <= particleData.(plane).time(j));
+                index = find(content(:,1) <= particleData.(plane).time(j)); %#ok<PFBNS>
             else
                 index = find((content(:,1) > particleData.(plane).time(j - 1)) & ...
                              (content(:,1) <= particleData.(plane).time(j)));
             end
             
             if ~isempty(index)
-                particleData.(plane).origId{j} = content(index,2);
-                particleData.(plane).origProcId{j} = content(index,3);
-                particleData.(plane).d{j} = content(index,4);
-                particleData.(plane).nParticle{j} = content(index,5);
-                particleData.(plane).positionCartesian{j} = content(index,[6,7,8]);
-                particleData.(plane).U{j} = content(index,[9,10,11]);
+                origId{j} = content(index,2);
+                origProcId{j} = content(index,3);
+                d{j} = content(index,4);
+                nParticle{j} = content(index,5);
+                positionCartesian{j} = content(index,[6,7,8]);
+                U{j} = content(index,[9,10,11]);
             end
             
+            send(dQ, []);            
         end
         
+        % Store Data
+        particleData.(plane).origId = origId;
+        particleData.(plane).origProcId = origProcId;
+        particleData.(plane).d = d;
+        particleData.(plane).nParticle = nParticle;
+        particleData.(plane).positionCartesian = positionCartesian;
+        particleData.(plane).U = U;
+        
+        delete(wB);        
     end
+    evalc('delete(gcp(''nocreate''));');
     executionTime = toc;
     
     disp(' ');
@@ -195,18 +256,30 @@ end
 
 %% Local Functions
 
-function T = inputTime(type)
+function time = inputTime(type)
 
-    valid = false;
-    while ~valid
-        T = str2double(input(['    ', type, ' Time [s]: '], 's'));
-
-        if isnan(T) || length(T) > 1
-            disp('        WARNING: Invalid Entry');
-        else
-            valid = true;
-        end
-
+    time = str2double(input(['    Input ', type, ' Time [s]: '], 's'));
+    
+    if isnan(time) || length(time) > 1 || time <= 0
+        disp('        WARNING: Invalid Entry');
+        time = -1;
     end
 
+end
+
+
+function binInterval = inputFreq(origFreq)
+    
+    newFreq = str2double(input('        Input Frequency [Hz]: ', 's'));
+    
+    if isnan(newFreq) || length(newFreq) > 1 || newFreq <= 0
+        disp('            WARNING: Invalid Entry');
+        binInterval = -1;
+    elseif mod(origFreq, newFreq) ~= 0
+        disp(['            WARNING: New Frequency Must Be a Factor of ', num2str(origFreq),' Hz']);
+        binInterval = -1;
+    else
+        binInterval = origFreq / newFreq;
+    end
+    
 end

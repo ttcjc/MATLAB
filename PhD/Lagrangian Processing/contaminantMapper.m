@@ -78,6 +78,23 @@ switch format
                                                                                     true, false, false, ...
                                                                                     timeDirs, deltaT, timePrecision, nProc);
 
+        % Select Plane of Interest
+        planes = fieldnames(LagDataPlane);
+        
+        valid = false;
+        while ~valid
+            [index, valid] = listdlg('listSize', [300, 300], ...
+                                     'selectionMode', 'single', ...
+                                     'name', 'Select Plane of Interest', ...
+                                     'listString', planes);
+            
+            if ~valid
+                disp('WARNING: No Case Type Selected');
+            end
+        
+        end
+
+        LagDataPlane = LagDataPlane.(planes{index});
 end
 
 disp(' ');
@@ -93,20 +110,9 @@ disp(' ');
 
 disp('Loaded Contaminant Data Spans:');
 
-switch format
-    
-    case 'A'
-        disp(['    T = ', num2str(LagDataSurface.time(1), ['%.', num2str(timePrecision), 'f']), ' s ', ...
-             '-> T = ', num2str(LagDataSurface.time(end), ['%.', num2str(timePrecision), 'f']), ' s']);
-        disp(['    ', char(916), 'T = ' num2str(deltaT, ['%.', num2str(timePrecision), 'f']), 's']);
-        
-    case 'B'
-        planes = fieldnames(LagDataPlane);
-        disp(['    T = ', num2str(LagDataPlane.(planes{1}).time(1), ['%.', num2str(timePrecision), 'f']), ' s ', ...
-             '-> T = ', num2str(LagDataPlane.(planes{1}).time(end), ['%.', num2str(timePrecision), 'f']), ' s']);
-        disp(['    ', char(916), 'T = ' num2str(deltaT, ['%.', num2str(timePrecision), 'f']), 's']);
-        
-end
+disp(['    T = ', num2str(LagDataSurface.time(1), ['%.', num2str(timePrecision), 'f']), ' s ', ...
+       '-> T = ', num2str(LagDataSurface.time(end), ['%.', num2str(timePrecision), 'f']), ' s']);
+disp(['    ', char(916), 'T = ' num2str(deltaT, ['%.', num2str(timePrecision), 'f']), 's']);
 
 valid = false;
 while ~valid
@@ -114,16 +120,7 @@ while ~valid
     selection = input('Utilise All Available Time Instances? [y/n]: ', 's');
     
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        
-        switch format
-            
-            case 'A'
-                timeInsts = inputTimes(LagDataSurface.time);
-                
-            case 'B'
-                timeInsts = inputTimes(LagDataPlane.(planes{1}).time);
-                
-        end
+        timeInsts = inputTimes(LagDataSurface.time);
         
         if timeInsts == -1
             continue
@@ -131,34 +128,49 @@ while ~valid
             disp('        WARNING: No Lagrangian Data Available for Selected Time Instances');
             continue
         end
+        
+        mapData.inst.time = LagDataSurface.time(timeInsts);
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        contaminantData.time = LagDataSurface.time;
 
-        switch format
-            
-            case 'A'
-                contaminantData.time = LagDataSurface.time(timeInsts);
-                
-                
-            case 'B'
-                
-                for i = 1:height(planes)
-                    contaminantData.(planes{i}).time = LagDataPlane.(planes{1}).time(timeInsts);
-                end
-                
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+
+dLims = zeros(2,1);
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Filter Particle Diameters? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        dLims(1) = floor(cellfun(@min, LagDataSurface.d) * 1e6); % Converts to um
+        dLims(2) = ceil(cellfun(@max, LagDataSurface.d) * 1e6);
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        dLims(1) = inputD('Min');
+
+        if dLims(1) == -1
+            continue
+        end
+
+        dLims(2) = inputD('Max');
+
+        if dLims(2) == -1
+            continue
         end
         
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        dLims = sort(dLims);
         
-        switch format
-            
-            case 'A'
-                contaminantData.time = LagDataSurface.time;
-                
-            case 'B'
-                
-                for i = 1:height(planes)
-                    contaminantData.(planes{i}).time = LagDataPlane.(planes{1}).time;
-                end
-                
+        if (dLims(2) < floor(cellfun(@min, LagDataSurface.d) * 1e6)) || ...
+           (dLims(1) > ceil(cellfun(@max, LagDataSurface.d) * 1e6))
+            disp('        WARNING: No Lagrangian Data in Selected Time Range');
+            continue
         end
         
         valid = true;
@@ -167,6 +179,22 @@ while ~valid
     end
 
 end
+
+disp(' ');
+disp(' ');
+
+
+%% Contaminant Mapping
+
+disp('Contaminant Mapping');
+disp('--------------------');
+
+disp(' ');
+
+disp('***********');
+disp('  RUNNING ');
+
+disp(' ');
 
 
 %% Local Functions

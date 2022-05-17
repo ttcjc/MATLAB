@@ -1,9 +1,9 @@
-%% Volumetric Lagrangian Data Reader v1.0
+%% Volumetric Lagrangian Data Reader v3.0
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
 % Usage: LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, ...
-%                                         sampleInterval, timeDirs, deltaT, timePrecision, nProc)
+%                                    sampleInterval, timeDirs, deltaT, timePrecision, nProc);
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
@@ -18,6 +18,9 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
+% v2.0 - Rewrite to Support 'LagrangianExtractionPlaneData'
+% v3.0 - Parallelised and Split Into Separate Planar, Surface and Volumetric Functions
 
 
 %% Main Function
@@ -54,6 +57,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
         
         % Initialise Progress Bar
         wB = waitbar(0, ['Collating ''', prop, ''' Data...'], 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
         dQ = parallel.pool.DataQueue;
         afterEach(dQ, @parforWaitBar);
         
@@ -109,7 +113,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
     valid = false;
     while ~valid
         disp(' ');
-        selection = input('Save Particle Data for Future Use? [y/n]: ', 's');
+        selection = input('Save Data for Future Use? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
@@ -129,11 +133,13 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
             freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
 %             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
-%             disp(['    Saved to: ~/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-
+%             disp(['    Saving to: ~/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%             disp('        Success');
+            
             save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
-            disp(['    Saved to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+            disp('        Success');
+            
             valid = true;
         else
             disp('    WARNING: Invalid Entry');

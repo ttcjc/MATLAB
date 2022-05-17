@@ -1,0 +1,35 @@
+%% Independent Lagrangian Data Reader v1.0
+% ----
+% Executes 'initialiseLagData.m' Without Further Processing
+% ----
+% Usage: [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = storeLagData(caseFolder, cloudName, ...
+%                                                                               plane, surface, volume, nProc);
+%        'caseFolder' -> Case Path, Stored as s String
+%        'cloudName'  -> OpenFOAM Cloud Name, Stored as a String
+%        'plane'      -> Collect Planar Data [True/False]
+%        'surface'    -> Collect Surface Data [True/False]
+%        'volume'     -> Collect Volume Data [True/False]
+%        'nProc'      -> Number of Processors Used for Parallel Collation
+
+
+%% Changelog
+
+% v1.0 - Initial Commit
+
+
+%% Main Function
+
+function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = storeLagData(caseFolder, cloudName, ...
+                                                                                plane, surface, volume, nProc)
+    
+    namePos = max(strfind(caseFolder, '/')) + 1;
+    caseName = caseFolder(namePos:end);
+    
+    [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, 'global');
+    
+    clc;
+    
+    [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLagData(caseFolder, caseName, cloudName, ...
+                                                                                plane, surface, volume, ...
+                                                                                timeDirs, deltaT, timePrecision, nProc);
+end

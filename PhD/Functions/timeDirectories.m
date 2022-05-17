@@ -72,6 +72,6 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
     deltaT = round(deltaT, timePrecision);
     
     disp(['        Identified ', num2str(height(timeDirs)), ' Time Directories']);
-    disp(['        ', char(916), 'T = ' num2str(deltaT), 's']);
+    disp(['        ', char(916), 'T = ' num2str(deltaT, ['%.', num2str(timePrecision), 'f']), 's']);
     
 end

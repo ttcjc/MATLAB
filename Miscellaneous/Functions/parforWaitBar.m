@@ -11,7 +11,7 @@ function parforWaitBar(handle, iterations)
         % Update Wait Bar
         if isvalid(wB)
             i = i + 1;
-            waitbar(i / N, wB);
+            waitbar((i / N), wB);
         end
         
     end

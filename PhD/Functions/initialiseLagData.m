@@ -2,7 +2,19 @@
 % ----
 % Initialisation of OpenFOAM v7 Lagrangian Data for Further Processing
 % ----
-% Usage: [] = initialiseLagData()
+% Usage: [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLagData(caseFolder, caseName, cloudName, ...
+%                                                                                    plane, surface, volume, ...
+%                                                                                    timeDirs, deltaT, timePrecision, nProc);
+%        'caseFolder'    -> Case Path, Stored as s String
+%        'caseName'      -> Case Name, Stored as a String
+%        'cloudName'     -> OpenFOAM Cloud Name, Stored as a String
+%        'plane'         -> Collect Planar Data [True/False]
+%        'surface'       -> Collect Surface Data [True/False]
+%        'volume'        -> Collect Volume Data [True/False]
+%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
+%        'deltaT'        -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
+%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -71,7 +83,13 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
     LagDataSurface = [];
     LagDataVolume = [];
     
+    disp(' ');
+    disp(' ');
+    
     % Load Previously Collated Data (If Desired/Possible)
+    disp('Lagrangian Data Load');
+    disp('---------------------');
+    
     if plane
         valid = false;
         while ~valid
@@ -85,8 +103,9 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
                                                  'Select Plane Data');
 
                 if contains(filePath, ['LagData/plane/', caseName])
-                    disp(['    Loading: ', fileName]);
-                    LagDataPlane = load([filePath, fileName], 'LagData');
+                    disp(['    Loading ''', fileName, '''...']);
+                    disp('        Success');
+                    LagDataPlane = load([filePath, fileName], 'LagData').LagData;
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -115,8 +134,9 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
                                                  'Select Surface Data');
 
                 if contains(filePath, ['LagData/surface/', caseName])
-                    disp(['    Loading: ', fileName]);
-                    LagDataSurface = load([filePath, fileName], 'LagData');
+                    disp(['    Loading ''', fileName, '''...']);
+                    disp('        Success');
+                    LagDataSurface = load([filePath, fileName], 'LagData').LagData;
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -145,8 +165,9 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
                                                  'Select Volume Data');
 
                 if contains(filePath, ['LagData/volume/', caseName])
-                    disp(['    Loading: ', fileName]);
-                    LagDataVolume = load([filePath, fileName], 'LagData');
+                    disp(['    Loading ''', fileName, '''...']);
+                    disp('        Success');
+                    LagDataVolume = load([filePath, fileName], 'LagData').LagData;
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -161,6 +182,8 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
         end
         
     end
+    
+    disp(' ');
     
     % Confirm Required Data Exists
     valid = true;
@@ -178,6 +201,9 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
     
     if valid
         return
+    else
+        disp('WARNING: Required Data Unavailable');
+        disp('         Collating New Data...');
     end
     
     disp(' ');
@@ -216,28 +242,26 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
             
             if endTime == -1
                 continue
-            end
-            
-            if endTime < startTime
+            elseif endTime < startTime
                 disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
+                continue
             elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
                 disp('        WARNING: No Lagrangian Data in Selected Time Range');
-            else
-                
-                i = 1;
-                while i <= height(timeDirs)
-
-                    if str2double(timeDirs(i).name) < startTime || str2double(timeDirs(i).name) > endTime
-                        timeDirs(i) = [];
-                    else
-                        i = i + 1;
-                    end
-
-                end
-                
-                valid = true;
+                continue
             end
 
+            i = 1;
+            while i <= height(timeDirs)
+                
+                if str2double(timeDirs(i).name) < startTime || str2double(timeDirs(i).name) > endTime
+                    timeDirs(i) = [];
+                else
+                    i = i + 1;
+                end
+                
+            end
+
+            valid = true;
         else
             disp('    WARNING: Invalid Entry');
         end
@@ -276,12 +300,14 @@ function [LagProps, LagDataPlane, LagDataSurface, LagDataVolume] = initialiseLag
     % Collate Lagrangian Data
     if plane
         disp(' ');
-%         LagDataPlane = readLagDataPlane();
+        LagDataPlane = readLagDataPlane(caseFolder, caseName, LagProps, ...
+                                        sampleInterval, timeDirs, deltaT, timePrecision);
     end
     
     if surface
         disp(' ');
-%         LagDataSurface = readLagDataSurface();
+        LagDataSurface = readLagDataSurface(caseFolder, caseName, LagProps, ...
+                                            sampleInterval, timeDirs, deltaT, timePrecision);
     end
     
     if volume

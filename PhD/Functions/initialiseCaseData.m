@@ -2,7 +2,9 @@
 % ----
 % Initialisation of OpenFOAM v7 Case Data for Further Processing
 % ----
-% Usage: [] = initialiseCaseData()
+% Usage: [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
+%         xDims, yDims, zDims, spacePrecision] = initialiseCaseData(normalise);
+%        'normalise' -> Normalise Dimensions [True/False]
 
 
 %% Changelog

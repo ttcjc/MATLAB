@@ -62,7 +62,7 @@ function LagData = readLagDataSurface(caseFolder, caseName, LagProps, ...
     end
 
     % Initialise Progress Bar
-    wB = waitbar(0, 'Collating Surface Contamination Data...', 'name', 'Progress');
+    wB = waitbar(0, 'Collating Surface Contamination Data', 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
 
     % Collate Data
@@ -104,7 +104,7 @@ function LagData = readLagDataSurface(caseFolder, caseName, LagProps, ...
     for i = 1:height(LagData.time)
         [LagData.origId{i}, index] = sort(LagData.origId{i});
         
-        LagData.timeExact{i} = LagData.timeExact{i}(index,:);
+        LagData.timeExact{i} = LagData.timeExact{i}(index);
         
         for j = 1:height(LagProps)
             prop = LagProps{j};

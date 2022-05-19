@@ -48,6 +48,9 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
         planePos = strfind(dataFiles(i).name, '_') + 1;
         plane = ['X_', erase(dataFiles(i).name(planePos:end), '.')];
         
+        % Align Particles With Plane Position
+        content(:,6) = str2double(dataFiles(i).name(planePos:end));
+        
         % Bin Particle Impacts Into Desired Frequency Windows
         LagData.(plane).time = zeros(ceil(height(timeDirs) / binInterval),1);
         
@@ -66,7 +69,7 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
         end
         
         % Initialise Progress Bar
-        wB = waitbar(0, ['Collating ''', plane, ''' Data...'], 'name', 'Progress');
+        wB = waitbar(0, ['Collating ''', plane, ''' Data'], 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
 
         % Collate Data
@@ -112,7 +115,7 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
         for j = 1:height(LagData.(plane).time)
             [LagData.(plane).origId{j}, index] = sort(LagData.(plane).origId{j});
             
-            LagData.(plane).timeExact{j} = LagData.(plane).timeExact{j}(index,:);
+            LagData.(plane).timeExact{j} = LagData.(plane).timeExact{j}(index);
 
             for k = 1:height(LagProps)
                 prop = LagProps{k};

@@ -2,7 +2,7 @@
 % ----
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
-% Usage: [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);
+% Usage: [geometry, xDims, yDims, zDims, precision, normalise] = selectGeometry(normalise);
 %        'normalise' -> Normalise Dimensions [True/False]
 
 
@@ -19,7 +19,7 @@
 
 %% Main Function
 
-function [geometry, xDims, yDims, zDims, spacePrecision] = selectGeometry(normalise)
+function [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise)
 
     disp('Geometry Selection');
     disp('-------------------');
@@ -50,57 +50,51 @@ function [geometry, xDims, yDims, zDims, spacePrecision] = selectGeometry(normal
 
     disp('Defining Geometry Boundaries...');
     
-    % Define Generic Bounding Box
-    if contains(path, 'Run_Test')
-        xDims = [-1.88575; -0.84175];
-        yDims = [-0.1945; 0.1945];
-        zDims = [0.05; 0.339];
-    elseif contains(path, 'Windsor') && contains(path, 'Balance')
-        xDims = [-0.56075; 0.48325];
-        yDims = [-0.1945; 0.1945];
-        zDims = [0.05; 0.339];
-    elseif contains(path, 'Windsor') && contains(path, 'Upstream')
-        xDims = [-1.88575; -0.84175];
-        yDims = [-0.1945; 0.1945];
-        zDims = [0.05; 0.339];
-    else
-        error('Invalid Geometry (Unsupported Case Type)');
-    end
-
-    % Define Exact Geometric Boundaries
+    % Define Geometric Boundaries
+    xDims = nan(2,1);
+    yDims = xDims;
+    zDims = xDims;
+    
     parts = fieldnames(geometry);
-
+    
     for i = 1:height(parts)
-        geometry.(parts{i}).boundaries.X = cell(height(parts),1);
-        geometry.(parts{i}).boundaries.Y = geometry.(parts{i}).boundaries.X;
-        geometry.(parts{i}).boundaries.Z = geometry.(parts{i}).boundaries.X;
+        geometry.(parts{i}).boundaries.YZ = cell(height(parts),1);
+        geometry.(parts{i}).boundaries.XZ = geometry.(parts{i}).boundaries.YZ;
+        geometry.(parts{i}).boundaries.XY = geometry.(parts{i}).boundaries.YZ;
 
         geoPoints = geometry.(parts{i}).vertices;
 
         % 3D Boundaries
         index = boundary(geoPoints(:,1), geoPoints(:,2), geoPoints(:,3), 1);
         geoPoints = geoPoints(index,:);
-
-        % X Boundaries
+        
+        xDims(1) = min(xDims(1), min(geoPoints(:,1)));
+        xDims(2) = max(xDims(2), max(geoPoints(:,1)));
+        yDims(1) = min(yDims(1), min(geoPoints(:,2)));
+        yDims(2) = max(yDims(2), max(geoPoints(:,2)));
+        zDims(1) = min(zDims(1), min(geoPoints(:,3)));
+        zDims(2) = max(zDims(2), max(geoPoints(:,3)));
+        
+        % YZ Boundaries
         index = boundary(geoPoints(:,2), geoPoints(:,3), 0);
-        geometry.(parts{i}).boundaries.X = nan(height(index),3);
-        geometry.(parts{i}).boundaries.X(:,[2,3]) = geoPoints(index,[2,3]);
-
-        % Y Boundaries
+        geometry.(parts{i}).boundaries.YZ = nan(height(index),3);
+        geometry.(parts{i}).boundaries.YZ(:,[2,3]) = geoPoints(index,[2,3]);
+        
+        % XZ Boundaries
         index = boundary(geoPoints(:,1), geoPoints(:,3), 0);
-        geometry.(parts{i}).boundaries.Y = nan(height(index),3);
-        geometry.(parts{i}).boundaries.Y(:,[1,3]) = geoPoints(index,[1,3]);
-
-        % Z Boundaries
+        geometry.(parts{i}).boundaries.XZ = nan(height(index),3);
+        geometry.(parts{i}).boundaries.XZ(:,[1,3]) = geoPoints(index,[1,3]);
+        
+        % XY Boundaries
         index = boundary(geoPoints(:,1), geoPoints(:,2), 0);
-        geometry.(parts{i}).boundaries.Z = nan(height(index),3);
-        geometry.(parts{i}).boundaries.Z(:,[1,2]) = geoPoints(index,[1,2]);
+        geometry.(parts{i}).boundaries.XY = nan(height(index),3);
+        geometry.(parts{i}).boundaries.XY(:,[1,2]) = geoPoints(index,[1,2]);
     end
     
     % Define Rounding Precision and Normalise Dimensions
-    xPre = max(width(extractAfter(num2str(xDims(1), 8), '.')), width(extractAfter(num2str(xDims(2), 8), '.')));
-    yPre = max(width(extractAfter(num2str(yDims(1), 8), '.')), width(extractAfter(num2str(yDims(2), 8), '.')));
-    zPre = max(width(extractAfter(num2str(zDims(1), 8), '.')), width(extractAfter(num2str(zDims(2), 8), '.')));
+    xPre = max(width(extractAfter(num2str(xDims(1), 7), '.')), width(extractAfter(num2str(xDims(2), 7), '.')));
+    yPre = max(width(extractAfter(num2str(yDims(1), 7), '.')), width(extractAfter(num2str(yDims(2), 7), '.')));
+    zPre = max(width(extractAfter(num2str(zDims(1), 7), '.')), width(extractAfter(num2str(zDims(2), 7), '.')));
     
     spacePrecision = max([xPre, yPre, zPre]);
 
@@ -116,12 +110,13 @@ function [geometry, xDims, yDims, zDims, spacePrecision] = selectGeometry(normal
 
             for i = 1:height(parts)
                 geometry.(parts{i}).vertices = round((geometry.(parts{i}).vertices / 1.044), spacePrecision);
-                geometry.(parts{i}).boundaries.X(:,[2,3]) = round((geometry.(parts{i}).boundaries.X(:,[2,3]) / 1.044), spacePrecision);
-                geometry.(parts{i}).boundaries.Y(:,[1,3]) = round((geometry.(parts{i}).boundaries.Y(:,[1,3]) / 1.044), spacePrecision);
-                geometry.(parts{i}).boundaries.Z(:,[1,2]) = round((geometry.(parts{i}).boundaries.Z(:,[1,2]) / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.YZ(:,[2,3]) = round((geometry.(parts{i}).boundaries.YZ(:,[2,3]) / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.XZ(:,[1,3]) = round((geometry.(parts{i}).boundaries.XZ(:,[1,3]) / 1.044), spacePrecision);
+                geometry.(parts{i}).boundaries.XY(:,[1,2]) = round((geometry.(parts{i}).boundaries.XY(:,[1,2]) / 1.044), spacePrecision);
             end
 
         else
+            normalise = false;
             disp('    WARNING: Dimension Normalisation for This Case Type Not Supported');
         end
     

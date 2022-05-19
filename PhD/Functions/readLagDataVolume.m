@@ -56,17 +56,18 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
         propData = cell(height(LagData.time),1);
         
         % Initialise Progress Bar
-        wB = waitbar(0, ['Collating ''', prop, ''' Data...'], 'name', 'Progress');
+        wB = waitbar(0, ['Collating ''', prop, ''' Data'], 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
         dQ = parallel.pool.DataQueue;
         afterEach(dQ, @parforWaitBar);
         
-        parforWaitBar(wB, height(LagData.time));      
+        parforWaitBar(wB, height(LagData.time));
         
         % Collate Data
         time = LagData.time;
         parfor j = 1:height(LagData.time)
-            propData{j} = readInstPropData(caseFolder, num2str(time(j), '%.8g'), cloudName, prop);
+            propData{j} = readInstPropData(caseFolder, num2str(time(j), '%.7g'), cloudName, prop);
+            
             send(dQ, []);
         end
         

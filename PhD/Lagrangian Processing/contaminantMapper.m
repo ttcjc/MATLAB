@@ -8,10 +8,12 @@ normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-nProc = 4; % Number of Processors Used for Parallel Collation
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
+% massNormalisation = 3.744918231958561e-10; % Square-Back Base Time-Average
+massNormalisation = 3.927672487723743e-09; % Square-Back 2L Time-Average
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -185,8 +187,7 @@ while ~valid
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        dLims(1) = floor(min(cellfun(@min, LagData.d) * 1e6)); % Converts to um
-        dLims(2) = ceil(max(cellfun(@max, LagData.d) * 1e6));
+        dLims = [0; 120];
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
@@ -204,9 +205,8 @@ while ~valid
         
         dLims = sort(dLims);
         
-        if (dLims(2) < floor(cellfun(@min, LagData.d) * 1e6)) || ...
-           (dLims(1) > ceil(cellfun(@max, LagData.d) * 1e6))
-            disp('        WARNING: No Lagrangian Data in Selected Time Range');
+        if (dLims(2) < 0) || (dLims(1) > 120)
+            disp('        WARNING: No Lagrangian Data in Diameter Range');
             continue
         end
         
@@ -284,21 +284,28 @@ switch format
         
         basePerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
         basePerim = basePoints(basePerim,:);
+        basePoly = polyshape(basePerim(:,2), basePerim(:,3), 'keepCollinearPoints', true);
+        basePoly = polybuffer(basePoly, -0.0025, 'jointType', 'square');
+        basePerim = ones(height(basePoly.Vertices),3) * basePerim(1,1);
+        basePerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
+
+        if ~all(basePerim(1,:) == basePerim(end,:))
+            basePerim = vertcat(basePerim, basePerim(1,:)); % Close Boundary
+        end
+        
+        clear basePoly;
         
         xLims = xDims(2);
         yLims = [min(basePoints(:,2)); max(basePoints(:,2))];
         zLims = [min(basePoints(:,3)); max(basePoints(:,3))];
         
-        yLims(1) = yLims(1) + 4e-3;
-        yLims(2) = yLims(2) - 4e-3;
-        zLims(1) = zLims(1) + 4e-3;
-        zLims(2) = zLims(2) - 4e-3;
-        
     case 'B'
         if contains(caseName, 'Run_Test') || contains(caseName, 'Windsor')
+            basePerim = [];
+            
             xLims = LagData.positionCartesian{end}(1,1);
-            yLims = [-0.3545; 0.3545];
-            zLims = [0; 0.499];
+            yLims = [-0.5945; 0.5945];
+            zLims = [0; 0.739];
             
             if normalise
                 yLims = round((yLims / 1.044), spacePrecision);
@@ -383,11 +390,11 @@ switch format
     
     case 'A'
     % Adhere Grid to Base Boundaries
-    indexBase = inpolygon(mapData.positionGrid(:,2), mapData.positionGrid(:,3), ...
+    [indexIn, indexOn] = inpolygon(mapData.positionGrid(:,2), mapData.positionGrid(:,3), ...
                           basePerim(:,2), basePerim(:,3));
-        
-        indexBase = setdiff(find(mapData.positionGrid(:,1)), find(indexBase));
-        clear indexIn indexOn;
+    indexBase = find(or(indexIn, indexOn));
+%     indexBaseInv = setdiff(find(mapData.positionGrid(:,1)), indexBase);
+    clear indexIn indexOn;
 end
 
 mapData.inst.time = contaminantData.time;
@@ -414,7 +421,7 @@ clear positionGrid positionCartesian;
 
 delete(wB);
 
-mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 4e-3;
+mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Mapping Variables', 'name', 'Progress');
@@ -474,16 +481,16 @@ parfor i = 1:height(mapData.inst.time)
     d32{i}(isnan(d32{i})) = 0;
     d43{i}(isnan(d43{i})) = 0;
     
-    switch format
-        
-        case 'A'
-           nParticles{i}(indexBase) = nan;
-           d10{i}(indexBase) = nan;
-           d32{i}(indexBase) = nan;
-           d43{i}(indexBase) = nan;
-           mass{i}(indexBase) = nan;
-           
-    end
+%     switch format
+%         
+%         case 'A'
+%            nParticles{i}(indexBaseInv) = nan;
+%            d10{i}(indexBaseInv) = nan;
+%            d32{i}(indexBaseInv) = nan;
+%            d43{i}(indexBaseInv) = nan;
+%            mass{i}(indexBaseInv) = nan;
+%            
+%     end
     
     send(dQ, []);
 end
@@ -516,9 +523,19 @@ positionGrid = mapData.positionGrid;
 parfor i = 1:height(mapData.inst.time)
     CoM{i} = zeros(1,3);
     
-    CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
-    CoM{i}(2) = sum(mass{i} .* positionGrid(:,2)) / sum(mass{i});
-    CoM{i}(3) = sum(mass{i} .* positionGrid(:,3)) / sum(mass{i});
+    switch format
+        
+        case 'A'
+            CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
+            CoM{i}(2) = sum(mass{i}(indexBase) .* positionGrid(indexBase,2)) / sum(mass{i}(indexBase));
+            CoM{i}(3) = sum(mass{i}(indexBase) .* positionGrid(indexBase,3)) / sum(mass{i}(indexBase));
+            
+        case 'B'
+            CoM{i}(1) = positionGrid(1,1);
+            CoM{i}(2) = sum(mass{i} .* positionGrid(:,2)) / sum(mass{i});
+            CoM{i}(3) = sum(mass{i} .* positionGrid(:,3)) / sum(mass{i});
+            
+    end
     
     send(dQ, []);
 end
@@ -572,14 +589,29 @@ mapData.mean.d10 = d10Mean / height(mapData.inst.time);
 mapData.mean.d32 = d32Mean / height(mapData.inst.time);
 mapData.mean.d43 = d43Mean / height(mapData.inst.time);
 mapData.mean.mass = massMean / height(mapData.inst.time);
+mapData.mean.massNorm = mapData.mean.mass / massNormalisation;
 clear nParticlesMean d10Mean d32Mean d43Mean massMean;
 
 % Calculate Time-Averaged Centre of Mass
 mapData.mean.CoM = zeros(1,3);
 
-mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-mapData.mean.CoM(2) = sum(mapData.mean.mass .* mapData.positionGrid(:,2)) / sum(mapData.mean.mass);
-mapData.mean.CoM(3) = sum(mapData.mean.mass .* mapData.positionGrid(:,3)) / sum(mapData.mean.mass);
+switch format
+    
+    case 'A'
+        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
+        mapData.mean.CoM(2) = sum(mapData.mean.mass(indexBase) .* mapData.positionGrid(indexBase,2)) / ...
+                              sum(mapData.mean.mass(indexBase));
+        mapData.mean.CoM(3) = sum(mapData.mean.mass(indexBase) .* mapData.positionGrid(indexBase,3)) / ...
+                              sum(mapData.mean.mass(indexBase));
+
+    case 'B'
+        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
+        mapData.mean.CoM(2) = sum(mapData.mean.mass .* mapData.positionGrid(:,2)) / ...
+                              sum(mapData.mean.mass);
+        mapData.mean.CoM(3) = sum(mapData.mean.mass .* mapData.positionGrid(:,3)) / ...
+                              sum(mapData.mean.mass);
+                          
+end
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
@@ -676,7 +708,7 @@ switch format
     case 'A'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsPlot = [0.31875; 1.36275]; % [m]
+            xLimsPlot = [0.31875; 1.52725];
             yLimsPlot = [-0.2445; 0.2445];
             zLimsPlot = [0; 0.389];
         end
@@ -684,9 +716,9 @@ switch format
     case 'B'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsPlot = [0.31875; 4.65925]; % [m]
-            yLimsPlot = [-0.4945; 0.4945];
-            zLimsPlot = [0; 0.639];
+            xLimsPlot = [0.31875; 4.65925];
+            yLimsPlot = yLims;
+            zLimsPlot = zLims;
         end
         
 end
@@ -716,12 +748,14 @@ if plotMean
         
         if contains(plotVars{i}, ["d10", "d32", "d43"])
             cLims = dLims;
+        elseif strcmp(plotVars{i}, 'massNorm')
+            cLims = [0; 1];
         else
             cLims = [0; max(contaminantData)];
         end
         
         fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                               positionData, contaminantData, fig, figName, cMap, geometry, ...
+                               basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                xDims, CoM, figTitle, figSubtitle, cLims, normalise);
     end
     

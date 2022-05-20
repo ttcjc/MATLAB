@@ -14,7 +14,7 @@
 %% Main Function
 
 function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                                positionData, contaminantData, fig, figName, cMap, geometry, ...
+                                basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                 xDims, CoM, figTitle, figSubtitle, cLims, normalise)
     
     cellSize = 1e-3; % [m or l]
@@ -29,10 +29,18 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
                          zLimsData(1):cellSizeZ:zLimsData(2));
     
     interp = scatteredInterpolant(positionData(:,2), positionData(:,3), contaminantData(:,1), ...
-                                  'linear', 'linear');
+                                  'linear', 'none');
     
     contamination = zeros(size(x));
     contamination(:,2,:) = interp(y(:,2,:), z(:,2,:));
+    
+    if ~isempty(basePerim)
+        [indexIn, indexOn] = inpolygon(y, z, basePerim(:,2), basePerim(:,3));
+        indexBase = double(or(indexIn, indexOn));
+        indexBase(indexBase == 0) = nan;
+
+        contamination = contamination .* indexBase;
+    end
 
     % Figure Setup
     fig = fig + 1;

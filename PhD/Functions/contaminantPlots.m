@@ -17,7 +17,7 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
                                 basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                 xDims, CoM, figTitle, figSubtitle, cLims, normalise)
     
-    cellSize = 1e-3; % [m or l]
+    cellSize = 0.5e-3; % [m or l]
     
     % Generate Gridded Data
     cellSizeX = cellSize;

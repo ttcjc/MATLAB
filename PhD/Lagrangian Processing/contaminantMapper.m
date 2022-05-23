@@ -12,8 +12,7 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-% massNormalisation = 3.744918231958561e-10; % Square-Back Base Time-Average
-massNormalisation = 3.927672487723743e-09; % Square-Back 2L Time-Average
+massNormalisation = 3.744918231958561e-10; % Square-Back Base Time-Average
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -386,17 +385,6 @@ mapData.positionGrid = zeros(height(y(:)),3);
 mapData.positionGrid(:,1) = xLims;
 mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
 
-switch format
-    
-    case 'A'
-    % Adhere Grid to Base Boundaries
-    [indexIn, indexOn] = inpolygon(mapData.positionGrid(:,2), mapData.positionGrid(:,3), ...
-                          basePerim(:,2), basePerim(:,3));
-    indexBase = find(or(indexIn, indexOn));
-%     indexBaseInv = setdiff(find(mapData.positionGrid(:,1)), indexBase);
-    clear indexIn indexOn;
-end
-
 mapData.inst.time = contaminantData.time;
 
 % Initialise Progress Bar
@@ -434,8 +422,9 @@ parforWaitBar(wB, height(mapData.inst.time));
 % Calculate Instantaneous Mapping Variables
 nParticles = cell(height(contaminantData.time),1); % Number of Particles in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
+d20 = nParticles; % Surface Mean Diameter in Cell
+d30 = nParticles; % Volume Mean Diameter in Cell
 d32 = nParticles; % Sauter Mean Diameter in Cell
-d43 = nParticles; % De Brouckere Mean Diameter in Cell
 mass = nParticles; % Total Mass in Cell
 
 positionGrid = mapData.positionGrid;
@@ -443,58 +432,44 @@ positionCartesian = contaminantData.positionCartesian;
 nParticle = contaminantData.nParticle;
 d = contaminantData.d;
 d32_tmp = nParticles;
-d43_tmp = nParticles;
 parfor i = 1:height(mapData.inst.time)
     nParticles{i} = zeros(height(positionGrid),1);
     d10{i} = nParticles{i};
+    d20{i} = nParticles{i};
+    d30{i} = nParticles{i};
     d32{i} = nParticles{i};
-    d43{i} = nParticles{i};
     mass{i} = nParticles{i};
     
     d32_tmp{i} = nParticles{i};
-    d43_tmp{i} = nParticles{i};
     
     for j = 1:height(positionCartesian{i})
         nParticles{i}(index{i}(j)) = nParticles{i}(index{i}(j)) + ...
                                      nParticle{i}(j);
         d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
                               (nParticle{i}(j) * d{i}(j));
-        d32{i}(index{i}(j)) = d32{i}(index{i}(j)) + ...
+        d20{i}(index{i}(j)) = d20{i}(index{i}(j)) + ...
+                              (nParticle{i}(j) * (d{i}(j)^2));
+        d30{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
                               (nParticle{i}(j) * (d{i}(j)^3));
-        d32_tmp{i}(index{i}(j)) = d32_tmp{i}(index{i}(j)) + ...
-                                  (nParticle{i}(j) * (d{i}(j)^2));
-        d43{i}(index{i}(j)) = d43{i}(index{i}(j)) + ...
-                              (nParticle{i}(j) * (d{i}(j)^4));
-        d43_tmp{i}(index{i}(j)) = d43_tmp{i}(index{i}(j)) + ...
-                                  (nParticle{i}(j) * (d{i}(j)^3));
         mass{i}(index{i}(j)) = mass{i}(index{i}(j)) + ...
                                (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
     end
     
-    d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
-    d32{i} = (d32{i} ./ d32_tmp{i}) * 1e6;
-    d43{i} = (d43{i} ./ d43_tmp{i}) * 1e6;
     mass{i} = 1000 * mass{i};
+    d32{i} = (d30{i} ./ d20{i}) * 1e6;
+    d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
+    d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
+    d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
     
     % Set Empty Cells Back to Zero
     d10{i}(isnan(d10{i})) = 0;
+    d20{i}(isnan(d20{i})) = 0;
+    d30{i}(isnan(d30{i})) = 0;
     d32{i}(isnan(d32{i})) = 0;
-    d43{i}(isnan(d43{i})) = 0;
-    
-%     switch format
-%         
-%         case 'A'
-%            nParticles{i}(indexBaseInv) = nan;
-%            d10{i}(indexBaseInv) = nan;
-%            d32{i}(indexBaseInv) = nan;
-%            d43{i}(indexBaseInv) = nan;
-%            mass{i}(indexBaseInv) = nan;
-%            
-%     end
     
     send(dQ, []);
 end
-clear positionGrid positionCartesian nParticle d d32_tmp d43_tmp;
+clear positionGrid positionCartesian nParticle d;
 
 delete(wB);
 
@@ -502,10 +477,11 @@ clear contaminantData;
 
 mapData.inst.nParticles = nParticles;
 mapData.inst.d10 = d10;
+mapData.inst.d20 = d20;
+mapData.inst.d30 = d30;
 mapData.inst.d32 = d32;
-mapData.inst.d43 = d43;
 mapData.inst.mass = mass;
-clear nParticles d10 d32 d43 mass;
+clear nParticles d10 d20 d30 d32 mass;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
@@ -522,20 +498,15 @@ mass = mapData.inst.mass;
 positionGrid = mapData.positionGrid;
 parfor i = 1:height(mapData.inst.time)
     CoM{i} = zeros(1,3);
+    CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
     
-    switch format
-        
-        case 'A'
-            CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
-            CoM{i}(2) = sum(mass{i}(indexBase) .* positionGrid(indexBase,2)) / sum(mass{i}(indexBase));
-            CoM{i}(3) = sum(mass{i}(indexBase) .* positionGrid(indexBase,3)) / sum(mass{i}(indexBase));
-            
-        case 'B'
-            CoM{i}(1) = positionGrid(1,1);
-            CoM{i}(2) = sum(mass{i} .* positionGrid(:,2)) / sum(mass{i});
-            CoM{i}(3) = sum(mass{i} .* positionGrid(:,3)) / sum(mass{i});
-            
+    for j = 1:height(positionGrid)
+        CoM{i}(2) = CoM{i}(2) + (mass{i}(j) * positionGrid(j,2));
+        CoM{i}(3) = CoM{i}(3) + (mass{i}(j) * positionGrid(j,3));
     end
+    
+    CoM{i}(2) = CoM{i}(2) / sum(mass{i});
+    CoM{i}(3) = CoM{i}(3) / sum(mass{i});
     
     send(dQ, []);
 end
@@ -562,56 +533,53 @@ parforWaitBar(wB, height(mapData.inst.time));
 % Calculate Time-Averaged Mapping Variables
 nParticlesMean = zeros(height(mapData.positionGrid),1);
 d10Mean = nParticlesMean;
+d20Mean = nParticlesMean;
+d30Mean = nParticlesMean;
 d32Mean = nParticlesMean;
-d43Mean = nParticlesMean;
 massMean = nParticlesMean;
 
 nParticles = mapData.inst.nParticles;
 d10 = mapData.inst.d10;
+d20 = mapData.inst.d20;
+d30 = mapData.inst.d30;
 d32 = mapData.inst.d32;
-d43 = mapData.inst.d43;
 mass = mapData.inst.mass;
 parfor i = 1:height(mapData.inst.time)
     nParticlesMean = nParticlesMean + nParticles{i};
     d10Mean = d10Mean + d10{i};
+    d20Mean = d20Mean + d20{i};
+    d30Mean = d30Mean + d30{i};
     d32Mean = d32Mean + d32{i};
-    d43Mean = d43Mean + d43{i};
     massMean = massMean + mass{i};
     
     send(dQ, []);
 end
-clear nParticles d10 d32 d43 mass;
+clear nParticles d10 d20 d30 d32 mass;
 
 delete(wB);
 
 mapData.mean.nParticles = nParticlesMean / height(mapData.inst.time);
 mapData.mean.d10 = d10Mean / height(mapData.inst.time);
+mapData.mean.d20 = d20Mean / height(mapData.inst.time);
+mapData.mean.d30 = d30Mean / height(mapData.inst.time);
 mapData.mean.d32 = d32Mean / height(mapData.inst.time);
-mapData.mean.d43 = d43Mean / height(mapData.inst.time);
 mapData.mean.mass = massMean / height(mapData.inst.time);
 mapData.mean.massNorm = mapData.mean.mass / massNormalisation;
-clear nParticlesMean d10Mean d32Mean d43Mean massMean;
+clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean;
 
 % Calculate Time-Averaged Centre of Mass
 mapData.mean.CoM = zeros(1,3);
+mapData.mean.CoM(1) = mapData.positionGrid(1,1);
 
-switch format
-    
-    case 'A'
-        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-        mapData.mean.CoM(2) = sum(mapData.mean.mass(indexBase) .* mapData.positionGrid(indexBase,2)) / ...
-                              sum(mapData.mean.mass(indexBase));
-        mapData.mean.CoM(3) = sum(mapData.mean.mass(indexBase) .* mapData.positionGrid(indexBase,3)) / ...
-                              sum(mapData.mean.mass(indexBase));
-
-    case 'B'
-        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-        mapData.mean.CoM(2) = sum(mapData.mean.mass .* mapData.positionGrid(:,2)) / ...
-                              sum(mapData.mean.mass);
-        mapData.mean.CoM(3) = sum(mapData.mean.mass .* mapData.positionGrid(:,3)) / ...
-                              sum(mapData.mean.mass);
-                          
+for i = 1:height(mapData.positionGrid)
+    mapData.mean.CoM(2) = mapData.mean.CoM(2) + ...
+                          (mapData.mean.mass(i) * mapData.positionGrid(i,2));
+    mapData.mean.CoM(3) = mapData.mean.CoM(3) + ...
+                          (mapData.mean.mass(i) * mapData.positionGrid(i,3));
 end
+
+mapData.mean.CoM(2) = mapData.mean.CoM(2) / sum(mapData.mean.mass);
+mapData.mean.CoM(3) = mapData.mean.CoM(3) / sum(mapData.mean.mass);
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
@@ -742,11 +710,21 @@ if plotMean
         disp(['    Presenting Time-Averaged ''', plotVars{i}, ''' Data...']);
         
         contaminantData = mapData.mean.(plotVars{i});
-        figName = ['Time_Averaged_', plotVars{i}, '_Map'];
+        
+        switch format
+            
+            case 'A'
+                figName = ['Time_Averaged_Base', plotVars{i}, '_Map'];
+                
+            case 'B'
+                figName = ['Time_Averaged_Planar', plotVars{i}, '_Map'];
+                
+        end
+        
         CoM = mapData.mean.CoM;
         figSubtitle = ' ';
         
-        if contains(plotVars{i}, ["d10", "d32", "d43"])
+        if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
             cLims = dLims;
         elseif strcmp(plotVars{i}, 'massNorm')
             cLims = [0; 1];
@@ -759,7 +737,56 @@ if plotMean
                                xDims, CoM, figTitle, figSubtitle, cLims, normalise);
     end
     
+    disp(' ');
 end
+
+if plotInst
+    
+    for i = 1:height(plotVars)
+        disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
+        
+        for j = 1:height(mapData.inst.time)
+            contaminantData = mapData.inst.(plotVars{i}){j};
+            figTime = num2str(mapData.inst.time{j}, ['%.', num2str(timePrecision), 'f']);
+            
+            switch format
+                
+                case 'A'
+                    figName = ['Instantaneous_Base', plotVars{i}, '_Map_T', figTime];
+                
+                case 'B'
+                    figName = ['Instantaneous_Planar', plotVars{i}, '_Map_T', figTime];
+            end
+            
+            CoM = mapData.inst.CoM{j};
+            figSubtitle = figTime;
+            
+            if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
+                cLims = dLims;
+            elseif strcmp(plotVars{i}, 'massNorm')
+                cLims = [0; 1];
+            else
+                cLims = [0; max(contaminantData)];
+            end
+            
+            fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
+                                   basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
+                                   xDims, CoM, figTitle, figSubtitle, cLims, normalise);
+        end
+        
+    end
+    
+    disp(' ');
+end
+
+if ~plotMean && ~plotInst
+    disp('    Skipping Data Presentation');
+end
+
+
+%% Save Map Data
+
+% Save Shit
 
 
 %% Local Functions
@@ -775,4 +802,16 @@ function timeInsts = inputTimes(origTimes)
         timeInsts = find(ismember(origTimes, timeInsts));
     end
 
+end
+
+
+function D = inputD(type)
+
+    D = str2double(input(['    ', type, ' Diameter of Interest [', char(956), 'm]: '], 's'));
+    
+    if isnan(D) || length(D) > 1
+        disp('        WARNING: Invalid Entry');
+        D = -1;
+    end
+    
 end

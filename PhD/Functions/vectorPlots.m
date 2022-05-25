@@ -39,22 +39,12 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                            nComponents, component, fig, figName, cMap, geometry, streamlines, ...
                            xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise)
     
-    cellSize = 1e-3; % [m or l]
-        
-    % Set Plot Limits
-    xLimsPlot(1) = floor(xLimsPlot(1) / 0.1) * 0.1;
-    xLimsPlot(2) = floor(xLimsPlot(2) / 0.1) * 0.1;
-
-    yLimsPlot(1) = ceil(yLimsPlot(1) / 0.1) * 0.1;
-    yLimsPlot(2) = floor(yLimsPlot(2) / 0.1) * 0.1;
-
-    zLimsPlot(1) = ceil(zLimsPlot(1) / 0.1) * 0.1;
-    zLimsPlot(2) = floor(zLimsPlot(2) / 0.1) * 0.1;
+    cellSize = 0.5e-3; % [m or l]
     
     % Format Data
     switch planeOrientation
         
-        case 'X'
+        case 'YZ'
             % Generate Gridded Data
             cellSizeX = cellSize;
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
@@ -65,22 +55,25 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                                  zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,1), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             u = zeros(size(x));
             u(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            u(isnan(u)) = 0;
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,2), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             v = zeros(size(x));
             v(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            v(isnan(v)) = 0;
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,3), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             w = zeros(size(x));
             w(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            w(isnan(w)) = 0;
             
             % Evaluate Vector Components for Contour
             if nComponents == 1
@@ -94,7 +87,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                 error('Invalid Number of Vector Components');
             end
             
-        case 'Y'
+        case 'XZ'
             % Generate Gridded Data
             cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
             cellSizeY = cellSize;
@@ -105,22 +98,25 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                                  zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,1), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             u = zeros(size(x));
             u(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            u(isnan(u)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,2), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             v = zeros(size(x));
             v(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            v(isnan(v)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,3), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             w = zeros(size(x));
             w(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            w(isnan(w)) = 0;
             
             % Evaluate Vector Components for Contour
             if nComponents == 1
@@ -134,7 +130,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                 error('Invalid Number of Vector Components');
             end
             
-        case 'Z'
+        case 'XY'
             % Generate Gridded Data
             cellSizeX = (xLimsData(2) - xLimsData(1)) / round((xLimsData(2) - xLimsData(1)) / cellSize);
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
@@ -145,22 +141,25 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                                  (planePosition - cellSizeZ):cellSizeZ:(planePosition + cellSizeZ));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,1), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             u = zeros(size(x));
             u(:,:,2) = interp(x(:,:,2), y(:,:,2));
+            u(isnan(u)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,2), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             v = zeros(size(x));
             v(:,:,2) = interp(x(:,:,2), y(:,:,2));
+            v(isnan(v)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,3), ...
-                                          'linear', 'linear');
+                                          'linear', 'none');
             
             w = zeros(size(x));
             w(:,:,2) = interp(x(:,:,2), y(:,:,2));
+            w(isnan(w)) = 0;
             
             % Evaluate Vector Components for Contour
             if nComponents == 1
@@ -179,12 +178,13 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
     % Present Plane
     switch planeOrientation
         
-        case 'X'
+        case 'YZ'
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
+            lighting gouraud;
             colormap(cMap);
             hold on;
             
@@ -211,12 +211,12 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             if planePosition < xDims(1) || planePosition > xDims(2)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.X(:,1) = planePosition;
+                    geometry.(parts{i}).boundaries.YZ(:,1) = planePosition;
 
-                    plot3(geometry.(parts{i}).boundaries.X(:,1), ...
-                          geometry.(parts{i}).boundaries.X(:,2), ...
-                          geometry.(parts{i}).boundaries.X(:,3), ...
-                          'color', ([230, 0, 126] / 255), 'lineStyle', '-', 'lineWidth', 1.5);
+                    plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
+                          geometry.(parts{i}).boundaries.YZ(:,2), ...
+                          geometry.(parts{i}).boundaries.YZ(:,3), ...
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
 
             end
@@ -234,9 +234,9 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             zlim([zLimsPlot(1), zLimsPlot(2)]);
             tickData = [];
             xticks(tickData);
-            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
+            tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
             yticks(tickData(2:end-1));
-            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
+            tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
@@ -260,12 +260,13 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             pause(2);
             exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
             
-        case 'Y'
+        case 'XZ'
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
+            lighting gouraud;
             colormap(cMap);
             hold on;
             
@@ -292,12 +293,12 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             if planePosition < yDims(1)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.Y(:,2) = planePosition;
+                    geometry.(parts{i}).boundaries.XZ(:,2) = planePosition;
 
-                    plot3(geometry.(parts{i}).boundaries.Y(:,1), ...
-                          geometry.(parts{i}).boundaries.Y(:,2), ...
-                          geometry.(parts{i}).boundaries.Y(:,3), ...
-                          'color', ([230, 0, 126] / 255), 'lineStyle', '-', 'lineWidth', 1.5);
+                    plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
+                          geometry.(parts{i}).boundaries.XZ(:,2), ...
+                          geometry.(parts{i}).boundaries.XZ(:,3), ...
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
 
             end
@@ -313,11 +314,11 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             xlim([xLimsPlot(1), xLimsPlot(2)]);
             ylim([yLimsPlot(1), yLimsPlot(2)]);
             zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
+            tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
             xticks(tickData(2:end-1));
             tickData = [];
             yticks(tickData);
-            tickData = zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2);
+            tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
             zticks(tickData(2:end-1));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
@@ -341,12 +342,13 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             pause(2);
             exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
-        case 'Z'
+        case 'XY'
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
             set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
+            lighting gouraud;
             colormap(cMap);
             hold on;
             
@@ -373,12 +375,12 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             if planePosition > zDims(2)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.Z(:,3) = planePosition;
+                    geometry.(parts{i}).boundaries.XY(:,3) = planePosition;
 
-                    plot3(geometry.(parts{i}).boundaries.Z(:,1), ...
-                          geometry.(parts{i}).boundaries.Z(:,2), ...
-                          geometry.(parts{i}).boundaries.Z(:,3), ...
-                          'color', ([230, 0, 126] / 255), 'lineStyle', '-', 'lineWidth', 1.5);
+                    plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
+                          geometry.(parts{i}).boundaries.XY(:,2), ...
+                          geometry.(parts{i}).boundaries.XY(:,3), ...
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
 
             end
@@ -394,9 +396,9 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             xlim([xLimsPlot(1), xLimsPlot(2)]);
             ylim([yLimsPlot(1), yLimsPlot(2)]);
             zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2);
+            tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
             xticks(tickData(2:end-1));
-            tickData = yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2);
+            tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
             yticks(tickData(2:end-1));
             tickData = [];
             zticks(tickData);

@@ -47,6 +47,7 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
     set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
              'fontSize', 20, 'layer', 'top');
+    lighting gouraud;
     colormap(cMap);
     hold on;
     

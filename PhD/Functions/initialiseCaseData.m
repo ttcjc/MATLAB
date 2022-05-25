@@ -37,10 +37,10 @@ function [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
 
     disp(' ');
 
-    disp(['Case: ', caseFolder]);
+    disp(['Case: ', caseName]);
 
     % Confirm Support
-    if ~contains(caseFolder, ["Run_Test", "Windsor"])
+    if ~contains(caseName, ["Run_Test", "Windsor"])
         error('Invalid Case Directory (Unsupported Case Type)');
     end
     

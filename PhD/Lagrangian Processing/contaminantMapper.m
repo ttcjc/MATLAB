@@ -3,6 +3,7 @@
 clear variables;
 close all;
 clc;
+evalc('delete(gcp(''nocreate''));');
 
 normalise = true; % Normalisation of Dimensions
 
@@ -79,14 +80,14 @@ disp(' ');
 switch format
     
     case 'A'
-        [LagProps, ~, LagData, ~] = initialiseLagData(caseFolder, caseName, cloudName, ...
-                                                      false, true, false, ...
-                                                      timeDirs, deltaT, timePrecision, nProc);
+        [LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
+                                                                      false, true, false, ...
+                                                                      timeDirs, deltaT, timePrecision, nProc);
                                                                                 
     case 'B'
-        [LagProps, LagData, ~, ~] = initialiseLagData(caseFolder, caseName, cloudName, ...
-                                                      true, false, false, ...
-                                                      timeDirs, deltaT, timePrecision, nProc);
+        [LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
+                                                                      true, false, false, ...
+                                                                      timeDirs, deltaT, timePrecision, nProc);
 
         % Select Plane of Interest
         planes = fieldnames(LagData);
@@ -99,13 +100,15 @@ switch format
                                      'listString', planes);
             
             if ~valid
-                disp('    WARNING: No Case Type Selected');
+                disp(' ');
+                disp('WARNING: No Case Type Selected');
             end
         
         end
         clear valid;
 
         LagData = LagData.(planes{index});
+        planePos = erase(planes{index}, '.');
         clear planes;
 end
 
@@ -117,66 +120,6 @@ disp(' ');
 
 disp('Mapping Options');
 disp('----------------');
-
-disp(' ');
-
-disp('Loaded Contaminant Data Spans:');
-
-disp(['    T = ', num2str(LagData.time(1), ['%.', num2str(timePrecision), 'f']), ' s ', ...
-       '-> T = ', num2str(LagData.time(end), ['%.', num2str(timePrecision), 'f']), ' s']);
-disp(['        ', char(916), 'T = ' num2str(deltaT, ['%.', num2str(timePrecision), 'f']), 's']);
-
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Utilise All Available Time Instances? [y/n]: ', 's');
-    
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        timeInsts = inputTimes(LagData.time);
-        
-        if timeInsts == -1
-            continue
-        elseif isempty(timeInsts)
-            disp('        WARNING: No Lagrangian Data Available for Selected Time Instances');
-            continue
-        end
-        
-        % Remove Unnecessary Data
-        LagData.time = LagData.time(timeInsts);
-        LagData.timeExact = LagData.timeExact(timeInsts);
-        
-        for i = 1:height(LagProps)
-            LagData.(LagProps{i}) = LagData.(LagProps{i})(timeInsts);
-        end
-        
-        valid = true;        
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
-
-% Remove Empty Time Instances
-i = 1;
-while i <= height(LagData.time)
-    
-    if isempty(LagData.timeExact{i})
-        LagData.time(i) =[];
-        LagData.timeExact(i) = [];
-        
-        for j = 1:height(LagProps)
-            LagData.(LagProps{j})(i) = [];
-        end
-        
-    else
-        i = i + 1;
-    end
-    
-end
-clear i;
 
 dLims = zeros(2,1);
 
@@ -238,11 +181,33 @@ disp(' ');
 
 disp('    Initialising...');
 
+% Identify Empty Time Instances
+i = 1;
+while i <= height(LagData.time)
+    
+    if isempty(LagData.timeExact{i})
+        LagData.timeExact{i} = -1;
+        
+        for j = 1:height(LagProps)
+            LagData.(LagProps{j}){i} = -1;
+        end
+        
+    else
+        i = i + 1;
+    end
+    
+end
+clear i;
+
 % Shift Data Origin
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
     
     for i = 1:height(LagData.time)
-        LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
+        
+        if LagData.positionCartesian{i} ~= -1
+            LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
+        end
+        
     end
     
 end
@@ -253,7 +218,12 @@ if normalise
     if contains(caseName, ["Run_Test", "Windsor"])
         
         for i = 1:height(LagData.time)
-            LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), spacePrecision);
+            
+            if LagData.positionCartesian{i} ~= -1
+                LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
+                                                      spacePrecision);
+            end
+            
         end
         
     end
@@ -292,11 +262,11 @@ switch format
             basePerim = vertcat(basePerim, basePerim(1,:)); % Close Boundary
         end
         
-        clear basePoly;
+        clear basePoints basePoly;
         
         xLims = xDims(2);
-        yLims = [min(basePoints(:,2)); max(basePoints(:,2))];
-        zLims = [min(basePoints(:,3)); max(basePoints(:,3))];
+        yLims = [min(basePerim(:,2)); max(basePerim(:,2))];
+        zLims = [min(basePerim(:,3)); max(basePerim(:,3))];
         
     case 'B'
         if contains(caseName, 'Run_Test') || contains(caseName, 'Windsor')
@@ -334,13 +304,16 @@ index = cell(height(LagData.time),1);
 d = LagData.d;
 positionCartesian = LagData.positionCartesian;
 parfor i = 1:height(LagData.time)
-    index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
-                    ((d{i} * 1e6) <= dLims(2)) & ...
-                    (positionCartesian{i}(:,1) == xLims) & ...
-                    (positionCartesian{i}(:,2) >= yLims(1)) & ...
-                    (positionCartesian{i}(:,2) <= yLims(2)) & ...
-                    (positionCartesian{i}(:,3) >= zLims(1)) & ...
-                    (positionCartesian{i}(:,3) <= zLims(2))); %#ok<PFBNS>
+    
+    if positionCartesian{i} ~= -1
+        index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
+                        ((d{i} * 1e6) <= dLims(2)) & ...
+                        (positionCartesian{i}(:,1) == xLims) & ...
+                        (positionCartesian{i}(:,2) >= yLims(1)) & ...
+                        (positionCartesian{i}(:,2) <= yLims(2)) & ...
+                        (positionCartesian{i}(:,3) >= zLims(1)) & ...
+                        (positionCartesian{i}(:,3) <= zLims(2))); %#ok<PFBNS>
+    end
     
     send(dQ, []);
 end
@@ -375,6 +348,7 @@ disp(' ');
 % Generate Instantaneous Contaminant Maps
 disp('    Generating Instantaneous Contaminant Maps');
 
+% Adjust Uniform Cell Size to Fit Region of Interest
 cellSizeX = cellSize;
 cellSizeY = (yLims(2) - yLims(1)) / round(((yLims(2) - yLims(1)) / cellSize));
 cellSizeZ = (zLims(2) - zLims(1)) / round(((zLims(2) - zLims(1)) / cellSize));
@@ -401,7 +375,10 @@ index = cell(height(mapData.inst.time),1);
 positionGrid = mapData.positionGrid;
 positionCartesian = contaminantData.positionCartesian;
 parfor i = 1:height(mapData.inst.time)
-    index{i} = dsearchn(positionGrid, positionCartesian{i});
+    
+    if positionCartesian{i} ~= -1
+        index{i} = dsearchn(positionGrid, positionCartesian{i});
+    end
     
     send(dQ, []);
 end
@@ -426,12 +403,12 @@ d20 = nParticles; % Surface Mean Diameter in Cell
 d30 = nParticles; % Volume Mean Diameter in Cell
 d32 = nParticles; % Sauter Mean Diameter in Cell
 mass = nParticles; % Total Mass in Cell
+massNorm = nParticles; % Normalised Mass in Cell
 
 positionGrid = mapData.positionGrid;
 positionCartesian = contaminantData.positionCartesian;
 nParticle = contaminantData.nParticle;
 d = contaminantData.d;
-d32_tmp = nParticles;
 parfor i = 1:height(mapData.inst.time)
     nParticles{i} = zeros(height(positionGrid),1);
     d10{i} = nParticles{i};
@@ -439,8 +416,7 @@ parfor i = 1:height(mapData.inst.time)
     d30{i} = nParticles{i};
     d32{i} = nParticles{i};
     mass{i} = nParticles{i};
-    
-    d32_tmp{i} = nParticles{i};
+    massNorm{i} = nParticles{i};
     
     for j = 1:height(positionCartesian{i})
         nParticles{i}(index{i}(j)) = nParticles{i}(index{i}(j)) + ...
@@ -456,6 +432,7 @@ parfor i = 1:height(mapData.inst.time)
     end
     
     mass{i} = 1000 * mass{i};
+    massNorm{i} = mass{i} / massNormalisation;
     d32{i} = (d30{i} ./ d20{i}) * 1e6;
     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
@@ -481,7 +458,8 @@ mapData.inst.d20 = d20;
 mapData.inst.d30 = d30;
 mapData.inst.d32 = d32;
 mapData.inst.mass = mass;
-clear nParticles d10 d20 d30 d32 mass;
+mapData.inst.massNorm = massNorm;
+clear nParticles d10 d20 d30 d32 mass massNorm;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
@@ -651,7 +629,8 @@ if plotInst || plotMean
                                  'listString', plotVars);
 
         if ~valid
-            disp('    WARNING: No Mapping Variables Selected');
+            disp(' ');
+            disp('WARNING: No Mapping Variables Selected');
         end
     end
     clear valid;
@@ -685,8 +664,8 @@ switch format
         
         if contains(caseName, ["Run_Test", "Windsor"])
             xLimsPlot = [0.31875; 4.65925];
-            yLimsPlot = yLims;
-            zLimsPlot = zLims;
+            yLimsPlot = [-0.5945; 0.5945];
+            zLimsPlot = [0; 0.739];
         end
         
 end
@@ -698,8 +677,18 @@ if normalise
 end
 
 xLimsData = xLims;
-yLimsData = yLims;
-zLimsData = zLims;
+
+switch format
+    
+    case 'A'
+        yLimsData = [min(basePerim(:,2)); max(basePerim(:,2))];
+        zLimsData = [min(basePerim(:,3)); max(basePerim(:,3))];
+        
+    case 'B'
+        yLimsData = yLims;
+        zLimsData = zLims;
+        
+end
 positionData = mapData.positionGrid;
 cMap = viridis(24);
 figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -714,10 +703,10 @@ if plotMean
         switch format
             
             case 'A'
-                figName = ['Time_Averaged_Base', plotVars{i}, '_Map'];
+                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map'];
                 
             case 'B'
-                figName = ['Time_Averaged_Planar', plotVars{i}, '_Map'];
+                figName = ['Time_Averaged_', planePos, '_', plotVars{i}, '_Map'];
                 
         end
         
@@ -725,9 +714,12 @@ if plotMean
         figSubtitle = ' ';
         
         if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
-            cLims = dLims;
+%             cLims = dLims;
+            cLims = [0; 40]; % Time-Averaged Base Contamination
+%             cLims = [0; 40]; % Time-Averaged Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 1];
+%             cLims = [0; 1]; % Time-Averaged Base Contamination
+            cLims = [0; 20]; % Time-Averaged Planar Contamination
         else
             cLims = [0; max(contaminantData)];
         end
@@ -745,26 +737,37 @@ if plotInst
     for i = 1:height(plotVars)
         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
         
+        figHold = fig;
+        
         for j = 1:height(mapData.inst.time)
+            
+            if j ~= 1
+                clf(fig);
+                fig = figHold;
+            end
+            
             contaminantData = mapData.inst.(plotVars{i}){j};
-            figTime = num2str(mapData.inst.time{j}, ['%.', num2str(timePrecision), 'f']);
+            figTime = num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']);
             
             switch format
                 
                 case 'A'
-                    figName = ['Instantaneous_Base', plotVars{i}, '_Map_T', figTime];
+                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.')];
                 
                 case 'B'
-                    figName = ['Instantaneous_Planar', plotVars{i}, '_Map_T', figTime];
+                    figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.')];
             end
             
             CoM = mapData.inst.CoM{j};
-            figSubtitle = figTime;
+            figSubtitle = [figTime, ' \it{s}'];
             
             if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
                 cLims = dLims;
+%                 cLims = [0; 1]; % Time-Averaged Base Contamination
+%                 cLims = [0; 1]; % Time-Averaged Planar Contamination
             elseif strcmp(plotVars{i}, 'massNorm')
-                cLims = [0; 1];
+                cLims = [0; 1]; % Time-Averaged Base Contamination
+%                 cLims = [0; 1]; % Time-Averaged Planar Contamination
             else
                 cLims = [0; max(contaminantData)];
             end
@@ -786,7 +789,76 @@ end
 
 %% Save Map Data
 
-% Save Shit
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        switch format
+            
+            case 'A'
+                
+%                 if ~exist(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName], 'dir')
+%                     mkdir(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName]);
+%                 end
+                
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName]);
+                end
+                
+            case 'B'
+                
+%                 if ~exist(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName], 'dir')
+%                     mkdir(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName]);
+%                 end
+                
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName]);
+                end
+                
+        end
+        
+        startInst = erase(num2str(mapData.inst.time(1), ['%.', num2str(timePrecision), 'f']), '.');
+        endInst = erase(num2str(mapData.inst.time(end), ['%.', num2str(timePrecision), 'f']), '.');
+        
+        freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
+        
+        switch format
+            
+            case 'A'
+%                 save(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                      'mapData', 'sampleInterval', '-v7.3', '-noCompression');
+%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%                 disp('        Success');
+                
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                     'mapData', 'sampleInterval', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                disp('        Success');
+                 
+            case 'B'
+%                 save(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                      'mapData', 'sampleInterval', '-v7.3', '-noCompression');
+%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%                 disp('        Success');
+                
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                     'mapData', 'sampleInterval', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                disp('        Success');
+        
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
 
 
 %% Local Functions

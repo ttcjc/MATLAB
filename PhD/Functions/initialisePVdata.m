@@ -2,7 +2,7 @@
 % ----
 % Initialisation of Exported ParaView Planar Field Data for Further Processing
 % ----
-% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialisePVdata(field, normalise)
+% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
 %        'field'     -> Desired Field Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 
@@ -27,20 +27,23 @@
 
 %% Main Function
 
-function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialisePVdata(field, normalise)
+function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
 
     % Select Case
     disp('Case Selection');
     disp('---------------');
 
     caseFolder = uigetdir('~/Data/Numerical/OpenFOAM', 'Select Case');
+    
+    namePos = max(strfind(caseFolder, '/')) + 1;
+    caseName = caseFolder(namePos:end);
 
     disp(' ');
 
-    disp(['Case: ', caseFolder]);
+    disp(['Case: ', caseName]);
     
     % Confirm Support
-    if ~contains(caseFolder, ["Run_Test", "Windsor"])
+    if ~contains(caseName, ["Run_Test", "Windsor"])
         error('Invalid Case Directory (Unsupported Case Type)');
     end
 
@@ -122,13 +125,13 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         
         % Identify Plane Orientation
         if height(uniqueX) == 1
-            data.(plane).planeOrientation = 'X';
+            data.(plane).planeOrientation = 'YZ';
             data.(plane).planePosition = uniqueX;
         elseif height(uniqueY) == 1
-            data.(plane).planeOrientation = 'Y';
+            data.(plane).planeOrientation = 'XZ';
             data.(plane).planePosition = uniqueY;
         elseif height(uniqueZ) == 1
-            data.(plane).planeOrientation = 'Z';
+            data.(plane).planeOrientation = 'XY';
             data.(plane).planePosition = uniqueZ;
         else
             error('Invalid Dataset (Unsupported Plane Orientation)');
@@ -140,28 +143,18 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
     disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);
+    [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
 
     % Normalise Data Dimensions
     if normalise
         
-        if contains(caseFolder, ["Run_Test", "Windsor"])
+        if contains(caseName, ["Run_Test", "Windsor"])
 
             for i = 1:height(dataFiles)
                 plane = dataFiles(i).name(1:(end - 4));
 
-                data.(plane).position(:,1) = round(data.(plane).position(:,1) / 1.044, precision);
-                data.(plane).position(:,2) = round(data.(plane).position(:,2) / 1.044, precision);
-                data.(plane).position(:,3) = round(data.(plane).position(:,3) / 1.044, precision);
-
-                if strcmp(data.(plane).planeOrientation, 'X')
-                    data.(plane).planePosition = round(data.(plane).planePosition / 1.044, precision);
-                elseif strcmp(data.(plane).planeOrientation, 'Y')
-                    data.(plane).planePosition = round(data.(plane).planePosition / 1.044, precision);
-                elseif strcmp(data.(plane).planeOrientation, 'Z')
-                    data.(plane).planePosition = round(data.(plane).planePosition / 1.044, precision);
-                end
-
+                data.(plane).position = round((data.(plane).position / 1.044), spacePrecision);
+                data.(plane).planePosition = round((data.(plane).planePosition / 1.044), spacePrecision);
             end
 
         end

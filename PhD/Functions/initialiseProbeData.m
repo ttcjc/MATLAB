@@ -2,7 +2,7 @@
 % ----
 % Initialisation of OpenFOAM v7 Probe Data for Further Processing
 % ----
-% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialiseProbeData(field, planar, normalise, nProc);
+% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseProbeData(field, planar, normalise, nProc);
 %        'field'     -> Desired Field Stored as String
 %        'planar'    -> Extract Planar Data [True/False]
 %        'normalise' -> Normalise Dimensions [True/False]
@@ -30,21 +30,23 @@
 
 %% Main Function
 
-function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initialiseProbeData(field, planar, normalise, nProc)
+function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseProbeData(field, planar, normalise, nProc)
     
     % Select Case
     disp('Case Selection');
     disp('---------------');
     
     caseFolder = uigetdir('~/OpenFOAM', 'Select Case');
+    
     namePos = max(strfind(caseFolder, '/')) + 1;
+    caseName = caseFolder(namePos:end);
     
     disp(' ');
     
-    disp(['Case: ', caseFolder]);
+    disp(['Case: ', caseName]);
     
     % Confirm Support
-    if ~contains(caseFolder, ["Run_Test", "Windsor"])
+    if ~contains(caseName, ["Run_Test", "Windsor"])
         error('Invalid Case Directory (Unsupported Case Type)');
     end
 
@@ -53,10 +55,10 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
     % Confirm Data Availability and Identify Time Directories
     if strcmp(field, 'p')
         probeType = 'probesPressure';
-        [timeDirs, ~] = timeDirectories(caseFolder, probeType);
+        [timeDirs, ~, timePrecision] = timeDirectories(caseFolder, probeType);
     elseif strcmp(field, 'U')
         probeType = 'probesVelocity';
-        [timeDirs, ~] = timeDirectories(caseFolder, probeType);
+        [timeDirs, ~, timePrecision] = timeDirectories(caseFolder, probeType);
     else
         error('Invalid Field (Available Options: ''p'' or ''U'')');
     end
@@ -75,15 +77,16 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            data = readProbeData(caseFolder, timeDirs, field, nProc);
+            data = readProbeData(caseFolder, timeDirs, timePrecision, field, nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/*.*'], ...
                                              'Select Probe Data');
     
             if contains(filePath, [caseFolder(namePos(end):end), '/', probeType])
-                disp(['    Loading: ', fileName]);
-                load([filePath, fileName], 'data');
+                disp(['    Loading ''', fileName, '''...']);
+                data = load([filePath, fileName], 'data').data;
+                disp('        Success');
                 valid = true;
             else
                 disp('    WARNING: Invalid File Selection');
@@ -96,21 +99,21 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         end
     
     end
+    clear valid;
+    
+    disp(' ');
+    disp(' ');
         
     % Extract Planar Probe Data
     if planar
-        disp(' ');
-        disp(' ');
+        data = extractPlanarProbeData(caseName, data);
 
-        data = extractPlanarProbeData(caseFolder, data);
+        disp(' ');
+        disp(' ');
     end
     
-    disp(' ');
-    disp(' ');
-
-    
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);
+    [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
 
     % Normalise Data Dimensions
     if normalise
@@ -121,13 +124,11 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
                 planes = fieldnames(data);
                 
                 for i = 1:height(planes)
-                    data.(planes{i}).position(:,1) = round(data.(planes{i}).position(:,1) / 1.044, precision);
-                    data.(planes{i}).position(:,2) = round(data.(planes{i}).position(:,2) / 1.044, precision);
-                    data.(planes{i}).position(:,3) = round(data.(planes{i}).position(:,3) / 1.044, precision);
+                    data.(planes{i}).position = round((data.(planes{i}).position / 1.044), spacePrecision);
                     
-                    data.(planes{i}).xLims = round(data.(planes{i}).xLims / 1.044, precision);
-                    data.(planes{i}).yLims = round(data.(planes{i}).yLims / 1.044, precision);
-                    data.(planes{i}).zLims = round(data.(planes{i}).zLims / 1.044, precision);
+                    data.(planes{i}).xLims = round((data.(planes{i}).xLims / 1.044), spacePrecision);
+                    data.(planes{i}).yLims = round((data.(planes{i}).yLims / 1.044), spacePrecision);
+                    data.(planes{i}).zLims = round((data.(planes{i}).zLims / 1.044), spacePrecision);
                 end
                 
             end
@@ -135,9 +136,7 @@ function [caseFolder, data, geometry, xDims, yDims, zDims, precision] = initiali
         else
             
             if contains(caseFolder, ["Run_Test", "Windsor"])
-                data.position(:,1) = round(data.position(:,1) / 1.044, precision);
-                data.position(:,2) = round(data.position(:,2) / 1.044, precision);
-                data.position(:,3) = round(data.position(:,3) / 1.044, precision);
+                data.position(:,1) = round((data.position / 1.044), spacePrecision);
             end
             
         end

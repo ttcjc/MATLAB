@@ -30,6 +30,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
     switch format
 
         case 'global'
+            
             if exist([caseFolder, '/0'], 'dir')
                 timeDirs = dir(caseFolder);
             else
@@ -37,6 +38,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
             end
 
         case 'probesPressure'
+            
             if exist([caseFolder, '/postProcessing/probesPressure'], 'dir')
                 timeDirs = dir([caseFolder, '/postProcessing/probesPressure']);
             else
@@ -44,6 +46,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
             end
         
         case 'probesVelocity'
+            
             if exist([caseFolder, '/postProcessing/probesVelocity'], 'dir')
                 timeDirs = dir([caseFolder, '/postProcessing/probesVelocity']);
             else
@@ -66,6 +69,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
         end
 
     end
+    clear i;
 
     deltaT = str2double(timeDirs(end).name) - str2double(timeDirs(end - 1).name);
     timePrecision = width(extractAfter(num2str(deltaT, 8), '.'));

@@ -2,11 +2,13 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Probe Data Generated using 'PODmeshGenerator.m'
 % ----
-% Usage: data = readProbeData(caseFolder, timeDirs, field, nProc);
-%        'caseFolder' -> Case Path Stored as String
-%        'timeDirs'   -> Time Directories Identified Using 'timeDirectories.m'
-%        'field'      -> Desired Field Stored as String
-%        'nProc'      -> Number of Processors Used for Parallel Collation
+% Usage: data = readProbeData(caseFolder, timeDirs, timePrecision field, nProc);
+%        'caseFolder'    -> Case Path Stored as String
+%        'caseName'      -> Case Name, Stored as a String
+%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
+%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%        'field'         -> Desired Field Stored as String
+%        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -30,7 +32,7 @@
 
 %% Main Function
 
-function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
+function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, field, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -53,33 +55,41 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             startTime = inputTime('Start');
+            
+            if startTime == -1
+                continue
+            end
+            
             endTime = inputTime('End');
-
-            if endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
-                disp('        WARNING: No Probe Data in Selected Time Range');
+            
+            if endTime == -1
+                continue
             elseif endTime < startTime
-                disp('        WARNING: Invalid Entry');
-            else
-
-                i = 1;
-                while i <= height(timeDirs)
-
-                    if str2double(timeDirs(i).name) < startTime || str2double(timeDirs(i).name) > endTime
-                        timeDirs(i) = [];
-                    else
-                        i = i + 1;
-                    end
-
-                end
-                
-                valid = true;
+                disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
+                continue
+            elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
+                disp('        WARNING: No Probe Data in Selected Time Range');
+                continue
             end
 
+            i = 1;
+            while i <= height(timeDirs)
+                
+                if str2double(timeDirs(i).name) < startTime || str2double(timeDirs(i).name) > endTime
+                    timeDirs(i) = [];
+                else
+                    i = i + 1;
+                end
+                
+            end
+
+            valid = true;
         else
             disp('    WARNING: Invalid Entry');
         end
 
     end
+    clear valid;
 
     % Identify Time Instances
     data.time = zeros(height(timeDirs),1);
@@ -117,8 +127,10 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
 
     tic;
     evalc('parpool(nProc);');
-
-    wB = waitbar(0, ['Collating ''', probeType, ''' Data...']);
+    
+    % Initialise Progress Bar
+    wB = waitbar(0, ['Collating ''', probeType, ''' Data'], 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
     dQ = parallel.pool.DataQueue;
     afterEach(dQ, @parforWaitBar);
 
@@ -131,6 +143,7 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
 
             parfor i = 1:height(timeDirs)
                 p{i} = readInstPressureData(caseFolder, probeType, timeDirs, i, index);
+                
                 send(dQ, []);
             end
 
@@ -145,6 +158,7 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
 
             parfor i = 1:height(timeDirs)
                 [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, timeDirs, i, index);
+                
                 send(dQ, []);
             end
 
@@ -242,24 +256,27 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-            namePos = max(strfind(caseFolder, '/')) + 1;
             
-            if ~exist(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType], 'dir')
-                mkdir(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType]);
+%             if ~exist(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
+%                 mkdir(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
+%             end
+
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
 
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType]);
-            end
-
-            startInst = erase(num2str(str2double(timeDirs(1).name), '%.4f'), '.');
-            endInst = erase(num2str(str2double(timeDirs(end).name), '%.4f'), '.');
+            startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
+            endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-            save(['~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat'], 'data', '-v7.3', '-noCompression');
-            disp(['    Saved to: ~/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+%             disp(['    Saving to: ~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+%             save(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat'], ...
+%                  'data', '-v7.3', '-noCompression');
+%             disp('        Success');
             
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat'], 'data', '-v7.3', '-noCompression');
-            disp(['    Saved to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat'], ...
+                 'data', '-v7.3', '-noCompression');
+            disp('        Success');
             
             valid = true;
         else
@@ -267,24 +284,20 @@ function data = readProbeData(caseFolder, timeDirs, field, nProc) %#ok<INUSD>
         end
 
     end
+    clear valid;
 
 end
 
 
 %% Local Functions
 
-function T = inputTime(type)
+function time = inputTime(type)
 
-    valid = false;
-    while ~valid
-        T = str2double(input(['    ', type, ' Time [s]: '], 's'));
-
-        if isnan(T) || length(T) > 1
-            disp('        WARNING: Invalid Entry');
-        else
-            valid = true;
-        end
-
+    time = str2double(input(['    Input ', type, ' Time [s]: '], 's'));
+    
+    if isnan(time) || length(time) > 1 || time <= 0
+        disp('        WARNING: Invalid Entry');
+        time = -1;
     end
 
 end

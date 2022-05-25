@@ -7,7 +7,7 @@
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
-%        'LagProps'  -> Lagrangian Properties to Be Collated, Stored as a Cell Array
+%        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
 %        'sampleInterval' -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
 %        'deltaT'         -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
@@ -49,6 +49,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
         LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
+    clear j;
     
     % Read Particle Properties
     for i = 1:height(LagProps)
@@ -70,6 +71,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
             
             send(dQ, []);
         end
+        clear time;
         
         LagData.(prop) = propData;
         
@@ -133,12 +135,14 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
             
             freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
-%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
 %             disp(['    Saving to: ~/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
 %             disp('        Success');
             
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
             disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;
@@ -147,6 +151,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
         end
         
     end
+    clear valid;
 
 end
 
@@ -223,4 +228,3 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
     fclose(fileID);
 
 end
-    

@@ -2,7 +2,7 @@
 % ----
 % Initialisation of OpenFOAM v7 Probe Data for Further Processing
 % ----
-% Usage: [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise);
+% Usage: [campaign, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise);
 %        'field'     -> Desired Field Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 
@@ -25,7 +25,7 @@
 
 %% Main Function
 
-function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialiseExpData(field, normalise)
+function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise)
 
     % Select Case
     disp('Case Selection');
@@ -39,7 +39,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
 
     % Confirm Support
     if contains(caseFolder, 'Windsor Model (Varney)')
-        campaign = 'Varney';
+        caseName = 'Varney';
     else
         error('Invalid Case Directory (Unsupported Case Type)');
     end
@@ -49,7 +49,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         error('Invalid Field (Available Options: ''p'' or ''U'')');
     end
 
-    switch campaign
+    switch caseName
 
         case 'Varney'
 
@@ -100,7 +100,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         content = load([caseFolder, '/', fieldLabel, '/', testFiles(i).name]);
 
         % Format Data
-        switch campaign
+        switch caseName
 
             case 'Varney'
                 
@@ -112,7 +112,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                         data.(testID).CpMean = content.Cpmean(4).values;
                         data.(testID).CpRMS = content.Cprms(4).values;
 
-                        data.(testID).planeOrientation = 'X';
+                        data.(testID).planeOrientation = 'YZ';
                     
                     case 'U'
                         data.(testID).position(:,1) = content.x.values(:) / 1000;
@@ -127,7 +127,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).vRMS = double(content.Vy_std.values(:));
                             data.(testID).wRMS = double(content.Vz_std.values(:));
 
-                            data.(testID).planeOrientation = 'X';
+                            data.(testID).planeOrientation = 'YZ';
                             data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
                             data.(testID).position(:,1) = data.(testID).planePosition;
                         elseif contains(testID, '_y')
@@ -138,7 +138,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).vRMS = nan(height(data.(testID).position),1);
                             data.(testID).wRMS = double(content.Vz_std.values(:));
 
-                            data.(testID).planeOrientation = 'Y';
+                            data.(testID).planeOrientation = 'XZ';
                             data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
                             data.(testID).position(:,1) = -data.(testID).position(:,1);
                             data.(testID).position(:,2) = data.(testID).planePosition;
@@ -150,7 +150,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
                             data.(testID).vRMS = double(content.Vy_std.values(:));
                             data.(testID).wRMS = nan(height(data.(testID).position),1);
 
-                            data.(testID).planeOrientation = 'Z';
+                            data.(testID).planeOrientation = 'XY';
                             data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
                             data.(testID).position(:,3) = data.(testID).planePosition;
                         else
@@ -162,7 +162,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         end
 
         % Remove NaN Values
-        switch campaign
+        switch caseName
 
             case 'Varney'
 
@@ -198,7 +198,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         end
 
         % Remove Duplicate Entries
-        switch campaign
+        switch caseName
 
             case 'Varney'
                 [data.(testID).position, index] = unique(data.(testID).position, 'stable', 'rows');
@@ -222,7 +222,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         end
         
         % Adjust Data Origin
-        switch campaign
+        switch caseName
 
             case 'Varney'
                 
@@ -250,7 +250,7 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
     disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, precision] = selectGeometry(normalise);
+    [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
     
     % Normalise Data Dimensions
     for i = 1:height(testFiles)
@@ -258,15 +258,11 @@ function [campaign, data, geometry, xDims, yDims, zDims, precision] = initialise
         
         if normalise
 
-            switch campaign
+            switch caseName
 
             case 'Varney'
-                data.(testID).position(:,1) = round(data.(testID).position(:,1) / 1.044, precision);
-                data.(testID).position(:,2) = round(data.(testID).position(:,2) / 1.044, precision);
-                data.(testID).position(:,3) = round(data.(testID).position(:,3) / 1.044, precision);
-
-                data.(testID).planePosition = round(data.(testID).planePosition / 1.044, precision);
-
+                data.(testID).position = round((data.(testID).position / 1.044), spacePrecision);
+                data.(testID).planePosition = round((data.(testID).planePosition / 1.044), spacePrecision);
             end
 
         end

@@ -96,7 +96,7 @@ disp (' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, precision] = selectGeometry(false);
+[geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(false);
 
 disp (' ');
 disp (' ');
@@ -137,7 +137,7 @@ switch format
         parts = fieldnames(geometry);
         for i = 1:height(parts)
             
-            if round(max(geometry.(parts{i}).vertices(:,1)), precision) == xDims(2)
+            if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
                 break
             end
             
@@ -148,26 +148,40 @@ switch format
         end
     
         geoPoints = geometry.(parts{i}).vertices;
-        basePoints = geoPoints(round(geoPoints(:,1), precision) == xDims(2),:);
+        basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
         
-        xDimsBase = xDims(2);
-        yDimsBase = round([min(basePoints(:,2)); max(basePoints(:,2))], precision);
-        zDimsBase = round([min(basePoints(:,3)); max(basePoints(:,3))], precision);
-        
-        % Adjust Cell Size to Fit Base
-        cellSizeY = (yDimsBase(2) - yDimsBase(1)) / round((yDimsBase(2) - yDimsBase(1)) / cellSize);
-        cellSizeZ = (zDimsBase(2) - zDimsBase(1)) / round((zDimsBase(2) - zDimsBase(1)) / cellSize);
+        basePerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
+        basePerim = basePoints(basePerim,:);
+        basePoly = polyshape(basePerim(:,2), basePerim(:,3), 'keepCollinearPoints', true);
+        basePoly = polybuffer(basePoly, -0.0025, 'jointType', 'square');
+        basePerim = ones(height(basePoly.Vertices),3) * basePerim(1,1);
+        basePerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
+        if ~all(basePerim(1,:) == basePerim(end,:))
+            basePerim = vertcat(basePerim, basePerim(1,:)); % Close Boundary
+        end
+        
+        clear basePoints basePoly;
+        
+        xLims = xDims(2);
+        yLims = [min(basePerim(:,2)); max(basePerim(:,2))];
+        zLims = [min(basePerim(:,3)); max(basePerim(:,3))];
+        
         disp(' ');
 
         % Generate Mesh
         disp('    Generating Initial Surface Mesh...');
+        
+        % Adjust Uniform Cell Size to Fit Region of Interest
+        cellSizeX = cellSize;
+        cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
+        cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
 
-        [y, z] = meshgrid(yDimsBase(1):cellSizeY:yDimsBase(2), zDimsBase(1):cellSizeZ:zDimsBase(2));
+        [y, z] = meshgrid(yLims(1):cellSizeY:yLims(2), zLims(1):cellSizeZ:zLims(2));
 
         % Convert Mesh to Readable Format        
         meshPoints = zeros(height(y(:)),3);
-        meshPoints(:,1) = xDimsBase + 1e-6; % Offset to Prevent Base Intersection
+        meshPoints(:,1) = xLims + 1e-6; % Offset to Prevent Base Intersection
         meshPoints(:,(2:3)) = [y(:), z(:)];
 
         disp(' ');
@@ -175,11 +189,9 @@ switch format
         % Adhere Mesh to Base Boundaries
         disp('    Adhering Mesh to Base Boundaries...');
         
-        basePerim = boundary(basePoints(:,2), basePoints(:,3), 1);
-        basePerim = basePoints(basePerim,:);
-        
-        [indexA, indexB] = inpolygon(meshPoints(:,2), meshPoints(:,3), basePerim(:,2), basePerim(:,3));
-        meshPoints = meshPoints([indexA, indexB],:);
+        [indexIn, indexOn] = inpolygon(meshPoints(:,2), meshPoints(:,3), basePerim(:,2), basePerim(:,3));
+        indexBase = find(or(indexIn, indexOn));
+        meshPoints = meshPoints(indexBase,:);
         
         disp(' ');
 
@@ -202,30 +214,30 @@ switch format
     case 'B'
         % Define Mesh Boundaries
         if contains(caseType, 'Run_Test') || (contains(caseType, 'Windsor') && contains(caseType, 'Upstream'))
-            xRange = [-1.00625; 2.304]; % [m]
-            yRange = [-0.3545; 0.3545]; % [m]
-            zRange = [0.001; 0.499]; % [m]
+            xLims = [-1.00625; 2.304]; % [m]
+            yLims = [-0.3545; 0.3545]; % [m]
+            zLims = [0.001; 0.499]; % [m]
         end
         
-        % Ensure Mesh Includes 'xRange(2)'
-        xRange(1) = xRange(2) - (floor((xRange(2) - xRange(1)) / cellSize) * cellSize);
+        % Ensure Mesh Includes 'xLims(2)'
+        xLims(1) = xLims(2) - (floor((xLims(2) - xLims(1)) / cellSize) * cellSize);
         
-        % Ensure Mesh Symmetry About y = 0
-        yLim = (floor((2 * yRange(2)) / cellSize) * cellSize) / 2;
-        yRange = [-yLim; yLim];
+        % Ensure Mesh Symmetry About Y = 0
+        yLims = (floor((2 * yLims(2)) / cellSize) * cellSize) / 2;
+        yLims = [-yLims; yLims];
         
-        % Ensure Mesh Includes 'zRange(2)'
-        zRange(2) = 0.339 + (yRange(2) - 0.1945);
-        zRange(1) = zRange(2) - (floor(sum(abs(zRange)) / cellSize) * cellSize);
+        % Ensure Mesh Includes 'zLims(2)'
+        zLims(2) = 0.339 + (yLims(2) - 0.1945);
+        zLims(1) = zLims(2) - (floor(sum(abs(zLims)) / cellSize) * cellSize);
 
         disp(' ');
 
         % Generate Initial Mesh
         disp('    Generating Initial Volume Mesh...');
 
-        [x, y, z] = meshgrid(xRange(1):cellSize:xRange(2), ...
-                             yRange(1):cellSize:yRange(2), ...
-                             zRange(1):cellSize:zRange(2));
+        [x, y, z] = meshgrid(xLims(1):cellSize:xLims(2), ...
+                             yLims(1):cellSize:yLims(2), ...
+                             zLims(1):cellSize:zLims(2));
         
         % Convert Mesh to Readable Format
         meshPoints = [x(:), y(:), z(:)];
@@ -241,7 +253,8 @@ switch format
             geoPoints = unique(geometry.(parts{i}).vertices, 'rows'); % Unique Points in CAD Model
             delaunayTri = delaunayTriangulation(geoPoints);
             
-            intersect = find(~isnan(tsearchn(geoPoints, delaunayTri.ConnectivityList, meshPoints))); % Mesh Points Intersecting CAD Model
+            intersect = find(~isnan(tsearchn(geoPoints, delaunayTri.ConnectivityList, ...
+                             meshPoints))); % Mesh Points Intersecting CAD Model
             meshPoints(intersect,:) = [];
         end
 
@@ -299,9 +312,9 @@ end
 scatter3(meshPoints(:,1), meshPoints(:,2), meshPoints(:,3), 10, ([230, 0, 126] / 255), 'filled');
 
 % Figure Formatting
-title(' ', 'color', ([254, 254, 254] / 255));
+title('-', 'color', ([254, 254, 254] / 255));
 subtitle(' ');
-lightangle(30, 30);
+lightangle(90, 45);
 lighting gouraud;
 axis off;
 box off;

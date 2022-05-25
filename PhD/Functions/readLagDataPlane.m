@@ -3,14 +3,14 @@
 % Collates and Optionally Saves OpenFOAM v7 Planar Lagrangian Data Output
 % ----
 % Usage: LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
-%                                   binInterval, timeDirs, deltaT, timePrecision);
-%        'caseFolder'    -> Case Path, Stored as s String
-%        'caseName'      -> Case Name, Stored as a String
-%        'LagProps'      -> Lagrangian Properties to Be Collated, Stored as a Cell Array
-%        'binInterval'   -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
-%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
-%        'deltaT'        -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
-%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%                                   sampleInterval, timeDirs, deltaT, timePrecision);
+%        'caseFolder'     -> Case Path, Stored as s String
+%        'caseName'       -> Case Name, Stored as a String
+%        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
+%        'sampleInterval' -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
+%        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
+%        'deltaT'         -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
+%        'timePrecision'  -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
 
 
 %% Changelog
@@ -22,7 +22,7 @@
 %% Main Function
 
 function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
-                                    binInterval, timeDirs, deltaT, timePrecision)
+                                    sampleInterval, timeDirs, deltaT, timePrecision)
     
     % Collate Planar Lagrangian Data
     disp('===========');
@@ -52,13 +52,14 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
         content(:,6) = str2double(dataFiles(i).name(planePos:end));
         
         % Bin Particle Impacts Into Desired Frequency Windows
-        LagData.(plane).time = zeros(ceil(height(timeDirs) / binInterval),1);
+        LagData.(plane).time = zeros(ceil(height(timeDirs) / sampleInterval),1);
         
         k = height(timeDirs);
         for j = height(LagData.(plane).time):-1:1
             LagData.(plane).time(j) = str2double(timeDirs(k).name);
-            k = k - binInterval;
+            k = k - sampleInterval;
         end
+        clear k;
         
         % Initialise Particle Properties
         LagData.(plane).timeExact = cell(height(LagData.(plane).time),1);
@@ -159,14 +160,16 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
             startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
             endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-            freq = num2str(round((1 / (deltaT * binInterval)), timePrecision));
+            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
             
-%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
 %             disp(['    Saving to: ~/Data/Numerical/MATLAB/LagData/plane/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
 %             disp('        Success');
 
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], 'LagData', 'LagProps', '-v7.3', '-noCompression');
             disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;
@@ -175,5 +178,6 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
         end
         
     end
+    clear valid;
     
 end

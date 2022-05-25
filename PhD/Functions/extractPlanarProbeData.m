@@ -2,7 +2,9 @@
 % ----
 % Extracts Planar Probe Data From Volumetric Data Processed Using ‘readProbeData.m'
 % ----
-% Usage: data = extractPlanarProbeData();
+% Usage: planeData = extractPlanarProbeData(caseName, volumeData);
+%        'caseName'   -> Case Name, Stored as a String
+%        'volumeData' -> Volumetric Probe Data, Collated Using 'readProbeData.m'
 
 
 %% Changelog
@@ -23,7 +25,7 @@
 
 %% Main Function
 
-function data = extractPlanarProbeData(caseFolder, vData)
+function planeData = extractPlanarProbeData(caseName, volumeData)
 
     disp('Planar Probe Data Extraction');
     disp('-----------------------------');
@@ -31,14 +33,14 @@ function data = extractPlanarProbeData(caseFolder, vData)
     disp(' ');
     
     % Temporarily Adjust Data Origin
-    if contains(caseFolder, ["Run_Test", "Windsor"]) && contains(caseFolder, 'Upstream')
-        vData.position(:,1) = vData.position(:,1) + 1.325;
+    if contains(caseName, ["Run_Test", "Windsor"]) && contains(caseName, 'Upstream')
+        volumeData.position(:,1) = volumeData.position(:,1) + 1.325;
     end
     
     % Identify Data Limits
-    xLimsData = [min(vData.position(:,1)); max(vData.position(:,1))];
-    yLimsData = [min(vData.position(:,2)); max(vData.position(:,2))];
-    zLimsData = [min(vData.position(:,3)); max(vData.position(:,3))];
+    xLimsData = [min(volumeData.position(:,1)); max(volumeData.position(:,1))];
+    yLimsData = [min(volumeData.position(:,2)); max(volumeData.position(:,2))];
+    zLimsData = [min(volumeData.position(:,3)); max(volumeData.position(:,3))];
     
     disp('Probe Volume:');
     disp(['    X: ', num2str(xLimsData(1)), ' [m] -> ', num2str(xLimsData(2)), ' [m]']);
@@ -48,9 +50,9 @@ function data = extractPlanarProbeData(caseFolder, vData)
     disp(' ');
 
     disp('Possible Planar Orientations:');
-    disp('    X: Normal [1 0 0]');
-    disp('    Y: Normal [0 1 0]');
-    disp('    Z: Normal [0 0 1]');
+    disp('    X (YZ-Plane)');
+    disp('    Y (XZ-Plane)');
+    disp('    Z (XY-Plane)');
     
     valid = false;
     while ~valid
@@ -64,6 +66,7 @@ function data = extractPlanarProbeData(caseFolder, vData)
         end
 
     end
+    clear valid;
     
     for i = 1:nPlanes
         
@@ -73,69 +76,149 @@ function data = extractPlanarProbeData(caseFolder, vData)
             selection = input(['Select Orientation of Plane ', num2str(i), ' [X/Y/Z]: '], 's');
 
             if selection == 'x' | selection == 'X' %#ok<OR2>
-                data.(['p', num2str(i)]).planeOrientation = 'X';
+                planeData.(['p', num2str(i)]).planeOrientation = 'YZ';
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-                data.(['p', num2str(i)]).planeOrientation = 'Y';
+                planeData.(['p', num2str(i)]).planeOrientation = 'XZ';
                 valid = true;
             elseif selection == 'z' | selection == 'Z' %#ok<OR2>
-                data.(['p', num2str(i)]).planeOrientation = 'Z';
+                planeData.(['p', num2str(i)]).planeOrientation = 'XY';
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');
             end
 
         end
+        clear valid;
         
-        data.(['p', num2str(i)]).xLims = zeros(2,1);
-        data.(['p', num2str(i)]).yLims = data.(['p', num2str(i)]).xLims;
-        data.(['p', num2str(i)]).zLims = data.(['p', num2str(i)]).xLims;
+        planeData.(['p', num2str(i)]).xLims = zeros(2,1);
+        planeData.(['p', num2str(i)]).yLims = planeData.(['p', num2str(i)]).xLims;
+        planeData.(['p', num2str(i)]).zLims = planeData.(['p', num2str(i)]).xLims;
 
         valid = false;
         while ~valid
             
-            switch data.(['p', num2str(i)]).planeOrientation
+            switch planeData.(['p', num2str(i)]).planeOrientation
                 
-                case 'X'
-                    data.(['p', num2str(i)]).xLims(1) = inputPos('Planar', 'X');
-                    data.(['p', num2str(i)]).xLims(2) = data.(['p', num2str(i)]).xLims(1);
-
-                    data.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
-                    data.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
-                    data.(['p', num2str(i)]).yLims = sort(data.(['p', num2str(i)]).yLims);
-
-                    data.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
-                    data.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
-                    data.(['p', num2str(i)]).zLims = sort(data.(['p', num2str(i)]).zLims);
+                case 'YZ'
+                    planeData.(['p', num2str(i)]).yLims = zeros(2,1);
+                    planeData.(['p', num2str(i)]).zLims = zeros(2,1);
                     
-                case 'Y'
-                    data.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
-                    data.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
-                    data.(['p', num2str(i)]).xLims = sort(data.(['p', num2str(i)]).xLims);
-
-                    data.(['p', num2str(i)]).yLims(1) = inputPos('Planar', 'Y');
-                    data.(['p', num2str(i)]).yLims(2) = data.(['p', num2str(i)]).yLims(1);
-
-                    data.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
-                    data.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
-                    data.(['p', num2str(i)]).zLims = sort(data.(['p', num2str(i)]).zLims);
-                case 'Z'
-                    data.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
-                    data.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
-                    data.(['p', num2str(i)]).xLims = sort(data.(['p', num2str(i)]).xLims);
-
-                    data.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
-                    data.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
-                    data.(['p', num2str(i)]).yLims = sort(data.(['p', num2str(i)]).yLims);
-
-                    data.(['p', num2str(i)]).zLims(1) = inputPos('Planar', 'Z');
-                    data.(['p', num2str(i)]).zLims(2) = data.(['p', num2str(i)]).zLims(1);
+                    planeData.(['p', num2str(i)]).xLims = inputPos('Planar', 'X');
+                    
+                    if planeData.(['p', num2str(i)]).xLims == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
+                    
+                    if planeData.(['p', num2str(i)]).yLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
+                    
+                    if planeData.(['p', num2str(i)]).yLims(2) == -1
+                        continue
+                    end         
+                    
+                    planeData.(['p', num2str(i)]).yLims = sort(planeData.(['p', num2str(i)]).yLims);
+                    
+                    planeData.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
+                    
+                    if planeData.(['p', num2str(i)]).zLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
+                    
+                    if planeData.(['p', num2str(i)]).zLims(2) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).zLims = sort(planeData.(['p', num2str(i)]).zLims);
+                
+                case 'XZ'
+                    planeData.(['p', num2str(i)]).xLims = zeros(2,1);
+                    planeData.(['p', num2str(i)]).zLims = zeros(2,1);
+                    
+                    planeData.(['p', num2str(i)]).yLims = inputPos('Planar', 'Y');
+                    
+                    if planeData.(['p', num2str(i)]).yLims == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
+                    
+                    if planeData.(['p', num2str(i)]).xLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
+                    
+                    if planeData.(['p', num2str(i)]).xLims(2) == -1
+                        continue
+                    end         
+                    
+                    planeData.(['p', num2str(i)]).xLims = sort(planeData.(['p', num2str(i)]).xLims);
+                    
+                    planeData.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
+                    
+                    if planeData.(['p', num2str(i)]).zLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
+                    
+                    if planeData.(['p', num2str(i)]).zLims(2) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).zLims = sort(planeData.(['p', num2str(i)]).zLims);
+                    
+                case 'XY'
+                    planeData.(['p', num2str(i)]).xLims = zeros(2,1);
+                    planeData.(['p', num2str(i)]).yLims = zeros(2,1);
+                    
+                    planeData.(['p', num2str(i)]).zLims = inputPos('Planar', 'Z');
+                    
+                    if planeData.(['p', num2str(i)]).zLims == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
+                    
+                    if planeData.(['p', num2str(i)]).xLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
+                    
+                    if planeData.(['p', num2str(i)]).xLims(2) == -1
+                        continue
+                    end         
+                    
+                    planeData.(['p', num2str(i)]).xLims = sort(planeData.(['p', num2str(i)]).xLims);
+                    
+                    planeData.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
+                    
+                    if planeData.(['p', num2str(i)]).yLims(1) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
+                    
+                    if planeData.(['p', num2str(i)]).yLims(2) == -1
+                        continue
+                    end
+                    
+                    planeData.(['p', num2str(i)]).yLims = sort(planeData.(['p', num2str(i)]).yLims);
             
             end
             
-            if data.(['p', num2str(i)]).xLims(1) < xLimsData(1) || data.(['p', num2str(i)]).xLims(2) > xLimsData(2) || ...
-               data.(['p', num2str(i)]).yLims(1) < yLimsData(1) || data.(['p', num2str(i)]).yLims(2) > yLimsData(2) || ...
-               data.(['p', num2str(i)]).zLims(1) < zLimsData(1) || data.(['p', num2str(i)]).zLims(2) > zLimsData(2)
+            if (min(planeData.(['p', num2str(i)]).xLims) < xLimsData(1)) || (max(planeData.(['p', num2str(i)]).xLims) > xLimsData(2)) || ...
+               (min(planeData.(['p', num2str(i)]).yLims) < yLimsData(1)) || (max(planeData.(['p', num2str(i)]).yLims) > yLimsData(2)) || ...
+               (min(planeData.(['p', num2str(i)]).zLims) < zLimsData(1)) || (max(planeData.(['p', num2str(i)]).zLims) > zLimsData(2))
                 disp('        WARNING: Plane Lies Outside Probe Volume');
                 disp(' ');
             else
@@ -143,6 +226,7 @@ function data = extractPlanarProbeData(caseFolder, vData)
             end
             
         end
+        clear valid;
         
     end
     
@@ -153,101 +237,98 @@ function data = extractPlanarProbeData(caseFolder, vData)
     % Shift Requested Plane(s) to Nearest Probe Plane
     for i = 1:nPlanes
         
-        switch data.(['p', num2str(i)]).planeOrientation
+        switch planeData.(['p', num2str(i)]).planeOrientation
             
-            case 'X'
-                allPlanes = unique(vData.position(:,1), 'stable');
-                [offset, index] = min(abs(allPlanes - data.(['p', num2str(i)]).xLims(1)));
+            case 'YZ'
+                allPlanes = unique(volumeData.position(:,1), 'stable');
+                [offset, index] = min(abs(allPlanes - planeData.(['p', num2str(i)]).xLims));
                 
                 if offset ~= 0
                     disp('    NOTE: Requested Plane Unavailable');
-                    disp(['        Shifting X: ', num2str(data.(['p', num2str(i)]).xLims(1)), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
-                    data.(['p', num2str(i)]).xLims(1) = allPlanes(index);
-                    data.(['p', num2str(i)]).xLims(2) = data.(['p', num2str(i)]).xLims(1);
+                    disp(['        Shifting X: ', num2str(planeData.(['p', num2str(i)]).xLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    planeData.(['p', num2str(i)]).xLims = allPlanes(index);
                 end
                 
-                data.(['p', num2str(i)]).planePosition = data.(['p', num2str(i)]).xLims(1);
+                planeData.(['p', num2str(i)]).planePosition = planeData.(['p', num2str(i)]).xLims;
                 
-                index = find((vData.position(:,1) == data.(['p', num2str(i)]).xLims(1)) & ...
-                             (vData.position(:,2) >= data.(['p', num2str(i)]).yLims(1) & vData.position(:,2) <= data.(['p', num2str(i)]).yLims(2)) & ...
-                             (vData.position(:,3) >= data.(['p', num2str(i)]).zLims(1) & vData.position(:,3) <= data.(['p', num2str(i)]).zLims(2)));
+                index = find((volumeData.position(:,1) == planeData.(['p', num2str(i)]).xLims) & ...
+                             (volumeData.position(:,2) >= planeData.(['p', num2str(i)]).yLims(1) & volumeData.position(:,2) <= planeData.(['p', num2str(i)]).yLims(2)) & ...
+                             (volumeData.position(:,3) >= planeData.(['p', num2str(i)]).zLims(1) & volumeData.position(:,3) <= planeData.(['p', num2str(i)]).zLims(2)));
             
-            case 'Y'
-                allPlanes = unique(vData.position(:,2), 'stable');
-                [offset, index] = min(abs(allPlanes - data.(['p', num2str(i)]).yLims(1)));
+            case 'XZ'
+                allPlanes = unique(volumeData.position(:,2), 'stable');
+                [offset, index] = min(abs(allPlanes - planeData.(['p', num2str(i)]).yLims));
                 
                 if offset ~= 0
                     disp('    NOTE: Requested Plane Unavailable');
-                    disp(['        Shifting Y: ', num2str(data.(['p', num2str(i)]).yLims(1)), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
-                    data.(['p', num2str(i)]).yLims(1) = allPlanes(index);
-                    data.(['p', num2str(i)]).yLims(2) = data.(['p', num2str(i)]).yLims(1);
+                    disp(['        Shifting Y: ', num2str(planeData.(['p', num2str(i)]).yLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    planeData.(['p', num2str(i)]).yLims = allPlanes(index);
                 end
                 
-                data.(['p', num2str(i)]).planePosition = data.(['p', num2str(i)]).yLims(1);
+                planeData.(['p', num2str(i)]).planePosition = planeData.(['p', num2str(i)]).yLims;
                 
-                index = find((vData.position(:,1) >= data.(['p', num2str(i)]).xLims(1) & vData.position(:,1) <= data.(['p', num2str(i)]).xLims(2)) & ...
-                             (vData.position(:,2) == data.(['p', num2str(i)]).yLims(2)) & ...
-                             (vData.position(:,3) >= data.(['p', num2str(i)]).zLims(1) & vData.position(:,3) <= data.(['p', num2str(i)]).zLims(2)));
+                index = find((volumeData.position(:,1) >= planeData.(['p', num2str(i)]).xLims(1) & volumeData.position(:,1) <= planeData.(['p', num2str(i)]).xLims(2)) & ...
+                             (volumeData.position(:,2) == planeData.(['p', num2str(i)]).yLims) & ...
+                             (volumeData.position(:,3) >= planeData.(['p', num2str(i)]).zLims(1) & volumeData.position(:,3) <= planeData.(['p', num2str(i)]).zLims(2)));
                 
-            case 'Z'
-                allPlanes = unique(vData.position(:,3), 'stable');
-                [offset, index] = min(abs(allPlanes - data.(['p', num2str(i)]).zLims(1)));
+            case 'XY'
+                allPlanes = unique(volumeData.position(:,3), 'stable');
+                [offset, index] = min(abs(allPlanes - planeData.(['p', num2str(i)]).zLims));
                 
                 if offset ~= 0
                     disp('    NOTE: Requested Plane Unavailable');
-                    disp(['        Shifting Z: ', num2str(data.(['p', num2str(i)]).zLims(1)), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
-                    data.(['p', num2str(i)]).zLims(1) = allPlanes(index);
-                    data.(['p', num2str(i)]).zLims(2) = data.(['p', num2str(i)]).zLims(1);
+                    disp(['        Shifting Z: ', num2str(planeData.(['p', num2str(i)]).zLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    planeData.(['p', num2str(i)]).zLims = allPlanes(index);
                 end
                 
-                data.(['p', num2str(i)]).planePosition = data.(['p', num2str(i)]).zLims(1);
+                planeData.(['p', num2str(i)]).planePosition = planeData.(['p', num2str(i)]).zLims;
                 
-                index = find((vData.position(:,1) >= data.(['p', num2str(i)]).xLims(1) & vData.position(:,1) <= data.(['p', num2str(i)]).xLims(2)) & ...
-                             (vData.position(:,2) >= data.(['p', num2str(i)]).yLims(1) & vData.position(:,2) <= data.(['p', num2str(i)]).yLims(2)) & ...
-                             (vData.position(:,3) == data.(['p', num2str(i)]).zLims(2)));
+                index = find((volumeData.position(:,1) >= planeData.(['p', num2str(i)]).xLims(1) & volumeData.position(:,1) <= planeData.(['p', num2str(i)]).xLims(2)) & ...
+                             (volumeData.position(:,2) >= planeData.(['p', num2str(i)]).yLims(1) & volumeData.position(:,2) <= planeData.(['p', num2str(i)]).yLims(2)) & ...
+                             (volumeData.position(:,3) == planeData.(['p', num2str(i)]).zLims));
         
         end
         
         % Collate Planar Probe Data
-        data.(['p', num2str(i)]).time = vData.time;
-        data.(['p', num2str(i)]).position = vData.position(index,:);
-        data.(['p', num2str(i)]).uMean = vData.uMean(index);
-        data.(['p', num2str(i)]).vMean = vData.vMean(index);
-        data.(['p', num2str(i)]).wMean = vData.wMean(index);
+        planeData.(['p', num2str(i)]).time = volumeData.time;
+        planeData.(['p', num2str(i)]).position = volumeData.position(index,:);
+        planeData.(['p', num2str(i)]).uMean = volumeData.uMean(index);
+        planeData.(['p', num2str(i)]).vMean = volumeData.vMean(index);
+        planeData.(['p', num2str(i)]).wMean = volumeData.wMean(index);
         
-        data.(['p', num2str(i)]).u = cell(height(vData.time),1);
-        data.(['p', num2str(i)]).v =  data.(['p', num2str(i)]).u;
-        data.(['p', num2str(i)]).w =  data.(['p', num2str(i)]).u;
-        data.(['p', num2str(i)]).uPrime = data.(['p', num2str(i)]).u;
-        data.(['p', num2str(i)]).vPrime =  data.(['p', num2str(i)]).u;
-        data.(['p', num2str(i)]).wPrime =  data.(['p', num2str(i)]).u;
+        planeData.(['p', num2str(i)]).u = cell(height(volumeData.time),1);
+        planeData.(['p', num2str(i)]).v =  planeData.(['p', num2str(i)]).u;
+        planeData.(['p', num2str(i)]).w =  planeData.(['p', num2str(i)]).u;
+        planeData.(['p', num2str(i)]).uPrime = planeData.(['p', num2str(i)]).u;
+        planeData.(['p', num2str(i)]).vPrime =  planeData.(['p', num2str(i)]).u;
+        planeData.(['p', num2str(i)]).wPrime =  planeData.(['p', num2str(i)]).u;
         
-        for j = 1:height(vData.time)
-            data.(['p', num2str(i)]).u{j} = vData.u{j}(index,:);
-            data.(['p', num2str(i)]).v{j} = vData.v{j}(index,:);
-            data.(['p', num2str(i)]).w{j} = vData.w{j}(index,:);
-            data.(['p', num2str(i)]).uPrime{j} = vData.uPrime{j}(index,:);
-            data.(['p', num2str(i)]).vPrime{j} = vData.vPrime{j}(index,:);
-            data.(['p', num2str(i)]).wPrime{j} = vData.wPrime{j}(index,:);
+        for j = 1:height(volumeData.time)
+            planeData.(['p', num2str(i)]).u{j} = volumeData.u{j}(index,:);
+            planeData.(['p', num2str(i)]).v{j} = volumeData.v{j}(index,:);
+            planeData.(['p', num2str(i)]).w{j} = volumeData.w{j}(index,:);
+            planeData.(['p', num2str(i)]).uPrime{j} = volumeData.uPrime{j}(index,:);
+            planeData.(['p', num2str(i)]).vPrime{j} = volumeData.vPrime{j}(index,:);
+            planeData.(['p', num2str(i)]).wPrime{j} = volumeData.wPrime{j}(index,:);
         end
         
         % Revert Data Origin
-        if contains(caseFolder, ["Run_Test", "Windsor"]) && contains(caseFolder, 'Upstream')
-            data.(['p', num2str(i)]).position(:,1) = data.(['p', num2str(i)]).position(:,1) - 1.325;
+        if contains(caseName, ["Run_Test", "Windsor"]) && contains(caseName, 'Upstream')
+            planeData.(['p', num2str(i)]).position(:,1) = planeData.(['p', num2str(i)]).position(:,1) - 1.325;
 
-            if strcmp(data.(['p', num2str(i)]).planeOrientation, 'X')
-                data.(['p', num2str(i)]).planePosition(:,1) = data.(['p', num2str(i)]).planePosition(:,1) -1.325;
+            if strcmp(planeData.(['p', num2str(i)]).planeOrientation, 'YZ')
+                planeData.(['p', num2str(i)]).planePosition(:,1) = planeData.(['p', num2str(i)]).planePosition(:,1) - 1.325;
             end
         end
         
         % Rename Plane
-        pName = [data.(['p', num2str(i)]).planeOrientation, erase(num2str(data.(['p', num2str(i)]).planePosition, '%.5f'), '.')];
-        data = renameStructField(data, ['p', num2str(i)], pName);
-        data.(pName) = orderfields(data.(pName));
+        pName = [planeData.(['p', num2str(i)]).planeOrientation, erase(num2str(planeData.(['p', num2str(i)]).planePosition, '%.5f'), '.')];
+        planeData = renameStructField(planeData, ['p', num2str(i)], pName);
+        planeData.(pName) = orderfields(planeData.(pName));
         
     end
     
-    data = orderfields(data);
+    planeData = orderfields(planeData);
     
 end
 
@@ -256,16 +337,11 @@ end
 
 function pos = inputPos(type, plane)
 
-    valid = false;
-    while ~valid
-        pos = str2double(input(['    ', type, ' ', plane, '-Position [m]: '], 's'));
-        
-        if isnan(pos) || length(pos) > 1
-            disp('        WARNING: Invalid Entry');
-        else
-            valid = true;
-        end
-
+    pos = str2double(input(['    ', type, ' ', plane, '-Position [m]: '], 's'));
+    
+    if isnan(pos) || length(pos) > 1
+        disp('        WARNING: Invalid Entry');
+        pos = -1;
     end
-
+    
 end

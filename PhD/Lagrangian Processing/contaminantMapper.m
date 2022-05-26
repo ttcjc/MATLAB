@@ -13,7 +13,7 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-massNormalisation = 3.744918231958561e-10; % Square-Back Base Time-Average
+massNormalisation = 3.810600208515075e-10; % Square-Back Base Time-Average
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -146,6 +146,8 @@ while ~valid
         end
         
         dLims = sort(dLims);
+        dLims(1) = floor(dLims(1));
+        dLims(2) = ceil(dLims(2));
         
         if (dLims(2) < 0) || (dLims(1) > 120)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
@@ -346,7 +348,7 @@ clear LagData;
 disp(' ');
 
 % Generate Instantaneous Contaminant Maps
-disp('    Generating Instantaneous Contaminant Maps');
+disp('    Generating Instantaneous Contaminant Maps...');
 
 % Adjust Uniform Cell Size to Fit Region of Interest
 cellSizeX = cellSize;
@@ -617,7 +619,8 @@ end
 clear valid;
 
 if plotInst || plotMean
-    % Select Variables of Interest
+    
+    % Select Variable(s) of Interest
     plotVars = fieldnames(mapData.mean);
     plotVars = plotVars(1:(end - 1));
 
@@ -718,8 +721,8 @@ if plotMean
             cLims = [0; 40]; % Time-Averaged Base Contamination
 %             cLims = [0; 40]; % Time-Averaged Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-%             cLims = [0; 1]; % Time-Averaged Base Contamination
-            cLims = [0; 20]; % Time-Averaged Planar Contamination
+            cLims = [0; 1]; % Time-Averaged Base Contamination
+%             cLims = [0; 20]; % Time-Averaged Planar Contaminatyion
         else
             cLims = [0; max(contaminantData)];
         end
@@ -822,6 +825,8 @@ while ~valid
                 
         end
         
+        minD = num2str(dLims(1));
+        maxD = num2str(dLims(2));
         startInst = erase(num2str(mapData.inst.time(1), ['%.', num2str(timePrecision), 'f']), '.');
         endInst = erase(num2str(mapData.inst.time(end), ['%.', num2str(timePrecision), 'f']), '.');
         
@@ -830,25 +835,25 @@ while ~valid
         switch format
             
             case 'A'
-%                 save(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                      'mapData', 'sampleInterval', '-v7.3', '-noCompression');
-%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%                 save(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                      'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
+%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
 %                 disp('        Success');
                 
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-                     'mapData', 'sampleInterval', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                     'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
                 disp('        Success');
                  
             case 'B'
-%                 save(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                      'mapData', 'sampleInterval', '-v7.3', '-noCompression');
-%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+%                 save(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+%                      'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
+%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
 %                 disp('        Success');
                 
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-                     'mapData', 'sampleInterval', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+                     'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
                 disp('        Success');
         
         end
@@ -881,7 +886,7 @@ function D = inputD(type)
 
     D = str2double(input(['    ', type, ' Diameter of Interest [', char(956), 'm]: '], 's'));
     
-    if isnan(D) || length(D) > 1
+    if isnan(D) || length(D) > 1 || D < 0
         disp('        WARNING: Invalid Entry');
         D = -1;
     end

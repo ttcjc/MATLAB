@@ -33,7 +33,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     disp('Case Selection');
     disp('---------------');
 
-    caseFolder = uigetdir('~/Data/Numerical/OpenFOAM', 'Select Case');
+    caseFolder = uigetdir('/mnt/Processing/Data/Numerical/OpenFOAM', 'Select Case');
     
     namePos = max(strfind(caseFolder, '/')) + 1;
     caseName = caseFolder(namePos:end);

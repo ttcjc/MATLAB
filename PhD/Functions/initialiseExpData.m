@@ -31,7 +31,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     disp('Case Selection');
     disp('---------------');
     
-    caseFolder = uigetdir('~/Data/Experimental', 'Select Case');
+    caseFolder = uigetdir('/mnt/Processing/Data/Experimental', 'Select Case');
 
     disp(' ');
 

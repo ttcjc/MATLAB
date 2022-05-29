@@ -77,12 +77,15 @@ function planeData = extractPlanarProbeData(caseName, volumeData)
 
             if selection == 'x' | selection == 'X' %#ok<OR2>
                 planeData.(['p', num2str(i)]).planeOrientation = 'YZ';
+                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 planeData.(['p', num2str(i)]).planeOrientation = 'XZ';
+                
                 valid = true;
             elseif selection == 'z' | selection == 'Z' %#ok<OR2>
                 planeData.(['p', num2str(i)]).planeOrientation = 'XY';
+                
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');

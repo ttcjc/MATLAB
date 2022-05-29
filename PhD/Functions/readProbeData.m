@@ -257,10 +257,6 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-%             if ~exist(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
-%                 mkdir(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
-%             end
-
             if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
@@ -268,13 +264,10 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
             startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
             endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-%             disp(['    Saving to: ~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
-%             save(['~/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat'], ...
-%                  'data', '-v7.3', '-noCompression');
-%             disp('        Success');
+            fileName = ['/T', startInst, '_T', endInst, '.mat'];
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/T', startInst, '_T', endInst, '.mat'], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName], ...
                  'data', '-v7.3', '-noCompression');
             disp('        Success');
             

@@ -223,9 +223,11 @@ switch format
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotInst = false;
+                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotInst = true;
+                
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');

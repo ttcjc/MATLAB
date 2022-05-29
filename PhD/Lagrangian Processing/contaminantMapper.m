@@ -60,9 +60,11 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
+        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -94,13 +96,13 @@ switch format
         
         valid = false;
         while ~valid
+            disp(' ');
             [index, valid] = listdlg('listSize', [300, 300], ...
                                      'selectionMode', 'single', ...
                                      'name', 'Select Plane of Interest', ...
                                      'listString', planes);
             
             if ~valid
-                disp(' ');
                 disp('WARNING: No Case Type Selected');
             end
         
@@ -110,6 +112,8 @@ switch format
         LagData = LagData.(planes{index});
         planePos = erase(planes{index}, '.');
         clear planes;
+        
+        disp(['Plane of Interest: ', planePos]);
 end
 
 disp(' ');
@@ -129,7 +133,7 @@ while ~valid
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        dLims = [0; 120];
+        dLims = [1; 120];
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
@@ -149,7 +153,7 @@ while ~valid
         dLims(1) = floor(dLims(1));
         dLims(2) = ceil(dLims(2));
         
-        if (dLims(2) < 0) || (dLims(1) > 120)
+        if (dLims(2) < 1) || (dLims(1) > 120)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
             continue
         end
@@ -236,6 +240,7 @@ end
 switch format
     
     case 'A'
+    
         % Identify Model Base
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -253,34 +258,34 @@ switch format
         geoPoints = geometry.(parts{i}).vertices;
         basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
         
-        basePerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
-        basePerim = basePoints(basePerim,:);
-        basePoly = polyshape(basePerim(:,2), basePerim(:,3), 'keepCollinearPoints', true);
+        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
+        mapPerim = basePoints(mapPerim,:);
+        basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
         basePoly = polybuffer(basePoly, -0.0025, 'jointType', 'square');
-        basePerim = ones(height(basePoly.Vertices),3) * basePerim(1,1);
-        basePerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
+        mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
+        mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
-        if ~all(basePerim(1,:) == basePerim(end,:))
-            basePerim = vertcat(basePerim, basePerim(1,:)); % Close Boundary
+        if ~all(mapPerim(1,:) == mapPerim(end,:))
+            mapPerim = vertcat(mapPerim, mapPerim(1,:)); % Close Boundary
         end
         
         clear basePoints basePoly;
         
-        xLims = xDims(2);
-        yLims = [min(basePerim(:,2)); max(basePerim(:,2))];
-        zLims = [min(basePerim(:,3)); max(basePerim(:,3))];
+        xLimsData = xDims(2);
+        yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
+        zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
     case 'B'
         if contains(caseName, 'Run_Test') || contains(caseName, 'Windsor')
-            basePerim = [];
+            mapPerim = [];
             
-            xLims = LagData.positionCartesian{end}(1,1);
-            yLims = [-0.5945; 0.5945];
-            zLims = [0; 0.739];
+            xLimsData = LagData.positionCartesian{end}(1,1);
+            yLimsData = [-0.5945; 0.5945];
+            zLimsData = [0; 0.739];
             
             if normalise
-                yLims = round((yLims / 1.044), spacePrecision);
-                zLims = round((zLims / 1.044), spacePrecision);
+                yLimsData = round((yLimsData / 1.044), spacePrecision);
+                zLimsData = round((zLimsData / 1.044), spacePrecision);
             end
             
         end
@@ -310,11 +315,11 @@ parfor i = 1:height(LagData.time)
     if positionCartesian{i} ~= -1
         index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
                         ((d{i} * 1e6) <= dLims(2)) & ...
-                        (positionCartesian{i}(:,1) == xLims) & ...
-                        (positionCartesian{i}(:,2) >= yLims(1)) & ...
-                        (positionCartesian{i}(:,2) <= yLims(2)) & ...
-                        (positionCartesian{i}(:,3) >= zLims(1)) & ...
-                        (positionCartesian{i}(:,3) <= zLims(2))); %#ok<PFBNS>
+                        (positionCartesian{i}(:,1) == xLimsData ) & ...
+                        (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
+                        (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
+                        (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
+                        (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
     end
     
     send(dQ, []);
@@ -352,13 +357,13 @@ disp('    Generating Instantaneous Contaminant Maps...');
 
 % Adjust Uniform Cell Size to Fit Region of Interest
 cellSizeX = cellSize;
-cellSizeY = (yLims(2) - yLims(1)) / round(((yLims(2) - yLims(1)) / cellSize));
-cellSizeZ = (zLims(2) - zLims(1)) / round(((zLims(2) - zLims(1)) / cellSize));
+cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
+cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
 
-[y, z] = meshgrid(yLims(1):cellSizeY:yLims(2), zLims(1):cellSizeZ:zLims(2));
+[y, z] = meshgrid(yLimsData (1):cellSizeY:yLimsData (2), zLimsData (1):cellSizeZ:zLimsData (2));
 
 mapData.positionGrid = zeros(height(y(:)),3);
-mapData.positionGrid(:,1) = xLims;
+mapData.positionGrid(:,1) = xLimsData ;
 mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
 
 mapData.inst.time = contaminantData.time;
@@ -566,7 +571,7 @@ executionTime = toc;
 
 disp(' ');
 
-disp(['    Read Time: ', num2str(executionTime), 's']);
+disp(['    Run Time: ', num2str(executionTime), 's']);
 
 disp(' ');
 
@@ -589,9 +594,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -607,9 +614,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -626,19 +635,21 @@ if plotInst || plotMean
 
     valid = false;
     while ~valid
+        disp(' ');
         [index, valid] = listdlg('listSize', [300, 300], ...
                                  'selectionMode', 'multiple', ...
                                  'name', 'Select Variable(s) to Plot', ...
                                  'listString', plotVars);
 
         if ~valid
-            disp(' ');
             disp('WARNING: No Mapping Variables Selected');
         end
     end
     clear valid;
 
     plotVars = plotVars(index);
+    
+    disp(['Plotting ', num2str(height(plotVars)), ' Variable(s) of Interest']);
 end
 
 disp(' ');
@@ -679,19 +690,6 @@ if normalise
     zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
 end
 
-xLimsData = xLims;
-
-switch format
-    
-    case 'A'
-        yLimsData = [min(basePerim(:,2)); max(basePerim(:,2))];
-        zLimsData = [min(basePerim(:,3)); max(basePerim(:,3))];
-        
-    case 'B'
-        yLimsData = yLims;
-        zLimsData = zLims;
-        
-end
 positionData = mapData.positionGrid;
 cMap = viridis(24);
 figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -713,13 +711,18 @@ if plotMean
                 
         end
         
-        CoM = mapData.mean.CoM;
+        if contains(plotVars{i}, ["mass", "massNorm"])
+            CoM = mapData.mean.CoM;
+        else
+            CoM = [];
+        end
+            
         figSubtitle = ' ';
         
         if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
 %             cLims = dLims;
-            cLims = [0; 40]; % Time-Averaged Base Contamination
-%             cLims = [0; 40]; % Time-Averaged Planar Contamination
+%             cLims = [0; 30]; % Time-Averaged Base Contamination
+            cLims = [0; 40]; % Time-Averaged Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
             cLims = [0; 1]; % Time-Averaged Base Contamination
 %             cLims = [0; 20]; % Time-Averaged Planar Contaminatyion
@@ -728,7 +731,7 @@ if plotMean
         end
         
         fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                               basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
+                               mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                xDims, CoM, figTitle, figSubtitle, cLims, normalise);
     end
     
@@ -761,22 +764,27 @@ if plotInst
                     figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.')];
             end
             
-            CoM = mapData.inst.CoM{j};
-            figSubtitle = [figTime, ' \it{s}'];
+        if contains(plotVars{i}, ["mass", "massNorm"])
+            CoM = mapData.mean.CoM;
+        else
+            CoM = [];
+        end
             
-            if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
-                cLims = dLims;
-%                 cLims = [0; 1]; % Time-Averaged Base Contamination
-%                 cLims = [0; 1]; % Time-Averaged Planar Contamination
-            elseif strcmp(plotVars{i}, 'massNorm')
-                cLims = [0; 1]; % Time-Averaged Base Contamination
-%                 cLims = [0; 1]; % Time-Averaged Planar Contamination
-            else
-                cLims = [0; max(contaminantData)];
-            end
+        figSubtitle = ' ';
+        
+        if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
+            cLims = dLims;
+%             cLims = [0; 1]; % Time-Averaged Base Contamination
+%             cLims = [0; 1]; % Time-Averaged Planar Contamination
+        elseif strcmp(plotVars{i}, 'massNorm')
+            cLims = [0; 1]; % Time-Averaged Base Contamination
+%             cLims = [0; 1]; % Time-Averaged Planar Contaminatyion
+        else
+            cLims = [0; max(contaminantData)];
+        end
             
             fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                                   basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
+                                   mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                    xDims, CoM, figTitle, figSubtitle, cLims, normalise);
         end
         
@@ -805,19 +813,11 @@ while ~valid
             
             case 'A'
                 
-%                 if ~exist(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName], 'dir')
-%                     mkdir(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName]);
-%                 end
-                
                 if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName], 'dir')
                     mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName]);
                 end
                 
             case 'B'
-                
-%                 if ~exist(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName], 'dir')
-%                     mkdir(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName]);
-%                 end
                 
                 if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName], 'dir')
                     mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName]);
@@ -832,28 +832,24 @@ while ~valid
         
         freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
         
+        if normalise
+            fileName = ['/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '_Norm.mat'];
+        else
+            fileName = ['/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'];
+        end
+        
         switch format
             
             case 'A'
-%                 save(['~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                      'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
-%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
-%                 disp('        Success');
-                
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-                     'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, fileName], ...
+                     'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, fileName]);
                 disp('        Success');
                  
             case 'B'
-%                 save(['~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                      'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
-%                 disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
-%                 disp('        Success');
-                
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-                     'mapData', 'sampleInterval', 'dLims', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, '/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, fileName], ...
+                     'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, fileName]);
                 disp('        Success');
         
         end
@@ -868,25 +864,11 @@ end
 
 %% Local Functions
 
-function timeInsts = inputTimes(origTimes)
-
-    timeInsts = str2num(input('    Input Desired Time Instances (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
-    
-    if any(isnan(timeInsts)) || ~isrow(timeInsts) > 1 || any(timeInsts <= 0)
-        disp('        WARNING: Invalid Entry');
-        timeInsts = -1;
-    else
-        timeInsts = find(ismember(origTimes, timeInsts));
-    end
-
-end
-
-
 function D = inputD(type)
 
     D = str2double(input(['    ', type, ' Diameter of Interest [', char(956), 'm]: '], 's'));
     
-    if isnan(D) || length(D) > 1 || D < 0
+    if isnan(D) || length(D) > 1 || D < 1
         disp('        WARNING: Invalid Entry');
         D = -1;
     end

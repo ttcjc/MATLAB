@@ -80,13 +80,14 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
             data = readProbeData(caseFolder, timeDirs, timePrecision, field, nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseFolder(namePos(end):end), '/*.*'], ...
+            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/*.*'], ...
                                              'Select Probe Data');
     
-            if contains(filePath, [caseFolder(namePos(end):end), '/', probeType])
+            if contains(filePath, [caseName, '/', probeType])
                 disp(['    Loading ''', fileName, '''...']);
                 data = load([filePath, fileName], 'data').data;
                 disp('        Success');
+                
                 valid = true;
             else
                 disp('    WARNING: Invalid File Selection');
@@ -120,7 +121,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         
         if planar
             
-            if contains(caseFolder, ["Run_Test", "Windsor"])
+            if contains(caseName, ["Run_Test", "Windsor"])
                 planes = fieldnames(data);
                 
                 for i = 1:height(planes)
@@ -135,7 +136,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
             
         else
             
-            if contains(caseFolder, ["Run_Test", "Windsor"])
+            if contains(caseName, ["Run_Test", "Windsor"])
                 data.position(:,1) = round((data.position / 1.044), spacePrecision);
             end
             

@@ -235,9 +235,9 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             tickData = [];
             xticks(tickData);
             tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-            yticks(tickData(2:end-1));
+            yticks(tickData(2:(end - 1)));
             tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-            zticks(tickData(2:end-1));
+            zticks(tickData(2:(end - 1)));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
@@ -315,11 +315,11 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             ylim([yLimsPlot(1), yLimsPlot(2)]);
             zlim([zLimsPlot(1), zLimsPlot(2)]);
             tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-            xticks(tickData(2:end-1));
+            xticks(tickData(2:(end - 1)));
             tickData = [];
             yticks(tickData);
             tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-            zticks(tickData(2:end-1));
+            zticks(tickData(2:(end - 1)));
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
@@ -397,9 +397,9 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             ylim([yLimsPlot(1), yLimsPlot(2)]);
             zlim([zLimsPlot(1), zLimsPlot(2)]);
             tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-            xticks(tickData(2:end-1));
+            xticks(tickData(2:(end - 1)));
             tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-            yticks(tickData(2:end-1));
+            yticks(tickData(2:(end - 1)));
             tickData = [];
             zticks(tickData);
             xtickformat('%+.2f');
@@ -407,11 +407,11 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             ztickformat('%+.2f');
             
             if normalise
-                xT = xlabel('z_{\it{l}}');
+                xT = xlabel('x_{\it{l}}');
                 yT = ylabel('y_{\it{l}}');
                 zT = zlabel([]);
             else
-                xT = xlabel('z_{\it{m}}');
+                xT = xlabel('x_{\it{m}}');
                 yT = ylabel('y_{\it{m}}');
                 zT = zlabel([]);
 

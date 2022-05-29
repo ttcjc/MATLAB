@@ -14,7 +14,7 @@
 %% Main Function
 
 function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                                basePerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
+                                mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                 xDims, CoM, figTitle, figSubtitle, cLims, normalise)
     
     cellSize = 0.5e-3; % [m or l]
@@ -34,8 +34,8 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
     contamination = zeros(size(x));
     contamination(:,2,:) = interp(y(:,2,:), z(:,2,:));
     
-    if ~isempty(basePerim)
-        [indexIn, indexOn] = inpolygon(y, z, basePerim(:,2), basePerim(:,3));
+    if ~isempty(mapPerim)
+        [indexIn, indexOn] = inpolygon(y, z, mapPerim(:,2), mapPerim(:,3));
         indexBase = double(or(indexIn, indexOn));
         indexBase(indexBase == 0) = nan;
 
@@ -78,7 +78,9 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
         
     end
     
-    scatter3(CoM(1), CoM(2), CoM(3), 125, 'w', 'filled')
+    if ~isempty(CoM)
+        scatter3(CoM(1), CoM(2), CoM(3), 125, 'w', 'filled');
+    end
 
     % Figure Formatting
     title(figTitle, 'color', ([254, 254, 254] / 255));
@@ -94,9 +96,9 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
     tickData = [];
     xticks(tickData);
     tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-    yticks(tickData(2:end-1));
+    yticks(tickData(2:(end - 1)));
     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-    zticks(tickData(2:end-1));
+    zticks(tickData(2:(end - 1)));
     xtickformat('%+.2f');
     ytickformat('%+.2f');
     ztickformat('%+.2f');
@@ -107,8 +109,8 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
         zT = zlabel('z_{\it{l}}');
     else
         xT = xlabel([]);
-        yT = ylabel('y_{\it{m}}');
-        zT = zlabel('z_{\it{m}}');
+        yT = ylabel('y_{\it{m}}}');
+        zT = zlabel('z_{\it{m}}}');
     end
 
     xT.FontName = 'LM Roman 12';

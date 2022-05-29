@@ -113,6 +113,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
                     LagDataPlane = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
+                    
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -147,6 +148,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
                     LagDataSurface = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
+                    
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -181,6 +183,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
                     LagDataVolume = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
+                    
                     valid = true;
                 else
                     disp('    WARNING: Invalid File Selection');
@@ -293,6 +296,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
             sampleInterval = 1;
+            
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             sampleInterval = inputFreq(round((1 / deltaT), timePrecision));

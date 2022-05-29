@@ -121,11 +121,7 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
         if selection == 'n' | selection == 'N' %#ok<OR2>
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-
-%             if ~exist(['~/Data/Numerical/MATLAB/LagData/volume/', caseName], 'dir')
-%                 mkdir(['~/Data/Numerical/MATLAB/LagData/volume/', caseName]);
-%             end
-
+            
             if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName], 'dir')
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName]);
             end
@@ -134,14 +130,11 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
             endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
             freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
-
-%             disp(['    Saving to: ~/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
-%             disp('        Success');
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
+            
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, fileName]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, fileName], ...
                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

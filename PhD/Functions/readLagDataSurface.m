@@ -136,10 +136,6 @@ function LagData = readLagDataSurface(caseFolder, caseName, LagProps, ...
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-%             if ~exist(['~/Data/Numerical/MATLAB/LagData/surface/', caseName], 'dir')
-%                 mkdir(['~/Data/Numerical/MATLAB/LagData/surface/', caseName]);
-%             end
-            
             if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName], 'dir')
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName]);
             end
@@ -149,13 +145,10 @@ function LagData = readLagDataSurface(caseFolder, caseName, LagProps, ...
             
             freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
             
-%             disp(['    Saving to: ~/Data/Numerical/MATLAB/LagData/surface/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-%             save(['~/Data/Numerical/MATLAB/LagData/Volumetric/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
-%                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
-%             disp('        Success');
-
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, '/T', startInst, '_T', endInst, '_F', freq, '.mat'], ...
+            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
+            
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, fileName]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, fileName], ...
                  'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

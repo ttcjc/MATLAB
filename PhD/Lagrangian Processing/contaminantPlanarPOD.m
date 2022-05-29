@@ -165,7 +165,7 @@ disp(' ');
 %% Perform Planar POD (Snapshot Method)
 
 disp('Planar Proper Orthogonal Decomposition');
-disp('-----------');
+disp('---------------------------------------');
 
 disp(' ');
 
@@ -310,7 +310,7 @@ PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
 
 % Sort Eigenvalues and Eigenvalues in Descending Order
 [PODdata.lambda, index] = sort(PODdata.lambda, 'descend');
-PODdata.A_mode = PODdata.A_mode(index,:); % Temporal Modes
+PODdata.A_mode = PODdata.A_mode(:,index); % Temporal Modes
 
 % Calculate Spatial Coefficients
 PODdata.phi_coeff = PODdata.snapshotMatrix' * PODdata.A_mode;
@@ -342,13 +342,13 @@ switch format
         
 end
         
-set(figure(fig), 'outerPosition', [25, 25, 850, 850], 'name', figName);
+set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
 set(gca, 'fontName', 'LM Mono 12', ...
          'fontSize', 20, 'layer', 'top');
 hold on;
 
 % Plot
-plot(PODdata.modeEnergy, 'lineWidth', 1.5, 'marker', 'o', 'color', ([230, 0, 126] / 255));
+plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([230, 0, 126] / 255));
 
 % Figure Formatting
 axis on;
@@ -396,7 +396,7 @@ while ~valid
     selection = input(['Plot All ', num2str(modesEnergetic), ' Energetic Modes? [y/n]: '], 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotModes = inputModes;
+        plotModes = inputModes(modesEnergetic);
         
         if plotModes == -1
             continue
@@ -458,7 +458,7 @@ positionData = PODdata.positionGrid;
 cMap = redblue(24);
 figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
 
-for i = 1:5 % plotModes
+for i = plotModes
     disp(['    Presenting Mode ', num2str(i), '...']);
     
     contaminantData = rescale(PODdata.phi_mode(:,i), -1, 1);

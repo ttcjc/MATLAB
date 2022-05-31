@@ -39,7 +39,7 @@ disp('    B: Far-Field Spray Transport');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Select Mapping Location [A/B/C]: ', 's');
+    selection = input('Select Mapping Location [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
@@ -68,14 +68,14 @@ disp('----------------------------');
 valid = false;
 while ~valid
     disp(' ');
-    [fileName, filePath] = uigetfile('/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/*.*', ...
+    [fileName, filePath] = uigetfile('/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/*.mat', ...
                                       'Select Map Data');
     
     switch format
         
         case 'A'
             
-            if contains(filePath, 'contaminantMap/Base/')
+            if contains(filePath, 'contaminantMap/base/')
                 disp(['Loading ''', fileName, '''...']);
                 mapData = load([filePath, fileName], 'mapData').mapData;
                 sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
@@ -91,7 +91,7 @@ while ~valid
             
         case 'B'
             
-            if contains(filePath, 'contaminantMap/X_*/')
+            if contains(filePath, 'contaminantMap/X_')
                 disp(['Loading ''', fileName, '''...']);
                 mapData = load([filePath, fileName], 'mapData').mapData;
                 sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
@@ -281,7 +281,7 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(Nt));
+parforWaitBar(wB, height(PODdata.time));
 
 % Assemble Snapshot Matrix
 snapshotMatrix = zeros(Nt,Ns);
@@ -343,12 +343,12 @@ switch format
 end
         
 set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
-set(gca, 'fontName', 'LM Mono 12', ...
+set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
          'fontSize', 20, 'layer', 'top');
 hold on;
 
 % Plot
-plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([230, 0, 126] / 255));
+plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
 
 % Figure Formatting
 axis on;
@@ -360,10 +360,9 @@ tickData = (0:(((ceil(modesEnergetic / 10) * 10) - 0) / 5):(ceil(modesEnergetic 
 xticks(tickData(2:(end - 1)));
 tickData = (0:(((ceil(max(PODdata.modeEnergy)/10) * 10) - 0) / 5):(ceil(max(PODdata.modeEnergy)/10) * 10));
 yticks(tickData(2:(end - 1)));
-xT = xlabel('\bf{Mode}');
-yT = ylabel('\bf{Energy Content (\it{%})}');
-xT.FontName = 'LM Roman 12';
-yT.FontName = 'LM Roman 12';
+xL = xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
+yL = ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
+set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 
 pause(2);
@@ -396,7 +395,7 @@ while ~valid
     selection = input(['Plot All ', num2str(modesEnergetic), ' Energetic Modes? [y/n]: '], 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotModes = inputModes(modesEnergetic);
+        plotModes = inputModes(Nt);
         
         if plotModes == -1
             continue
@@ -455,7 +454,7 @@ if normalise
 end
 
 positionData = PODdata.positionGrid;
-cMap = redblue(24);
+cMap = turbo(24);
 figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
 
 for i = plotModes
@@ -483,20 +482,78 @@ for i = plotModes
 end
 
 
-%% Local Functions
+%% Save Map Data
 
-function plotModes = inputModes(modesEnergetic)
-
-    plotModes = str2num(input('    Input Desired Modes (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
     
-    if any(isnan(plotModes)) || ~isrow(plotModes) > 1 || any(plotModes <= 0) || any(plotModes >= modesEnergetic)
-        disp('        WARNING: Invalid Entry');
-        plotModes = -1;
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        switch format
+            
+            case 'A'
+                
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/base/', caseName, '/', PODvar], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/base/', caseName, '/', PODvar]);
+                end
+                
+            case 'B'
+                
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/', planePos, '/', caseName, '/', PODvar], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/', planePos, '/', caseName, '/', PODvar]);
+                end
+                
+        end
+        
+        switch format
+            
+            case 'A'
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/base/', caseName, '/', PODvar, '/', fileName], ...
+                     'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantPOD/base/', caseName, '/', PODvar, '/', fileName]);
+                disp('        Success');
+                 
+            case 'B'
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantPOD/', planePos, '/', caseName, '/', PODvar, '/', fileName], ...
+                     'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantPOD/', planePos, '/', caseName, '/', PODvar, '/', fileName]);
+                disp('        Success');
+        
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
     end
 
 end
 
 
+disp(' ');
+disp(' ');
 
 
+%% Perform Field Reconstruction
 
+% disp('Field Reconstruction');
+% disp('---------------------');
+
+% Blah, Blah, Blah
+
+
+%% Local Functions
+
+function plotModes = inputModes(nModes)
+
+    plotModes = str2num(input('    Input Desired Modes (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
+    
+    if any(isnan(plotModes)) || ~isrow(plotModes) > 1 || any(plotModes <= 0) || any(plotModes >= nModes)
+        disp('        WARNING: Invalid Entry');
+        plotModes = -1;
+    end
+
+end

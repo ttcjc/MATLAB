@@ -104,18 +104,14 @@ function fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLim
     ztickformat('%+.2f');
 
     if normalise
-        xT = xlabel([]);
-        yT = ylabel('y_{\it{l}}');
-        zT = zlabel('z_{\it{l}}');
+        ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+        zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
     else
-        xT = xlabel([]);
-        yT = ylabel('y_{\it{m}}}');
-        zT = zlabel('z_{\it{m}}}');
+        ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+        zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
     end
-
-    xT.FontName = 'LM Roman 12';
-    yT.FontName = 'LM Roman 12';
-    zT.FontName = 'LM Roman 12';
+    
+    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
 
     pause(2);

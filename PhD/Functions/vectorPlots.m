@@ -241,22 +241,18 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             xtickformat('%+.2f');
             ytickformat('%+.2f');
             ztickformat('%+.2f');
-            
+
             if normalise
-                xT = xlabel([]);
-                yT = ylabel('y_{\it{l}}');
-                zT = zlabel('z_{\it{l}}');
+                ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
             else
-                xT = xlabel([]);
-                yT = ylabel('y_{\it{m}}');
-                zT = zlabel('z_{\it{m}}');
+                ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
             end
-            
-            xT.FontName = 'LM Roman 12';
-            yT.FontName = 'LM Roman 12';
-            zT.FontName = 'LM Roman 12';
+
+            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
             hold off;
-            
+
             pause(2);
             exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
             
@@ -325,18 +321,14 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             ztickformat('%+.2f');
             
             if normalise
-                xT = xlabel('x_{\it{l}}');
-                yT = ylabel([]);
-                zT = zlabel('z_{\it{l}}');
+                xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
             else
-                xT = xlabel('x_{\it{m}}');
-                yT = ylabel([]);
-                zT = zlabel('z_{\it{m}}');
+                xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
             end
-            
-            xT.FontName = 'LM Roman 12';
-            yT.FontName = 'LM Roman 12';
-            zT.FontName = 'LM Roman 12';
+
+            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
             hold off;
             
             pause(2);
@@ -407,18 +399,14 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             ztickformat('%+.2f');
             
             if normalise
-                xT = xlabel('x_{\it{l}}');
-                yT = ylabel('y_{\it{l}}');
-                zT = zlabel([]);
+                xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
             else
-                xT = xlabel('x_{\it{m}}');
-                yT = ylabel('y_{\it{m}}');
-                zT = zlabel([]);
-
+                xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
             end
-            xT.FontName = 'LM Roman 12';
-            yT.FontName = 'LM Roman 12';
-            zT.FontName = 'LM Roman 12';
+
+            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
             hold off;
             
             pause(2);

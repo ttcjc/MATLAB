@@ -56,7 +56,7 @@ disp('    B: Far-Field Spray Transport');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Select Mapping Location [A/B/C]: ', 's');
+    selection = input('Select Mapping Location [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
@@ -724,13 +724,13 @@ if plotMean
 %             cLims = [0; 30]; % Time-Averaged Base Contamination
             cLims = [0; 40]; % Time-Averaged Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 1]; % Time-Averaged Base Contamination
-%             cLims = [0; 20]; % Time-Averaged Planar Contaminatyion
+%             cLims = [0; 1]; % Time-Averaged Base Contamination
+            cLims = [0; 20]; % Time-Averaged Planar Contamination
         else
             cLims = [0; max(contaminantData)];
         end
         
-        fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
+        fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...y
                                mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
                                xDims, CoM, figTitle, figSubtitle, cLims, normalise);
     end
@@ -813,8 +813,8 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName]);
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName]);
                 end
                 
             case 'B'
@@ -841,9 +841,9 @@ while ~valid
         switch format
             
             case 'A'
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, fileName], ...
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName, fileName], ...
                      'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/Base/', caseName, fileName]);
+                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/base/', caseName, fileName]);
                 disp('        Success');
                  
             case 'B'

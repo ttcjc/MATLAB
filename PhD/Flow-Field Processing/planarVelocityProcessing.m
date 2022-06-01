@@ -1,4 +1,4 @@
-%% Velocity Processing v4.0
+%% Planar Velocity Processing v4.0
 
 clear variables;
 close all;
@@ -12,9 +12,9 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('========================');
-disp ('Velocity Processing v4.0');
-disp ('========================');
+disp ('===============================');
+disp ('Planar Velocity Processing v4.0');
+disp ('===============================');
 
 disp (' ');
 disp (' ');
@@ -242,9 +242,10 @@ disp(' ');
 for i = 1:height(plotPlanes)
     disp(['    Presenting ', plotPlanes{i}, '...']);
     
-    planeOrientation = data.(plotPlanes{i}).planeOrientation;
+    orientation = data.(plotPlanes{i}).planeOrientation;
     
-    switch planeOrientation
+    % Specify Default Axes Limits
+    switch orientation
 
         case 'YZ'
 
@@ -270,6 +271,7 @@ for i = 1:height(plotPlanes)
         zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
     end
     
+    % Modify Axes and Data Limits Based on Format
     switch format
         
         case 'A'
@@ -293,7 +295,20 @@ for i = 1:height(plotPlanes)
             
     end
     
-    planePosition = data.(plotPlanes{i}).planePosition;
+    % Restrict Data Limits to Plane Position
+    switch orientation
+        
+        case 'YZ'
+            xLimsData = data.(plotPlanes{i}).planePosition;
+            
+        case 'XZ'
+            yLimsData = data.(plotPlanes{i}).planePosition;
+            
+        case 'XY'
+            zLimsData = data.(plotPlanes{i}).planePosition;
+            
+    end
+    
     positionData = data.(plotPlanes{i}).position;
     vectorData = [data.(plotPlanes{i}).uMean, data.(planes{i}).vMean, data.(plotPlanes{i}).wMean];
     
@@ -311,10 +326,10 @@ for i = 1:height(plotPlanes)
     figSubtitle = ' ';
     cLims = [0, 1];
     
-    fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                      planeOrientation, planePosition, positionData, vectorData, ...
-                      nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-                      xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise);
+    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                            vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                            streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                            xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     
 %     switch format
 %         
@@ -327,19 +342,18 @@ for i = 1:height(plotPlanes)
 %                     
 %                     if j ~= 1
 %                         clf(fig)
+%                         fig = figHold;
 %                     end
 %                     
-%                     figTime = num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']);
-%                     
 %                     vectorData = [data.(plotPlanes{i}).u{j}, data.(plotPlanes{i}).v{j}, data.(plotPlanes{i}).w{j}];
-%                     fig = figHold;
+%                     figTime = num2str(data.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
 %                     figName = [caseType, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
-%                     figSubtitle = [figTime, ' \it{s}'];
+%                     figSubtitle = [num2str(data.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
 %                     
-%                     fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-%                   planeOrientation, planePosition, positionData, vectorData, ...
-%                   nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-%                   xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise);
+%                     fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+%                                             vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+%                                             streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+%                                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
 %                 end
 %                 
 %             end

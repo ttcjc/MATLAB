@@ -32,7 +32,7 @@
 
 %% Main Function
 
-function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, field, nProc) %#ok<INUSD>
+function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, field, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -90,13 +90,47 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
 
     end
     clear valid;
+    
+    % Specify Sampling Frequency
+    valid = false;
+    while ~valid
+        disp(' ');
+        disp(['Default Sampling Frequency: ', num2str(round((1 / deltaT), timePrecision)), ' Hz']);
+        selection = input('    Reduce Recording Frequency? [y/n]: ', 's');
 
-    % Identify Time Instances
-    data.time = zeros(height(timeDirs),1);
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            sampleInterval = 1;
+            
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            sampleInterval = inputFreq(round((1 / deltaT), timePrecision));
+            
+            if sampleInterval == -1
+                continue
+            end
+            
+            if sampleInterval >= (floor(height(timeDirs) / 2))
+                disp('            WARNING: Sampling Interval Must Fall Within Data Range');
+            else
+                valid = true;
+            end                
+            
+        else
+            disp('        WARNING: Invalid Entry');
+        end
 
-    for i = 1:height(timeDirs)
-        data.time(i) = (str2double(timeDirs(i).name));
     end
+    clear valid;
+
+    % Reduce Time Instances to Desired Sampling Frequency
+    data.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
+
+    j = height(timeDirs);
+    for i = height(data.time):-1:1
+        data.time(i) = str2double(timeDirs(j).name);
+        j = j - sampleInterval;
+    end
+    clear j;
 
     % Identify Probe Points
     switch field
@@ -104,7 +138,7 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
         case 'p'
             probeType = 'probesPressure';
             
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', timeDirs(1).name, '/base_p.xy']);
+            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(data.time(1), '%.7g'), '/base_p.xy']);
             data.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
             [data.position, index] = unique(data.position, 'stable', 'rows'); % Remove Duplicate Entries
             fclose(fileID);
@@ -112,7 +146,7 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
         case 'U'
             probeType = 'probesVelocity';
             
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', timeDirs(1).name, '/wake_U.xy']);
+            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(data.time(1), '%.7g'), '/wake_U.xy']);
             data.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
             [data.position, index] = unique(data.position, 'stable', 'rows'); % Remove Duplicate Entries
             fclose(fileID);
@@ -134,15 +168,16 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
     dQ = parallel.pool.DataQueue;
     afterEach(dQ, @parforWaitBar);
 
-    parforWaitBar(wB, height(timeDirs));
+    parforWaitBar(wB, height(data.time));
 
     switch field
 
         case 'p'
-            p = cell(height(timeDirs),1);
+            p = cell(height(data.time),1);
 
-            parfor i = 1:height(timeDirs)
-                p{i} = readInstPressureData(caseFolder, probeType, timeDirs, i, index);
+            time = data.time;
+            parfor i = 1:height(data.time)
+                p{i} = readInstPressureData(caseFolder, probeType, num2str(time(i), '%.7g'), index);
                 
                 send(dQ, []);
             end
@@ -152,12 +187,13 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
             clear p;
 
         case 'U'
-            u = cell(height(timeDirs),1);
+            u = cell(height(data.time),1);
             v = u;
             w = u;
 
-            parfor i = 1:height(timeDirs)
-                [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, timeDirs, i, index);
+            time = data.time;
+            parfor i = 1:height(data.time)
+                [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, num2str(time(i), '%.7g'), index);
                 
                 send(dQ, []);
             end
@@ -189,7 +225,7 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
         case 'p'
             data.pMean = zeros(height(data.position),1);
 
-            for i = 1:height(timeDirs)
+            for i = 1:height(data.time)
                 data.pMean = data.pMean + data.p{i};
             end
 
@@ -200,7 +236,7 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
             data.vMean = data.uMean;
             data.wMean = data.uMean;
 
-            for i = 1:height(timeDirs)
+            for i = 1:height(data.time)
                 data.uMean = data.uMean + data.u{i};
                 data.vMean = data.vMean + data.v{i};
                 data.wMean = data.wMean + data.w{i};
@@ -220,19 +256,19 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
     switch field
 
         case 'p'
-            data.pPrime = cell(height(timeDirs),1);
+            data.pPrime = cell(height(data.time),1);
 
-            for i = 1:height(timeDirs)
+            for i = 1:height(data.time)
                 data.pPrime{i} = data.p{i} - data.pMean;
             end
 
 
         case 'U'
-            data.uPrime = cell(height(timeDirs),1);
+            data.uPrime = cell(height(data.time),1);
             data.vPrime = data.uPrime;
             data.wPrime = data.uPrime;
 
-            for i = 1:height(timeDirs)
+            for i = 1:height(data.time)
                 data.uPrime{i} = data.u{i} - data.uMean;
                 data.vPrime{i} = data.v{i} - data.vMean;
                 data.wPrime{i} = data.w{i} - data.wMean;
@@ -264,7 +300,9 @@ function data = readProbeData(caseFolder, caseName, timeDirs, timePrecision, fie
             startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
             endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-            fileName = ['/T', startInst, '_T', endInst, '.mat'];
+            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
+            
+            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
             
             disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName]);
             save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName], ...
@@ -296,9 +334,26 @@ function time = inputTime(type)
 end
 
 
-function  p = readInstPressureData(caseFolder, probeType, timeDirs, i, index)
+function sampleInterval = inputFreq(origFreq)
+    
+    newFreq = str2double(input('        Input Frequency [Hz]: ', 's'));
+    
+    if isnan(newFreq) || length(newFreq) > 1 || newFreq <= 0
+        disp('            WARNING: Invalid Entry');
+        sampleInterval = -1;
+    elseif mod(origFreq, newFreq) ~= 0
+        disp(['            WARNING: New Frequency Must Be a Factor of ', num2str(origFreq),' Hz']);
+        sampleInterval = -1;
+    else
+        sampleInterval = origFreq / newFreq;
+    end
+    
+end
 
-    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', timeDirs(i).name, '/base_p.xy']);
+
+function  p = readInstPressureData(caseFolder, probeType, time, index)
+
+    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', time, '/base_p.xy']);
     content = cell2mat(textscan(fileID, '%*f %*f %*f %f', 'delimiter', '\n', 'collectOutput', 1));
     fclose(fileID);
 
@@ -307,9 +362,9 @@ function  p = readInstPressureData(caseFolder, probeType, timeDirs, i, index)
 end
 
 
-function  [u, v, w] = readInstVelocityData(caseFolder, probeType, timeDirs, i, index)
+function  [u, v, w] = readInstVelocityData(caseFolder, probeType, time, index)
 
-    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', timeDirs(i).name, '/wake_U.xy']);
+    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', time, '/wake_U.xy']);
     content = cell2mat(textscan(fileID, '%*f %*f %*f %f %f %f', 'delimiter', '\n', 'collectOutput', 1));
     fclose(fileID);
 

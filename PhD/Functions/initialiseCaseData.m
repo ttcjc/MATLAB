@@ -30,7 +30,7 @@ function [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
     disp('Case Selection');
     disp('---------------');
 
-    caseFolder = uigetdir('~/OpenFOAM', 'Select Case');
+    caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
     
     namePos = max(strfind(caseFolder, '/')) + 1;
     caseName = caseFolder(namePos:end);

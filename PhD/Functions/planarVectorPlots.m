@@ -1,30 +1,26 @@
 %% Vector Field Plotter v1.0
 % ----
-% Plots Previously Processed Vector Fields
+% Plots Previously Processed Planar Vector Fields
 % ----
-% Usage: fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-%                          planeOrientation, planePosition, positionData, vectorData, ...
-%                          nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-%                          xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise);
-%        'planeOrientation' -> ['X', 'Y', 'Z']
-%        'caseType'         -> Case Format for Setting Figure Limits
-%        'normalise'        -> Normalise Dimensions [True/False]
-%        'precision'        -> Rounding Precision
-%        '*Lims'            -> Contour Plot Limits
-%        'planePosition'    -> Cartesian Position in 'planeOrientation' Direction
-%        'positionData'     -> Cartesian Positions of Data Points
-%        'vectorData'       -> Three-Components of Vector @ 'positionData' Points
-%        'nComponents'      -> Number of Components Included in Contour
-%        'component'        -> Which Component(s) to Include, ['u', 'v', 'w']
-%        'geometry'         -> STL to Include in Plot
-%        'fig'              -> Figure Number
-%        'figName'          -> Figure Name
-%        'cMap'             -> Colour Map
-%        'streamlines'      -> Include Streamlines [True/False]
-%        '*Dims'            -> Simple Bounding Box of Geometry
-%        'figTitle'         -> Leave Blank ('-') for Formatting Purposes
-%        'figSubtitle'      -> Figure Title
-%        'cLims'            -> Colour Map Limits
+% Usage: fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+%                                vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+%                                streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+%                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+%        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
+%        '*LimsData'    -> Contour Plot Limits
+%        'positionData' -> Cartesian Positions of Data Points
+%        'vectorData'   -> Field Values @ 'positionData' Points
+%        'fig'          -> Figure Number
+%        'figName'      -> Figure Name
+%        'cMap'         -> Colour Map
+%        'geometry'     -> STL(s) to Include in Plot
+%        'streamlines'  -> Include Streamlines [True/False]
+%        '*Dims'        -> Simple Bounding Box of Geometry
+%        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
+%        'figSubtitle'  -> Figure Title
+%        'cLims'        -> Colour Map Limits
+%        '*LimsPlot'    -> 3D Axes Limits
+%        'normalise'    -> Normalise Dimensions [True/False]
 
 
 %% Changelog
@@ -34,15 +30,15 @@
 
 %% Main Function
 
-function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                           planeOrientation, planePosition, positionData, vectorData, ...
-                           nComponents, component, fig, figName, cMap, geometry, streamlines, ...
-                           xDims, yDims, zDims, figTitle, figSubtitle, cLims, normalise)
+function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                 vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                                 streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                                 xLimsPlot, yLimsPlot, zLimsPlot, normalise)
     
     cellSize = 0.5e-3; % [m or l]
     
     % Format Data
-    switch planeOrientation
+    switch orientation
         
         case 'YZ'
             % Generate Gridded Data
@@ -50,7 +46,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
-            [x, y, z] = meshgrid((planePosition - cellSizeX):cellSizeX:(planePosition + cellSizeX), ...
+            [x, y, z] = meshgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
                                  yLimsData(1):cellSizeY:yLimsData(2), ...
                                  zLimsData(1):cellSizeZ:zLimsData(2));
             
@@ -94,7 +90,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
             [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 (planePosition - cellSizeY):cellSizeY:(planePosition + cellSizeY), ...
+                                 (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
                                  zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,1), ...
@@ -138,7 +134,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
             
             [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                  yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 (planePosition - cellSizeZ):cellSizeZ:(planePosition + cellSizeZ));
+                                 (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,1), ...
                                           'linear', 'none');
@@ -176,7 +172,7 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
     end
     
     % Present Plane
-    switch planeOrientation
+    switch orientation
         
         case 'YZ'
             % Figure Setup
@@ -203,15 +199,15 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                  'lineStyle', 'none', 'faceLighting', 'none');
              
              if streamlines
-                streams = streamslice(x, y, z, zeros(size(x)), v, w, planePosition, [], [], ...
+                streams = streamslice(x, y, z, zeros(size(x)), v, w, xLimsData, [], [], ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
              end
             
-            if planePosition < xDims(1) || planePosition > xDims(2)
+            if xLimsData < xDims(1) || xLimsData > xDims(2)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.YZ(:,1) = planePosition;
+                    geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
 
                     plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
                           geometry.(parts{i}).boundaries.YZ(:,2), ...
@@ -281,15 +277,15 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                  'lineStyle', 'none', 'faceLighting', 'none');
              
              if streamlines
-                streams = streamslice(x, y, z, u, zeros(size(x)), w, [], planePosition, [], ...
+                streams = streamslice(x, y, z, u, zeros(size(x)), w, [], yLimsData, [], ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
              end
             
-            if planePosition < yDims(1)
+            if yLimsData < yDims(1)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XZ(:,2) = planePosition;
+                    geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
 
                     plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
                           geometry.(parts{i}).boundaries.XZ(:,2), ...
@@ -359,15 +355,15 @@ function fig = vectorPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData
                  'lineStyle', 'none', 'faceLighting', 'none');
              
              if streamlines
-                streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], planePosition, ...
+                streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], zLimsData, ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
              end
             
-            if planePosition > zDims(2)
+            if zLimsData > zDims(2)
 
                 for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XY(:,3) = planePosition;
+                    geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
 
                     plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
                           geometry.(parts{i}).boundaries.XY(:,2), ...

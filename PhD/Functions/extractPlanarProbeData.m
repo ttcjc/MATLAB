@@ -59,7 +59,7 @@ function planeData = extractPlanarProbeData(caseName, volumeData)
         disp(' ');
         nPlanes = str2num(input('Select Desired Number of Planes [Scalar]: ', 's')); %#ok<ST2NM>
 
-        if isnan(nPlanes) || length(nPlanes) > 1
+        if isempty(nPlanes) || isnan(nPlanes) || length(nPlanes) > 1
             disp('    WARNING: Invalid Entry');
         else
             valid = true;

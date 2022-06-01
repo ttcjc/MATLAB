@@ -1,4 +1,4 @@
-%% Lagrangian Contamination Mapper v2.0
+%% Planar Lagrangian Contaminant Mapper v2.0
 
 clear variables;
 close all;
@@ -18,9 +18,9 @@ massNormalisation = 3.810600208515075e-10; % Square-Back Base Time-Average
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('====================================');
-disp ('Lagrangian Contamination Mapper v2.0');
-disp ('====================================');
+disp ('==============================');
+disp ('Planar Contaminant Mapper v2.0');
+disp ('==============================');
 
 disp (' ');
 disp (' ');
@@ -50,7 +50,7 @@ disp('-----------------');
 disp(' ');
 
 disp('Possible Mapping Locations:');
-disp('    A: Surface Contamination (Base)');
+disp('    A: Base Contamination');
 disp('    B: Far-Field Spray Transport');
 
 valid = false;
@@ -240,7 +240,6 @@ end
 switch format
     
     case 'A'
-    
         % Identify Model Base
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -308,23 +307,28 @@ parforWaitBar(wB, height(LagData.time));
 % Collate Particles of Interest
 index = cell(height(LagData.time),1);
 
-d = LagData.d;
-positionCartesian = LagData.positionCartesian;
-parfor i = 1:height(LagData.time)
+switch format
     
-    if positionCartesian{i} ~= -1
-        index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
-                        ((d{i} * 1e6) <= dLims(2)) & ...
-                        (positionCartesian{i}(:,1) == xLimsData ) & ...
-                        (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
-                        (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
-                        (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
-                        (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
-    end
-    
-    send(dQ, []);
+    case {'A', 'B'}
+        d = LagData.d;
+        positionCartesian = LagData.positionCartesian;
+        parfor i = 1:height(LagData.time)
+            
+            if positionCartesian{i} ~= -1
+                index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
+                                ((d{i} * 1e6) <= dLims(2)) & ...
+                                (positionCartesian{i}(:,1) == xLimsData ) & ...
+                                (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
+                                (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
+                                (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
+                                (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
+            end
+            
+            send(dQ, []);
+        end
+        clear d positionCartesian;
+        
 end
-clear d positionCartesian;
 
 delete(wB);
 
@@ -355,16 +359,21 @@ disp(' ');
 % Generate Instantaneous Contaminant Maps
 disp('    Generating Instantaneous Contaminant Maps...');
 
-% Adjust Uniform Cell Size to Fit Region of Interest
-cellSizeX = cellSize;
-cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
-cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
-
-[y, z] = meshgrid(yLimsData (1):cellSizeY:yLimsData (2), zLimsData (1):cellSizeZ:zLimsData (2));
-
-mapData.positionGrid = zeros(height(y(:)),3);
-mapData.positionGrid(:,1) = xLimsData ;
-mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
+switch format
+    
+    case {'A', 'B'}
+        % Adjust Uniform Cell Size to Fit Region of Interest
+        cellSizeX = cellSize;
+        cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
+        cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
+        
+        [y, z] = meshgrid(yLimsData (1):cellSizeY:yLimsData (2), zLimsData (1):cellSizeZ:zLimsData (2));
+        
+        mapData.positionGrid = zeros(height(y(:)),3);
+        mapData.positionGrid(:,1) = xLimsData ;
+        mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
+    
+end
 
 mapData.inst.time = contaminantData.time;
 
@@ -393,7 +402,12 @@ clear positionGrid positionCartesian;
 
 delete(wB);
 
-mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
+switch format
+    
+    case {'A', 'B'}
+        mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
+        
+end
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Mapping Variables', 'name', 'Progress');
@@ -479,23 +493,28 @@ parforWaitBar(wB, height(mapData.inst.time));
 % Calculate Instantaneous Centre of Mass
 CoM = cell(height(mapData.inst.time),1);
 
-mass = mapData.inst.mass;
-positionGrid = mapData.positionGrid;
-parfor i = 1:height(mapData.inst.time)
-    CoM{i} = zeros(1,3);
-    CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
+switch format
     
-    for j = 1:height(positionGrid)
-        CoM{i}(2) = CoM{i}(2) + (mass{i}(j) * positionGrid(j,2));
-        CoM{i}(3) = CoM{i}(3) + (mass{i}(j) * positionGrid(j,3));
-    end
-    
-    CoM{i}(2) = CoM{i}(2) / sum(mass{i});
-    CoM{i}(3) = CoM{i}(3) / sum(mass{i});
-    
-    send(dQ, []);
+    case {'A', 'B'}
+        mass = mapData.inst.mass;
+        positionGrid = mapData.positionGrid;
+        parfor i = 1:height(mapData.inst.time)
+            CoM{i} = zeros(1,3);
+            CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
+            
+            for j = 1:height(positionGrid)
+                CoM{i}(2) = CoM{i}(2) + (mass{i}(j) * positionGrid(j,2));
+                CoM{i}(3) = CoM{i}(3) + (mass{i}(j) * positionGrid(j,3));
+            end
+            
+            CoM{i}(2) = CoM{i}(2) / sum(mass{i});
+            CoM{i}(3) = CoM{i}(3) / sum(mass{i});
+            
+            send(dQ, []);
+        end
+        clear mass positionGrid;
+        
 end
-clear mass positionGrid;
 
 delete(wB);
 
@@ -554,17 +573,23 @@ clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean;
 
 % Calculate Time-Averaged Centre of Mass
 mapData.mean.CoM = zeros(1,3);
-mapData.mean.CoM(1) = mapData.positionGrid(1,1);
 
-for i = 1:height(mapData.positionGrid)
-    mapData.mean.CoM(2) = mapData.mean.CoM(2) + ...
-                          (mapData.mean.mass(i) * mapData.positionGrid(i,2));
-    mapData.mean.CoM(3) = mapData.mean.CoM(3) + ...
-                          (mapData.mean.mass(i) * mapData.positionGrid(i,3));
+switch format
+    
+    case {'A', 'B'}
+        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
+        
+        for i = 1:height(mapData.positionGrid)
+            mapData.mean.CoM(2) = mapData.mean.CoM(2) + ...
+                                  (mapData.mean.mass(i) * mapData.positionGrid(i,2));
+            mapData.mean.CoM(3) = mapData.mean.CoM(3) + ...
+                                  (mapData.mean.mass(i) * mapData.positionGrid(i,3));
+        end
+        
+        mapData.mean.CoM(2) = mapData.mean.CoM(2) / sum(mapData.mean.mass);
+        mapData.mean.CoM(3) = mapData.mean.CoM(3) / sum(mapData.mean.mass);
+        
 end
-
-mapData.mean.CoM(2) = mapData.mean.CoM(2) / sum(mapData.mean.mass);
-mapData.mean.CoM(3) = mapData.mean.CoM(3) / sum(mapData.mean.mass);
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
@@ -590,7 +615,7 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Time-Averaged Data? [y/n]: ', 's');
+    selection = input('Plot Time-Averaged Map(s)? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
@@ -610,7 +635,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Instantaneous Data? [y/n]: ', 's');
+    selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
@@ -667,6 +692,7 @@ disp(' ');
 switch format
     
     case 'A'
+        orientation = 'YZ';
         
         if contains(caseName, ["Run_Test", "Windsor"])
             xLimsPlot = [0.31875; 1.52725];
@@ -675,6 +701,7 @@ switch format
         end
         
     case 'B'
+        orientation = 'YZ';
         
         if contains(caseName, ["Run_Test", "Windsor"])
             xLimsPlot = [0.31875; 4.65925];
@@ -699,7 +726,7 @@ if plotMean
     for i = 1:height(plotVars)
         disp(['    Presenting Time-Averaged ''', plotVars{i}, ''' Data...']);
         
-        contaminantData = mapData.mean.(plotVars{i});
+        scalarData = mapData.mean.(plotVars{i});
         
         switch format
             
@@ -711,7 +738,7 @@ if plotMean
                 
         end
         
-        if contains(plotVars{i}, ["mass", "massNorm"])
+        if any(strcmp(plotVars{i}, {'mass', 'massNorm'}))
             CoM = mapData.mean.CoM;
         else
             CoM = [];
@@ -719,20 +746,19 @@ if plotMean
             
         figSubtitle = ' ';
         
-        if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
 %             cLims = dLims;
-%             cLims = [0; 30]; % Time-Averaged Base Contamination
-            cLims = [0; 40]; % Time-Averaged Planar Contamination
+            cLims = [0; 40]; % Max Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-%             cLims = [0; 1]; % Time-Averaged Base Contamination
-            cLims = [0; 20]; % Time-Averaged Planar Contamination
+            cLims = [0; 1]; % Max Base Contamination
+%             cLims = [0; 20]; % Max Planar Contamination
         else
-            cLims = [0; max(contaminantData)];
+            cLims = [0; max(scalarData)];
         end
         
-        fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...y
-                               mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
-                               xDims, CoM, figTitle, figSubtitle, cLims, normalise);
+        planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                          mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
+                          CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
     disp(' ');
@@ -752,7 +778,7 @@ if plotInst
                 fig = figHold;
             end
             
-            contaminantData = mapData.inst.(plotVars{i}){j};
+            scalarData = mapData.inst.(plotVars{i}){j};
             figTime = num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']);
             
             switch format
@@ -765,27 +791,24 @@ if plotInst
             end
             
         if contains(plotVars{i}, ["mass", "massNorm"])
-            CoM = mapData.mean.CoM;
+            CoM = mapData.inst.CoM{j};
         else
             CoM = [];
         end
             
-        figSubtitle = ' ';
+        figSubtitle = [num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
         
-        if contains(plotVars{i}, ["d10", "d20", "d30", "d32"])
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
             cLims = dLims;
-%             cLims = [0; 1]; % Time-Averaged Base Contamination
-%             cLims = [0; 1]; % Time-Averaged Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 1]; % Time-Averaged Base Contamination
-%             cLims = [0; 1]; % Time-Averaged Planar Contaminatyion
+            cLims = [0; 20]; % Max Base Contamination
         else
-            cLims = [0; max(contaminantData)];
+            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
         end
             
-            fig = contaminantPlots(xLimsPlot, yLimsPlot, zLimsPlot, xLimsData, yLimsData, zLimsData, ...
-                                   mapPerim, positionData, contaminantData, fig, figName, cMap, geometry, ...
-                                   xDims, CoM, figTitle, figSubtitle, cLims, normalise);
+            planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                              mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
+                              CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
         end
         
     end
@@ -794,11 +817,17 @@ if plotInst
 end
 
 if ~plotMean && ~plotInst
-    disp('    Skipping Data Presentation');
+    disp('    Skipping Map Presentation');
 end
+
+disp(' ');
+disp(' ');
 
 
 %% Save Map Data
+
+disp('Data Save Options');
+disp('------------------');
 
 valid = false;
 while ~valid

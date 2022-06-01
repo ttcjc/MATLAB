@@ -55,10 +55,10 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     % Confirm Data Availability and Identify Time Directories
     if strcmp(field, 'p')
         probeType = 'probesPressure';
-        [timeDirs, ~, timePrecision] = timeDirectories(caseFolder, probeType);
+        [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, probeType);
     elseif strcmp(field, 'U')
         probeType = 'probesVelocity';
-        [timeDirs, ~, timePrecision] = timeDirectories(caseFolder, probeType);
+        [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, probeType);
     else
         error('Invalid Field (Available Options: ''p'' or ''U'')');
     end
@@ -77,7 +77,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            data = readProbeData(caseFolder, timeDirs, timePrecision, field, nProc);
+            data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, field, nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/*.*'], ...
@@ -137,7 +137,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         else
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                data.position(:,1) = round((data.position / 1.044), spacePrecision);
+                data.position = round((data.position / 1.044), spacePrecision);
             end
             
         end

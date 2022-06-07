@@ -2,7 +2,8 @@
 % ----
 % Initialisation of OpenFOAM v7 Probe Data for Further Processing
 % ----
-% Usage: [campaign, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise);
+% Usage: [campaign, expData, geometry, ...
+%         xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise);
 %        'field'     -> Desired Field Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 
@@ -25,7 +26,8 @@
 
 %% Main Function
 
-function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise)
+function [caseName, expData, geometry, ...
+          xDims, yDims, zDims, spacePrecision] = initialiseExpData(field, normalise)
 
     % Select Case
     disp('Case Selection');
@@ -107,52 +109,53 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
                 switch field
         
                     case 'p'
-                        data.(testID).position = content.xyz(4).values(:,[1,2,3]) / 1000; % [mm -> m]
+                        expData.(testID).position = content.xyz(4).values(:,[1,2,3]) / 1000; % [mm -> m]
+                        expData.(testID).position(:,3) = -expData.(testID).position(:,3);
+                        
+                        expData.(testID).CpMean = content.Cpmean(4).values;
+                        expData.(testID).CpRMS = content.Cprms(4).values;
 
-                        data.(testID).CpMean = content.Cpmean(4).values;
-                        data.(testID).CpRMS = content.Cprms(4).values;
-
-                        data.(testID).planeOrientation = 'YZ';
+                        expData.(testID).planeOrientation = 'YZ';
                     
                     case 'U'
-                        data.(testID).position(:,1) = content.x.values(:) / 1000;
-                        data.(testID).position(:,2) = content.y.values(:) / 1000;
-                        data.(testID).position(:,3) = content.z.values(:) / 1000;
+                        expData.(testID).position(:,1) = content.x.values(:) / 1000;
+                        expData.(testID).position(:,2) = content.y.values(:) / 1000;
+                        expData.(testID).position(:,3) = content.z.values(:) / 1000;
                         
                         if contains(testID, '_x')
-                            data.(testID).uMean = double(content.Vx_mean.values(:));
-                            data.(testID).vMean = double(content.Vy_mean.values(:));
-                            data.(testID).wMean = double(content.Vz_mean.values(:));
-                            data.(testID).uRMS = double(content.Vx_std.values(:));
-                            data.(testID).vRMS = double(content.Vy_std.values(:));
-                            data.(testID).wRMS = double(content.Vz_std.values(:));
+                            expData.(testID).uMean = double(content.Vx_mean.values(:));
+                            expData.(testID).vMean = double(content.Vy_mean.values(:));
+                            expData.(testID).wMean = double(content.Vz_mean.values(:));
+                            expData.(testID).uRMS = double(content.Vx_std.values(:));
+                            expData.(testID).vRMS = double(content.Vy_std.values(:));
+                            expData.(testID).wRMS = double(content.Vz_std.values(:));
 
-                            data.(testID).planeOrientation = 'YZ';
-                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
-                            data.(testID).position(:,1) = data.(testID).planePosition;
+                            expData.(testID).planeOrientation = 'YZ';
+                            expData.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
+                            expData.(testID).position(:,1) = expData.(testID).planePosition;
                         elseif contains(testID, '_y')
-                            data.(testID).uMean = double(-content.Vx_mean.values(:));
-                            data.(testID).vMean = nan(height(data.(testID).position),1);
-                            data.(testID).wMean = double(content.Vz_mean.values(:));
-                            data.(testID).uRMS = double(content.Vx_std.values(:));
-                            data.(testID).vRMS = nan(height(data.(testID).position),1);
-                            data.(testID).wRMS = double(content.Vz_std.values(:));
+                            expData.(testID).uMean = double(-content.Vx_mean.values(:));
+                            expData.(testID).vMean = nan(height(expData.(testID).position),1);
+                            expData.(testID).wMean = double(content.Vz_mean.values(:));
+                            expData.(testID).uRMS = double(content.Vx_std.values(:));
+                            expData.(testID).vRMS = nan(height(expData.(testID).position),1);
+                            expData.(testID).wRMS = double(content.Vz_std.values(:));
 
-                            data.(testID).planeOrientation = 'XZ';
-                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
-                            data.(testID).position(:,1) = -data.(testID).position(:,1);
-                            data.(testID).position(:,2) = data.(testID).planePosition;
+                            expData.(testID).planeOrientation = 'XZ';
+                            expData.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
+                            expData.(testID).position(:,1) = -expData.(testID).position(:,1);
+                            expData.(testID).position(:,2) = expData.(testID).planePosition;
                         elseif contains(testID, '_z')
-                            data.(testID).uMean = double(content.Vx_mean.values(:));
-                            data.(testID).vMean = double(content.Vy_mean.values(:));
-                            data.(testID).wMean = nan(height(data.(testID).position),1);
-                            data.(testID).uRMS = double(content.Vx_std.values(:));
-                            data.(testID).vRMS = double(content.Vy_std.values(:));
-                            data.(testID).wRMS = nan(height(data.(testID).position),1);
+                            expData.(testID).uMean = double(content.Vx_mean.values(:));
+                            expData.(testID).vMean = double(content.Vy_mean.values(:));
+                            expData.(testID).wMean = nan(height(expData.(testID).position),1);
+                            expData.(testID).uRMS = double(content.Vx_std.values(:));
+                            expData.(testID).vRMS = double(content.Vy_std.values(:));
+                            expData.(testID).wRMS = nan(height(expData.(testID).position),1);
 
-                            data.(testID).planeOrientation = 'XY';
-                            data.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
-                            data.(testID).position(:,3) = data.(testID).planePosition;
+                            expData.(testID).planeOrientation = 'XY';
+                            expData.(testID).planePosition = str2double([testID(end - 5), '.', testID((end - 4):end)]);
+                            expData.(testID).position(:,3) = expData.(testID).planePosition;
                         else
                             error('Invalid Test File (No Orientation Information Available)');
                         end
@@ -169,29 +172,29 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
                 switch field
 
                     case 'p'
-                        index = find(isnan(data.(testID).CpMean));
+                        index = find(isnan(expData.(testID).CpMean));
 
-                        data.(testID).position(index,:) = [];
-                        data.(testID).CpMean(index) = [];
-                        data.(testID).CpRMS(index) = [];                        
+                        expData.(testID).position(index,:) = [];
+                        expData.(testID).CpMean(index) = [];
+                        expData.(testID).CpRMS(index) = [];                        
 
                     case 'U'
 
                         if contains(testID, '_x')
-                            index = find(isnan(data.(testID).vMean));
+                            index = find(isnan(expData.(testID).vMean));
                         elseif contains(testID, '_y')
-                            index = find(isnan(data.(testID).wMean));
+                            index = find(isnan(expData.(testID).wMean));
                         elseif contains(testID, '_z')
-                            index = find(isnan(data.(testID).uMean));
+                            index = find(isnan(expData.(testID).uMean));
                         end
 
-                        data.(testID).position(index,:) = [];
-                        data.(testID).uMean(index) = [];
-                        data.(testID).vMean(index) = [];
-                        data.(testID).wMean(index) = [];
-                        data.(testID).uRMS(index) = [];
-                        data.(testID).vRMS(index) = [];
-                        data.(testID).wRMS(index) = [];
+                        expData.(testID).position(index,:) = [];
+                        expData.(testID).uMean(index) = [];
+                        expData.(testID).vMean(index) = [];
+                        expData.(testID).wMean(index) = [];
+                        expData.(testID).uRMS(index) = [];
+                        expData.(testID).vRMS(index) = [];
+                        expData.(testID).wRMS(index) = [];
                 
                 end
 
@@ -201,21 +204,21 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         switch caseName
 
             case 'Varney'
-                [data.(testID).position, index] = unique(data.(testID).position, 'stable', 'rows');
+                [expData.(testID).position, index] = unique(expData.(testID).position, 'stable', 'rows');
 
                 switch field
 
                     case 'p'
-                        data.(testID).CpMean = data.(testID).CpMean(index);
-                        data.(testID).CpRMS = data.(testID).CpRMS(index);
+                        expData.(testID).CpMean = expData.(testID).CpMean(index);
+                        expData.(testID).CpRMS = expData.(testID).CpRMS(index);
 
                     case 'U'
-                        data.(testID).uMean = data.(testID).uMean(index);
-                        data.(testID).vMean = data.(testID).vMean(index);
-                        data.(testID).wMean = data.(testID).wMean(index);
-                        data.(testID).uRMS = data.(testID).uRMS(index);
-                        data.(testID).vRMS = data.(testID).vRMS(index);
-                        data.(testID).wRMS = data.(testID).wRMS(index);
+                        expData.(testID).uMean = expData.(testID).uMean(index);
+                        expData.(testID).vMean = expData.(testID).vMean(index);
+                        expData.(testID).wMean = expData.(testID).wMean(index);
+                        expData.(testID).uRMS = expData.(testID).uRMS(index);
+                        expData.(testID).vRMS = expData.(testID).vRMS(index);
+                        expData.(testID).wRMS = expData.(testID).wRMS(index);
 
                 end
 
@@ -229,17 +232,75 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
                 switch field
 
                     case 'p'
-                        data.(testID).position(:,1) = data.(testID).position(:,1) + ...
-                                                      (0.48325 - min(data.(testID).position(:,1)));
+                        expData.(testID).position(:,1) = expData.(testID).position(:,1) + ...
+                                                         (0.48325 - min(expData.(testID).position(:,1)));
                                                   
-                        data.(testID).planePosition = data.(testID).position(1,1);
+                        expData.(testID).planePosition = expData.(testID).position(1,1);
 
                     case 'U'
-                        data.(testID).position(:,1) = data.(testID).position(:,1) + ...
-                                                      (0.48325 - min(data.(testID).position(:,1)));
-                        data.(testID).position(:,3) = data.(testID).position(:,3) + ...
-                                                      (0.029 - min(data.(testID).position(:,3)));
+                        
+                        if contains(testID, '_x')
+                            % Adjust
+                        elseif contains(testID, '_y')
+                            
+                            if contains(testID, '040341')
+                                expData.(testID).position(:,1) = expData.(testID).position(:,1) + ...
+                                                                 (0.48325 - min(expData.(testID).position(:,1))) - 0.032;
+                                expData.(testID).position(:,3) = expData.(testID).position(:,3) + ...
+                                                                 (0.029 - min(expData.(testID).position(:,3))) - 0.0265;
+                            else
+                                expData.(testID).position(:,1) = expData.(testID).position(:,1) + ...
+                                                                 (0.48325 - min(expData.(testID).position(:,1))) - 0.004;
+                                expData.(testID).position(:,3) = expData.(testID).position(:,3) + ...
+                                                                 (0.029 - min(expData.(testID).position(:,3)));
+                            end
+                                                  
+                        elseif contains(testID, '_z')
+                            expData.(testID).position(:,1) = expData.(testID).position(:,1) + ...
+                                                             (0.48325 - min(expData.(testID).position(:,1))) - 0.008;
+                        end
+                        
+                end
 
+        end
+        
+        % Crop Data Boundaries
+        switch caseName
+
+            case 'Varney'
+                
+                switch field
+
+                    case 'p'
+                        % Crop
+
+                    case 'U'
+                        
+                        if contains(testID, '_x')
+                            % Crop
+                        elseif contains(testID, '_y')
+                            index = find(expData.(testID).position(:,1) >= 0.48325 & (expData.(testID).position(:,3) >= 0.035 & expData.(testID).position(:,2) <= 0.354));
+                            
+                            expData.(testID).position = expData.(testID).position(index,:);
+                            expData.(testID).uMean = expData.(testID).uMean(index);
+                            expData.(testID).vMean = expData.(testID).vMean(index);
+                            expData.(testID).wMean = expData.(testID).wMean(index);
+                            expData.(testID).uRMS = expData.(testID).uRMS(index);
+                            expData.(testID).vRMS = expData.(testID).vRMS(index);
+                            expData.(testID).wRMS = expData.(testID).wRMS(index);
+                                                  
+                        elseif contains(testID, '_z')
+                            index = find(expData.(testID).position(:,1) >= 0.48325 & (expData.(testID).position(:,2) >= -0.21 & expData.(testID).position(:,2) <= 0.21));
+                            
+                            expData.(testID).position = expData.(testID).position(index,:);
+                            expData.(testID).uMean = expData.(testID).uMean(index);
+                            expData.(testID).vMean = expData.(testID).vMean(index);
+                            expData.(testID).wMean = expData.(testID).wMean(index);
+                            expData.(testID).uRMS = expData.(testID).uRMS(index);
+                            expData.(testID).vRMS = expData.(testID).vRMS(index);
+                            expData.(testID).wRMS = expData.(testID).wRMS(index);
+                        end
+                        
                 end
 
         end
@@ -261,15 +322,15 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
             switch caseName
 
             case 'Varney'
-                data.(testID).position = round((data.(testID).position / 1.044), spacePrecision);
-                data.(testID).planePosition = round((data.(testID).planePosition / 1.044), spacePrecision);
+                expData.(testID).position = round((expData.(testID).position / 1.044), spacePrecision);
+                expData.(testID).planePosition = round((expData.(testID).planePosition / 1.044), spacePrecision);
             end
 
         end
         
-        data.(testID) = orderfields(data.(testID));
+        expData.(testID) = orderfields(expData.(testID));
     end
     
-    data = orderfields(data);
+    expData = orderfields(expData);
     
 end

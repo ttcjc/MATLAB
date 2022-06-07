@@ -2,12 +2,12 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Probe Data Generated using 'PODmeshGenerator.m'
 % ----
-% Usage: data = readProbeData(caseFolder, timeDirs, timePrecision field, nProc);
+% Usage: probeData = readProbeData(caseFolder, timeDirs, timePrecision probeType, nProc);
 %        'caseFolder'    -> Case Path Stored as String
 %        'caseName'      -> Case Name, Stored as a String
 %        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
 %        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
-%        'field'         -> Desired Field Stored as String
+%        'probeType'     -> Desired Probe Type Stored as String
 %        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
@@ -24,15 +24,15 @@
 % Windsor_2022
 
 
-%% Supported Fields
+%% Supported Probe Types
 
-% Pressure: 'p'
-% Velocity: 'U'
+% Pressure: 'probesPressure'
+% Velocity: 'probesVelocity'
 
 
 %% Main Function
 
-function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, field, nProc) %#ok<INUSD>
+function probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, probeType, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -123,32 +123,28 @@ function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecis
     clear valid;
 
     % Reduce Time Instances to Desired Sampling Frequency
-    data.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
+    probeData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
 
     j = height(timeDirs);
-    for i = height(data.time):-1:1
-        data.time(i) = str2double(timeDirs(j).name);
+    for i = height(probeData.time):-1:1
+        probeData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
     clear j;
 
     % Identify Probe Points
-    switch field
+    switch probeType
 
-        case 'p'
-            probeType = 'probesPressure';
-            
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(data.time(1), '%.7g'), '/base_p.xy']);
-            data.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
-            [data.position, index] = unique(data.position, 'stable', 'rows'); % Remove Duplicate Entries
+        case 'probesPressure'
+            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(probeData.time(1), '%.7g'), '/base_p.xy']);
+            probeData.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
+            [probeData.position, index] = unique(probeData.position, 'stable', 'rows'); % Remove Duplicate Entries
             fclose(fileID);
 
-        case 'U'
-            probeType = 'probesVelocity';
-            
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(data.time(1), '%.7g'), '/wake_U.xy']);
-            data.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
-            [data.position, index] = unique(data.position, 'stable', 'rows'); % Remove Duplicate Entries
+        case 'probesVelocity'
+            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', num2str(probeData.time(1), '%.7g'), '/wake_U.xy']);
+            probeData.position = cell2mat(textscan(fileID, '%f %f %f %*[^\n]', 'delimiter', '\n', 'collectOutput', 1));
+            [probeData.position, index] = unique(probeData.position, 'stable', 'rows'); % Remove Duplicate Entries
             fclose(fileID);
 
     end
@@ -168,39 +164,39 @@ function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecis
     dQ = parallel.pool.DataQueue;
     afterEach(dQ, @parforWaitBar);
 
-    parforWaitBar(wB, height(data.time));
+    parforWaitBar(wB, height(probeData.time));
 
-    switch field
+    switch probeType
 
-        case 'p'
-            p = cell(height(data.time),1);
+        case 'probesPressure'
+            p = cell(height(probeData.time),1);
 
-            time = data.time;
-            parfor i = 1:height(data.time)
+            time = probeData.time;
+            parfor i = 1:height(probeData.time)
                 p{i} = readInstPressureData(caseFolder, probeType, num2str(time(i), '%.7g'), index);
                 
                 send(dQ, []);
             end
 
-            data.p = p;
+            probeData.p = p;
 
             clear p;
 
-        case 'U'
-            u = cell(height(data.time),1);
+        case 'probesVelocity'
+            u = cell(height(probeData.time),1);
             v = u;
             w = u;
 
-            time = data.time;
-            parfor i = 1:height(data.time)
+            time = probeData.time;
+            parfor i = 1:height(probeData.time)
                 [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, num2str(time(i), '%.7g'), index);
                 
                 send(dQ, []);
             end
 
-            data.u = u;
-            data.v = v;
-            data.w = w;
+            probeData.u = u;
+            probeData.v = v;
+            probeData.w = w;
 
             clear u v w;
 
@@ -220,31 +216,31 @@ function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecis
     % Calculate Time-Averaged Field Data
     disp('    Calculating Time-Averaged Field Data...');
 
-    switch field
+    switch probeType
 
-        case 'p'
-            data.pMean = zeros(height(data.position),1);
+        case 'probesPressure'
+            probeData.pMean = zeros(height(probeData.position),1);
 
-            for i = 1:height(data.time)
-                data.pMean = data.pMean + data.p{i};
+            for i = 1:height(probeData.time)
+                probeData.pMean = probeData.pMean + probeData.p{i};
             end
 
-            data.pMean = data.pMean / height(timeDirs);
+            probeData.pMean = probeData.pMean / height(probeData.time);
 
-        case 'U'
-            data.uMean = zeros(height(data.position),1);
-            data.vMean = data.uMean;
-            data.wMean = data.uMean;
+        case 'probesVelocity'
+            probeData.uMean = zeros(height(probeData.position),1);
+            probeData.vMean = probeData.uMean;
+            probeData.wMean = probeData.uMean;
 
-            for i = 1:height(data.time)
-                data.uMean = data.uMean + data.u{i};
-                data.vMean = data.vMean + data.v{i};
-                data.wMean = data.wMean + data.w{i};
+            for i = 1:height(probeData.time)
+                probeData.uMean = probeData.uMean + probeData.u{i};
+                probeData.vMean = probeData.vMean + probeData.v{i};
+                probeData.wMean = probeData.wMean + probeData.w{i};
             end
 
-            data.uMean = data.uMean / height(timeDirs);
-            data.vMean = data.vMean / height(timeDirs);
-            data.wMean = data.wMean / height(timeDirs);
+            probeData.uMean = probeData.uMean / height(probeData.time);
+            probeData.vMean = probeData.vMean / height(probeData.time);
+            probeData.wMean = probeData.wMean / height(probeData.time);
 
     end
 
@@ -253,30 +249,30 @@ function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecis
     % Calculate Instantaneous Fluctuating Field Data
     disp('    Calculating Instantaneous Fluctuating Field Data...');
 
-    switch field
+    switch probeType
 
-        case 'p'
-            data.pPrime = cell(height(data.time),1);
+        case 'probesPressure'
+            probeData.pPrime = cell(height(probeData.time),1);
 
-            for i = 1:height(data.time)
-                data.pPrime{i} = data.p{i} - data.pMean;
+            for i = 1:height(probeData.time)
+                probeData.pPrime{i} = probeData.p{i} - probeData.pMean;
             end
 
 
-        case 'U'
-            data.uPrime = cell(height(data.time),1);
-            data.vPrime = data.uPrime;
-            data.wPrime = data.uPrime;
+        case 'probesVelocity'
+            probeData.uPrime = cell(height(probeData.time),1);
+            probeData.vPrime = probeData.uPrime;
+            probeData.wPrime = probeData.uPrime;
 
-            for i = 1:height(data.time)
-                data.uPrime{i} = data.u{i} - data.uMean;
-                data.vPrime{i} = data.v{i} - data.vMean;
-                data.wPrime{i} = data.w{i} - data.wMean;
+            for i = 1:height(probeData.time)
+                probeData.uPrime{i} = probeData.u{i} - probeData.uMean;
+                probeData.vPrime{i} = probeData.v{i} - probeData.vMean;
+                probeData.wPrime{i} = probeData.w{i} - probeData.wMean;
             end
 
     end
     
-    data = orderfields(data);
+    probeData = orderfields(probeData);
 
     disp(' ');
 
@@ -306,7 +302,7 @@ function data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecis
             
             disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName]);
             save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName], ...
-                 'data', '-v7.3', '-noCompression');
+                 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

@@ -1,9 +1,9 @@
-%% Probe Data Initialisation v1.2
+%% Velocity Probe Data Initialisation v1.2
 % ----
-% Initialisation of OpenFOAM v7 Probe Data for Further Processing
+% Initialisation of OpenFOAM v7 Volumetric Velocity Probe Data for Further Processing
 % ----
-% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseProbeData(field, planar, normalise, nProc);
-%        'field'     -> Desired Field Stored as String
+% Usage: [caseFolder, probeData, timePrecision, geometry, ...
+%         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(planar, normalise, nProc);
 %        'planar'    -> Extract Planar Data [True/False]
 %        'normalise' -> Normalise Dimensions [True/False]
 %        'nProc'     -> Number of Processors Used for Parallel Collation
@@ -22,15 +22,10 @@
 % Windsor_2022
 
 
-%% Supported Fields
-
-% Pressure: 'p'
-% Velocity: 'U'
-
-
 %% Main Function
 
-function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseProbeData(field, planar, normalise, nProc)
+function [caseName, probeData, timePrecision, geometry, ...
+          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(planar, normalise, nProc)
     
     % Select Case
     disp('Case Selection');
@@ -53,15 +48,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     disp(' ');
     
     % Confirm Data Availability and Identify Time Directories
-    if strcmp(field, 'p')
-        probeType = 'probesPressure';
-        [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, probeType);
-    elseif strcmp(field, 'U')
-        probeType = 'probesVelocity';
-        [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, probeType);
-    else
-        error('Invalid Field (Available Options: ''p'' or ''U'')');
-    end
+    [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, 'probesVelocity');
     
     disp(' ');
     disp(' ');
@@ -77,15 +64,15 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            data = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, field, nProc);
+            probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, 'probesVelocity', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/*.*'], ...
+            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesVelocity/*.mat'], ...
                                              'Select Probe Data');
     
-            if contains(filePath, [caseName, '/', probeType])
+            if contains(filePath, [caseName, '/probesVelocity'])
                 disp(['    Loading ''', fileName, '''...']);
-                data = load([filePath, fileName], 'data').data;
+                probeData = load([filePath, fileName], 'probeData').probeData;
                 disp('        Success');
                 
                 valid = true;
@@ -107,7 +94,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         
     % Extract Planar Probe Data
     if planar
-        data = extractPlanarProbeData(caseName, data);
+        probeData = extractPlanarVelocityProbeData(caseName, probeData);
 
         disp(' ');
         disp(' ');
@@ -122,14 +109,15 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         if planar
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                planes = fieldnames(data);
+                planes = fieldnames(probeData);
                 
                 for i = 1:height(planes)
-                    data.(planes{i}).position = round((data.(planes{i}).position / 1.044), spacePrecision);
+                    probeData.(planes{i}).position = round((probeData.(planes{i}).position / 1.044), spacePrecision);
                     
-                    data.(planes{i}).xLims = round((data.(planes{i}).xLims / 1.044), spacePrecision);
-                    data.(planes{i}).yLims = round((data.(planes{i}).yLims / 1.044), spacePrecision);
-                    data.(planes{i}).zLims = round((data.(planes{i}).zLims / 1.044), spacePrecision);
+                    probeData.(planes{i}).planePosition = round((probeData.(planes{i}).planePosition / 1.044), spacePrecision);
+                    probeData.(planes{i}).xLims = round((probeData.(planes{i}).xLims / 1.044), spacePrecision);
+                    probeData.(planes{i}).yLims = round((probeData.(planes{i}).yLims / 1.044), spacePrecision);
+                    probeData.(planes{i}).zLims = round((probeData.(planes{i}).zLims / 1.044), spacePrecision);
                 end
                 
             end
@@ -137,7 +125,7 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         else
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                data.position = round((data.position / 1.044), spacePrecision);
+                probeData.position = round((probeData.position / 1.044), spacePrecision);
             end
             
         end

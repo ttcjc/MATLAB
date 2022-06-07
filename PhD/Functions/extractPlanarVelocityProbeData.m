@@ -2,7 +2,7 @@
 % ----
 % Extracts Planar Probe Data From Volumetric Data Processed Using ‘readProbeData.m'
 % ----
-% Usage: planeData = extractPlanarProbeData(caseName, volumeData);
+% Usage: planeData = extractPlanarVelocityProbeData(caseName, volumeData);
 %        'caseName'   -> Case Name, Stored as a String
 %        'volumeData' -> Volumetric Probe Data, Collated Using 'readProbeData.m'
 
@@ -25,7 +25,7 @@
 
 %% Main Function
 
-function planeData = extractPlanarProbeData(caseName, volumeData)
+function planeData = extractPlanarVelocityProbeData(caseName, volumeData)
 
     disp('Planar Probe Data Extraction');
     disp('-----------------------------');
@@ -315,13 +315,38 @@ function planeData = extractPlanarProbeData(caseName, volumeData)
             planeData.(['p', num2str(i)]).wPrime{j} = volumeData.wPrime{j}(index,:);
         end
         
+        % Adjust Limits to Adhere to Data Points
+        switch planeData.(['p', num2str(i)]).planeOrientation
+            
+            case 'YZ'
+                planeData.(['p', num2str(i)]).yLims = [min(planeData.(['p', num2str(i)]).position(:,2)); max(planeData.(['p', num2str(i)]).position(:,2))];
+                planeData.(['p', num2str(i)]).zLims = [min(planeData.(['p', num2str(i)]).position(:,3)); max(planeData.(['p', num2str(i)]).position(:,3))];
+            
+            case 'XZ'
+                planeData.(['p', num2str(i)]).xLims = [min(planeData.(['p', num2str(i)]).position(:,1)); max(planeData.(['p', num2str(i)]).position(:,1))];
+                planeData.(['p', num2str(i)]).zLims = [min(planeData.(['p', num2str(i)]).position(:,3)); max(planeData.(['p', num2str(i)]).position(:,3))];
+                
+            case 'XY'
+                planeData.(['p', num2str(i)]).xLims = [min(planeData.(['p', num2str(i)]).position(:,1)); max(planeData.(['p', num2str(i)]).position(:,1))];
+                planeData.(['p', num2str(i)]).yLims = [min(planeData.(['p', num2str(i)]).position(:,2)); max(planeData.(['p', num2str(i)]).position(:,2))];
+                
+        end
+        
         % Revert Data Origin
         if contains(caseName, ["Run_Test", "Windsor"]) && contains(caseName, 'Upstream')
             planeData.(['p', num2str(i)]).position(:,1) = planeData.(['p', num2str(i)]).position(:,1) - 1.325;
 
-            if strcmp(planeData.(['p', num2str(i)]).planeOrientation, 'YZ')
-                planeData.(['p', num2str(i)]).planePosition(:,1) = planeData.(['p', num2str(i)]).planePosition(:,1) - 1.325;
+            switch planeData.(['p', num2str(i)]).planeOrientation
+                
+                case 'YZ'
+                    planeData.(['p', num2str(i)]).planePosition = planeData.(['p', num2str(i)]).planePosition - 1.325;
+                    planeData.(['p', num2str(i)]).xLims = planeData.(['p', num2str(i)]).xLims - 1.325;
+                    
+                case {'XZ', 'XY'}
+                    planeData.(['p', num2str(i)]).xLims = planeData.(['p', num2str(i)]).xLims - 1.325;
+            
             end
+            
         end
         
         % Rename Plane

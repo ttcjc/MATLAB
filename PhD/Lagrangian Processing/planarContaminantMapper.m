@@ -187,55 +187,6 @@ disp(' ');
 
 disp('    Initialising...');
 
-% Identify Empty Time Instances
-i = 1;
-while i <= height(LagData.time)
-    
-    if isempty(LagData.timeExact{i})
-        LagData.timeExact{i} = -1;
-        
-        for j = 1:height(LagProps)
-            LagData.(LagProps{j}){i} = -1;
-        end
-        
-    else
-        i = i + 1;
-    end
-    
-end
-clear i;
-
-% Shift Data Origin
-if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-    
-    for i = 1:height(LagData.time)
-        
-        if LagData.positionCartesian{i} ~= -1
-            LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
-        end
-        
-    end
-    
-end
-
-% Normalise Dimensions
-if normalise
-    
-    if contains(caseName, ["Run_Test", "Windsor"])
-        
-        for i = 1:height(LagData.time)
-            
-            if LagData.positionCartesian{i} ~= -1
-                LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
-                                                      spacePrecision);
-            end
-            
-        end
-        
-    end
-    
-end
-
 % Specify Map Boundaries
 switch format
     
@@ -289,6 +240,55 @@ switch format
             
         end
         
+end
+
+% Identify Empty Time Instances
+i = 1;
+while i <= height(LagData.time)
+    
+    if isempty(LagData.timeExact{i})
+        LagData.timeExact{i} = -1;
+        
+        for j = 1:height(LagProps)
+            LagData.(LagProps{j}){i} = -1;
+        end
+        
+    else
+        i = i + 1;
+    end
+    
+end
+clear i;
+
+% Shift Data Origin
+if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+    
+    for i = 1:height(LagData.time)
+        
+        if LagData.positionCartesian{i} ~= -1
+            LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
+        end
+        
+    end
+    
+end
+
+% Normalise Dimensions
+if normalise
+    
+    if contains(caseName, ["Run_Test", "Windsor"])
+        
+        for i = 1:height(LagData.time)
+            
+            if LagData.positionCartesian{i} ~= -1
+                LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
+                                                      spacePrecision);
+            end
+            
+        end
+        
+    end
+    
 end
 
 disp(' ');
@@ -756,9 +756,9 @@ if plotMean
             cLims = [0; max(scalarData)];
         end
         
-        planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                          mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                          CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
+                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
     disp(' ');
@@ -806,9 +806,9 @@ if plotInst
             cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
         end
             
-            planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                              mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                              CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
+                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
         end
         
     end

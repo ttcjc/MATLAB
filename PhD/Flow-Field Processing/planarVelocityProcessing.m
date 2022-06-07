@@ -69,118 +69,189 @@ disp (' ');
 switch format
 
     case 'A'
-        [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialisePVdata('U', normalise);
+        [caseName, velData, geometry, ...
+         xDims, yDims, zDims, spacePrecision] = initialisePVdata('U', normalise);
 
     case 'B'
-        [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseProbeData('U', true, normalise, nProc);    
+        [caseName, velData, timePrecision, geometry, ...
+         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(true, normalise, nProc);    
 
     case 'C'
-        [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialiseExpData('U', normalise);
+        [caseName, velData, geometry, ...
+         xDims, yDims, zDims, spacePrecision] = initialiseExpData('U', normalise);
 
 end
 
 
 %% Data Formatting
 
-planes = fieldnames(data);
+planes = fieldnames(velData);
 
+% Adjust Data Origin
 switch format
 
-    case 'A'       
-        % Adjust Data Origin
+    case 'A'
+        
         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
             
             for i = 1:height(planes)
                 
                 if normalise
-                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
+                    velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
 
-                    if strcmp(data.(planes{i}).planeOrientation, 'YZ')
-                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round((1.325 / 1.044), spacePrecision);
+                    if strcmp(velData.(planes{i}).planeOrientation, 'YZ')
+                        velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + round((1.325 / 1.044), spacePrecision);
                     end
                     
                 else
-                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
+                    velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
 
-                    if strcmp(data.(planes{i}).planeOrientation, 'YZ')
-                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + 1.325;
+                    if strcmp(velData.(planes{i}).planeOrientation, 'YZ')
+                        velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + 1.325;
                     end
                     
                 end
 
-            end
-            
-        end
-        
-        % Normalise Velocity
-        if contains(caseName, ["Run_Test", "Windsor"])
-            U = 40;
-            
-            for i = 1:height(planes)
-                data.(planes{i}).uMean = data.(planes{i}).uMean / U;
-                data.(planes{i}).vMean = data.(planes{i}).vMean / U;
-                data.(planes{i}).wMean = data.(planes{i}).wMean / U;
             end
             
         end
         
     case 'B'
-        % Adjust Data Origin
+        
         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
             
             for i = 1:height(planes)
                 
                 if normalise
-                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
-
-                    if strcmp(data.(planes{i}).planeOrientation, 'YZ')
-                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + round((1.325 / 1.044), spacePrecision);
+                    velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
+                    
+                    switch velData.(planes{i}).planeOrientation
+                        
+                        case 'YZ'
+                            velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + round((1.325 / 1.044), spacePrecision);
+                            velData.(planes{i}).xLims = velData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
+                            
+                        case {'XZ', 'XY'}
+                            velData.(planes{i}).xLims = velData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
+                            
                     end
                     
                 else
-                    data.(planes{i}).position(:,1) = data.(planes{i}).position(:,1) + 1.325;
-
-                    if strcmp(data.(planes{i}).planeOrientation, 'YZ')
-                        data.(planes{i}).planePosition(:,1) = data.(planes{i}).planePosition(:,1) + 1.325;
+                    velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
+                    
+                    switch velData.(planes{i}).planeOrientation
+                        
+                        case 'YZ'
+                            velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + 1.325;
+                            velData.(planes{i}).xLims = velData.(planes{i}).xLims + 1.325;
+                        
+                        case {'XZ', 'XY'}
+                            velData.(planes{i}).xLims = velData.(planes{i}).xLims + 1.325;
+                    
                     end
                     
-                end
-
-                % Normalise Velocity
-                if contains(caseName, ["Run_Test", "Windsor"])
-                    U = 40;
-                    
-                    data.(planes{i}).uMean = data.(planes{i}).uMean / U;
-                    data.(planes{i}).vMean = data.(planes{i}).vMean / U;
-                    data.(planes{i}).wMean = data.(planes{i}).wMean / U;
-
-                    for j = 1:height(data.(planes{i}).time)
-                        data.(planes{i}).u{j} = data.(planes{i}).u{j} / U;
-                        data.(planes{i}).v{j} = data.(planes{i}).v{j} / U;
-                        data.(planes{i}).w{j} = data.(planes{i}).w{j} / U;
-                        data.(planes{i}).uPrime{j} = data.(planes{i}).uPrime{j} / U;
-                        data.(planes{i}).vPrime{j} = data.(planes{i}).vPrime{j} / U;
-                        data.(planes{i}).wPrime{j} = data.(planes{i}).wPrime{j} / U;
-                    end
-
                 end
 
             end
             
         end
         
-    case 'C'
-        % Normalise Velocity
-        if strcmp(caseName, 'Varney')
-            U = 40;
+end
+
+% Normalise Velocity
+switch format
+    
+    case 'A'
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            U = 40; % m/s
             
             for i = 1:height(planes)
-                    data.(planes{i}).uMean = data.(planes{i}).uMean / U;
-                    data.(planes{i}).vMean = data.(planes{i}).vMean / U;
-                    data.(planes{i}).wMean = data.(planes{i}).wMean / U;
-                    data.(planes{i}).uRMS = data.(planes{i}).uRMS / U;
-                    data.(planes{i}).vRMS = data.(planes{i}).vRMS / U;
-                    data.(planes{i}).wRMS = data.(planes{i}).wRMS / U;
+                velData.(planes{i}).uMean = velData.(planes{i}).uMean / U;
+                velData.(planes{i}).vMean = velData.(planes{i}).vMean / U;
+                velData.(planes{i}).wMean = velData.(planes{i}).wMean / U;
+            end
+            
+        end
+        
+    case 'B'
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            U = 40; % m/s
+            
+            for i = 1:height(planes)
+                velData.(planes{i}).uMean = velData.(planes{i}).uMean / U;
+                velData.(planes{i}).vMean = velData.(planes{i}).vMean / U;
+                velData.(planes{i}).wMean = velData.(planes{i}).wMean / U;
+                
+                for j = 1:height(velData.(planes{i}).time)
+                    velData.(planes{i}).u{j} = velData.(planes{i}).u{j} / U;
+                    velData.(planes{i}).v{j} = velData.(planes{i}).v{j} / U;
+                    velData.(planes{i}).w{j} = velData.(planes{i}).w{j} / U;
+                    velData.(planes{i}).uPrime{j} = velData.(planes{i}).uPrime{j} / U;
+                    velData.(planes{i}).vPrime{j} = velData.(planes{i}).vPrime{j} / U;
+                    velData.(planes{i}).wPrime{j} = velData.(planes{i}).wPrime{j} / U;
+                end
+                
+            end
+            
+        end
+        
+    case 'C'
+        
+        if strcmp(caseName, 'Varney')
+            U = 40; % m/s
+            
+            for i = 1:height(planes)
+                    velData.(planes{i}).uMean = velData.(planes{i}).uMean / U;
+                    velData.(planes{i}).vMean = velData.(planes{i}).vMean / U;
+                    velData.(planes{i}).wMean = velData.(planes{i}).wMean / U;
+                    velData.(planes{i}).uRMS = velData.(planes{i}).uRMS / U;
+                    velData.(planes{i}).vRMS = velData.(planes{i}).vRMS / U;
+                    velData.(planes{i}).wRMS = velData.(planes{i}).wRMS / U;
+            end
+            
+        end
+        
+end
+
+% Perform Blockage Correction
+switch format
+    
+    case 'A'
+        
+        if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+            
+            for i = 1:height(planes)
+                velData.(planes{i}).uMean = velData.(planes{i}).uMean * (At / (At - Am));
+                velData.(planes{i}).vMean = velData.(planes{i}).vMean * (At / (At - Am));
+                velData.(planes{i}).wMean = velData.(planes{i}).wMean * (At / (At - Am));
+            end
+            
+        end
+        
+    case 'B'
+        
+        if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+            
+            for i = 1:height(planes)
+                velData.(planes{i}).uMean = velData.(planes{i}).uMean * (At / (At - Am));
+                velData.(planes{i}).vMean = velData.(planes{i}).vMean * (At / (At - Am));
+                velData.(planes{i}).wMean = velData.(planes{i}).wMean * (At / (At - Am));
+                
+                for j = 1:height(velData.(planes{i}).time)
+                    velData.(planes{i}).u{j} = velData.(planes{i}).u{j} * (At / (At - Am));
+                    velData.(planes{i}).v{j} = velData.(planes{i}).v{j} * (At / (At - Am));
+                    velData.(planes{i}).w{j} = velData.(planes{i}).w{j} * (At / (At - Am));
+                    velData.(planes{i}).uPrime{j} = velData.(planes{i}).uPrime{j} * (At / (At - Am));
+                    velData.(planes{i}).vPrime{j} = velData.(planes{i}).vPrime{j} * (At / (At - Am));
+                    velData.(planes{i}).wPrime{j} = velData.(planes{i}).wPrime{j} * (At / (At - Am));
+                end
+                
             end
             
         end
@@ -242,7 +313,7 @@ disp(' ');
 for i = 1:height(plotPlanes)
     disp(['    Presenting ', plotPlanes{i}, '...']);
     
-    orientation = data.(plotPlanes{i}).planeOrientation;
+    orientation = velData.(plotPlanes{i}).planeOrientation;
     
     % Specify Default Axes Limits
     switch orientation
@@ -280,18 +351,18 @@ for i = 1:height(plotPlanes)
             zLimsData = zLimsPlot;
             
         case 'B'
-            xLimsData = data.(plotPlanes{i}).xLims;
-            yLimsData = data.(plotPlanes{i}).yLims;
-            zLimsData = data.(plotPlanes{i}).zLims;
+            xLimsData = velData.(plotPlanes{i}).xLims;
+            yLimsData = velData.(plotPlanes{i}).yLims;
+            zLimsData = velData.(plotPlanes{i}).zLims;
             
-            xLimsPlot = [min(xLimsPlot(1), xLimsData(1)); max(xLimsPlot(2), xLimsData(2))];
-            yLimsPlot = [min(yLimsPlot(1), yLimsData(1)); max(yLimsPlot(2), yLimsData(2))];
-            zLimsPlot = [min(zLimsPlot(1), zLimsData(1)); max(zLimsPlot(2), zLimsData(2))];
+            xLimsPlot = [min(min(xLimsPlot), min(xLimsData)); max(max(xLimsPlot), max(xLimsData))];
+            yLimsPlot = [min(min(yLimsPlot), min(yLimsData)); max(max(yLimsPlot), max(yLimsData))];
+            zLimsPlot = [min(min(zLimsPlot), min(zLimsData)); max(max(zLimsPlot), max(zLimsData))];
         
         case 'C'
-            xLimsData = [min(data.(planes{i}).position(:,1)); max(data.(planes{i}).position(:,1))];
-            yLimsData = [min(data.(planes{i}).position(:,2)); max(data.(planes{i}).position(:,2))];
-            zLimsData = [min(data.(planes{i}).position(:,3)); max(data.(planes{i}).position(:,3))];
+            xLimsData = [min(velData.(planes{i}).position(:,1)); max(velData.(planes{i}).position(:,1))];
+            yLimsData = [min(velData.(planes{i}).position(:,2)); max(velData.(planes{i}).position(:,2))];
+            zLimsData = [min(velData.(planes{i}).position(:,3)); max(velData.(planes{i}).position(:,3))];
             
     end
     
@@ -299,20 +370,20 @@ for i = 1:height(plotPlanes)
     switch orientation
         
         case 'YZ'
-            xLimsData = data.(plotPlanes{i}).planePosition;
+            xLimsData = velData.(plotPlanes{i}).planePosition;
             
         case 'XZ'
-            yLimsData = data.(plotPlanes{i}).planePosition;
+            yLimsData = velData.(plotPlanes{i}).planePosition;
             
         case 'XY'
-            zLimsData = data.(plotPlanes{i}).planePosition;
+            zLimsData = velData.(plotPlanes{i}).planePosition;
             
     end
     
-    positionData = data.(plotPlanes{i}).position;
-    vectorData = [data.(plotPlanes{i}).uMean, data.(planes{i}).vMean, data.(plotPlanes{i}).wMean];
+    positionData = velData.(plotPlanes{i}).position;
+    vectorData = [velData.(plotPlanes{i}).uMean, velData.(plotPlanes{i}).vMean, velData.(plotPlanes{i}).wMean];
     
-    if strcmp(caseName, 'Varney') && ~strcmp(planeOrientation, 'YZ')
+    if strcmp(caseName, 'Varney') && ~strcmp(orientation, 'YZ')
         nComponents = 2;
     else
         nComponents = 3;
@@ -331,33 +402,33 @@ for i = 1:height(plotPlanes)
                             streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     
-%     switch format
-%         
-%         case 'B'
-%             
-%             if plotInst
-%                 figHold = fig;
-%                 
-%                 for j = 1:height(data.(plotPlanes{i}).time)
-%                     
-%                     if j ~= 1
-%                         clf(fig)
-%                         fig = figHold;
-%                     end
-%                     
-%                     vectorData = [data.(plotPlanes{i}).u{j}, data.(plotPlanes{i}).v{j}, data.(plotPlanes{i}).w{j}];
-%                     figTime = num2str(data.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
-%                     figName = [caseType, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
-%                     figSubtitle = [num2str(data.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
-%                     
-%                     fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-%                                             vectorData, nComponents, component, fig, figName, cMap, geometry, ...
-%                                             streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
-%                                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
-%                 end
-%                 
-%             end
-%             
-%     end
+    switch format
+        
+        case 'B'
+            
+            if plotInst
+                figHold = fig;
+                
+                for j = 1:height(velData.(plotPlanes{i}).time)
+                    
+                    if j ~= 1
+                        clf(fig)
+                        fig = figHold;
+                    end
+                    
+                    vectorData = [velData.(plotPlanes{i}).u{j}, velData.(plotPlanes{i}).v{j}, velData.(plotPlanes{i}).w{j}];
+                    figTime = num2str(velData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
+                    figName = [caseName, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
+                    figSubtitle = [num2str(velData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
+                    
+                    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                            vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                                            streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                                            xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                end
+                
+            end
+            
+    end
     
 end

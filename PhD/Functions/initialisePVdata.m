@@ -2,7 +2,8 @@
 % ----
 % Initialisation of Exported ParaView Planar Field Data for Further Processing
 % ----
-% Usage: [caseFolder, data, geometry, xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
+% Usage: [caseFolder, PVdata, geometry, ...
+%         xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
 %        'field'     -> Desired Field Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 
@@ -27,7 +28,8 @@
 
 %% Main Function
 
-function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
+function [caseName, PVdata, geometry, ...
+          xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
 
     % Select Case
     disp('Case Selection');
@@ -90,49 +92,49 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
         switch field
 
             case 'p'
-                data.(plane).position = content(:,[1,2,3]);
-                data.(plane).pMean = content(:,4);
+                PVdata.(plane).position = content(:,[1,2,3]);
+                PVdata.(plane).pMean = content(:,4);
 
             case 'U'
-                data.(plane).position = content(:,[1,2,3]);
-                data.(plane).uMean = content(:,4);
-                data.(plane).vMean = content(:,5);
-                data.(plane).wMean = content(:,6);
+                PVdata.(plane).position = content(:,[1,2,3]);
+                PVdata.(plane).uMean = content(:,4);
+                PVdata.(plane).vMean = content(:,5);
+                PVdata.(plane).wMean = content(:,6);
 
         end
         
         % Check for Unwanted Planar Deviations
-        uniqueX = unique(data.(plane).position(:,1));
-        uniqueY = unique(data.(plane).position(:,2));
-        uniqueZ = unique(data.(plane).position(:,3));
+        uniqueX = unique(PVdata.(plane).position(:,1));
+        uniqueY = unique(PVdata.(plane).position(:,2));
+        uniqueZ = unique(PVdata.(plane).position(:,3));
         
-        if height(uniqueX) > 1 && (height(uniqueX) / height(data.(plane).position) < 0.01)
-            [count, value] = groupcounts(data.(plane).position(:,1));
+        if height(uniqueX) > 1 && (height(uniqueX) / height(PVdata.(plane).position) < 0.01)
+            [count, value] = groupcounts(PVdata.(plane).position(:,1));
             [~, index] = max(count);
-            data.(plane).position(:,1) = value(index);
-            uniqueX = unique(data.(plane).position(:,1));
-        elseif height(uniqueY) > 1 && (height(uniqueY) / height(data.(plane).position) < 0.01)
-            [count, value] = groupcounts(data.(plane).position(:,2));
+            PVdata.(plane).position(:,1) = value(index);
+            uniqueX = unique(PVdata.(plane).position(:,1));
+        elseif height(uniqueY) > 1 && (height(uniqueY) / height(PVdata.(plane).position) < 0.01)
+            [count, value] = groupcounts(PVdata.(plane).position(:,2));
             [~, index] = max(count);
-            data.(plane).position(:,2) = value(index);
-            uniqueY = unique(data.(plane).position(:,2));
-        elseif height(uniqueZ) > 1 && (height(uniqueZ) / height(data.(plane).position) < 0.01)
-            [count, value] = groupcounts(data.(plane).position(:,3));
+            PVdata.(plane).position(:,2) = value(index);
+            uniqueY = unique(PVdata.(plane).position(:,2));
+        elseif height(uniqueZ) > 1 && (height(uniqueZ) / height(PVdata.(plane).position) < 0.01)
+            [count, value] = groupcounts(PVdata.(plane).position(:,3));
             [~, index] = max(count);
-            data.(plane).position(:,3) = value(index);
-            uniqueZ = unique(data.(plane).position(:,3));
+            PVdata.(plane).position(:,3) = value(index);
+            uniqueZ = unique(PVdata.(plane).position(:,3));
         end
         
         % Identify Plane Orientation
         if height(uniqueX) == 1
-            data.(plane).planeOrientation = 'YZ';
-            data.(plane).planePosition = uniqueX;
+            PVdata.(plane).planeOrientation = 'YZ';
+            PVdata.(plane).planePosition = uniqueX;
         elseif height(uniqueY) == 1
-            data.(plane).planeOrientation = 'XZ';
-            data.(plane).planePosition = uniqueY;
+            PVdata.(plane).planeOrientation = 'XZ';
+            PVdata.(plane).planePosition = uniqueY;
         elseif height(uniqueZ) == 1
-            data.(plane).planeOrientation = 'XY';
-            data.(plane).planePosition = uniqueZ;
+            PVdata.(plane).planeOrientation = 'XY';
+            PVdata.(plane).planePosition = uniqueZ;
         else
             error('Invalid Dataset (Unsupported Plane Orientation)');
         end
@@ -153,8 +155,8 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
             for i = 1:height(dataFiles)
                 plane = dataFiles(i).name(1:(end - 4));
 
-                data.(plane).position = round((data.(plane).position / 1.044), spacePrecision);
-                data.(plane).planePosition = round((data.(plane).planePosition / 1.044), spacePrecision);
+                PVdata.(plane).position = round((PVdata.(plane).position / 1.044), spacePrecision);
+                PVdata.(plane).planePosition = round((PVdata.(plane).planePosition / 1.044), spacePrecision);
             end
 
         end
@@ -165,23 +167,23 @@ function [caseName, data, geometry, xDims, yDims, zDims, spacePrecision] = initi
     for i = 1:height(dataFiles)
         plane = dataFiles(i).name(1:(end - 4));
         
-        [data.(plane).position, index] = unique(data.(plane).position, 'rows', 'stable');
+        [PVdata.(plane).position, index] = unique(PVdata.(plane).position, 'rows', 'stable');
         
         switch field
             
             case 'p'
-                data.(plane).pMean = data.(plane).pMean(index);
+                PVdata.(plane).pMean = PVdata.(plane).pMean(index);
 
             case 'U'
-                data.(plane).uMean = data.(plane).uMean(index);
-                data.(plane).vMean = data.(plane).vMean(index);
-                data.(plane).wMean = data.(plane).wMean(index);
+                PVdata.(plane).uMean = PVdata.(plane).uMean(index);
+                PVdata.(plane).vMean = PVdata.(plane).vMean(index);
+                PVdata.(plane).wMean = PVdata.(plane).wMean(index);
         
         end
         
-        data.(plane) = orderfields(data.(plane));
+        PVdata.(plane) = orderfields(PVdata.(plane));
     end
     
-    data = orderfields(data);
+    PVdata = orderfields(PVdata);
 
 end

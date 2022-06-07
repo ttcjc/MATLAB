@@ -60,7 +60,7 @@ disp(' ');
 disp(' ');
 
 
-%% Acquire Contaminant Map Data
+%% Acquire Contaminant Map
 
 disp('Contaminant Map Acquisition');
 disp('----------------------------');
@@ -878,6 +878,7 @@ while ~valid
     end
 
 end
+clear valid
 
 
 %% Local Functions

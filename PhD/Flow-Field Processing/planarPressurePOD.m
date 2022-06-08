@@ -27,7 +27,7 @@ disp (' ');
 
 %% Initialisation
 
-[caseName, probeData, timePrecision, geometry, ...
+[caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
  xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc);    
 
 disp(' ');
@@ -76,7 +76,7 @@ mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
 mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
 if ~all(mapPerim(1,:) == mapPerim(end,:))
-    mapPerim = vertcat(mapPerim, mapPerim(1,:)); % Close Boundary
+    mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
 end
 
 clear basePoints basePoly;
@@ -88,8 +88,8 @@ zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
 % Initialise POD Variables
 PODdata.positionGrid = probeData.position;
 PODdata.time = probeData.time;
-PODdata.p.inst = probeData.p;
 PODdata.p.mean = probeData.pMean;
+PODdata.p.inst = probeData.p;
 PODdata.p.prime = probeData.pPrime;
 
 clear probeData
@@ -275,19 +275,19 @@ if ~isempty(plotModes)
     positionData = PODdata.positionGrid;
     cMap = turbo(24);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    cLims = [-1; 1];
 
     for i = plotModes
         disp(['    Presenting Mode #', num2str(i), '...']);
 
         scalarData = rescale(PODdata.phi_mode(:,i), -1, 1);
-        figName = ['Base_Pressure_Planar_POD_M', num2str(i)];
-        CoP = [];
+        figName = ['Pressure_Planar_POD_M', num2str(i)];
+        CoM = [];
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
-        cLims = [-1; 1];
 
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                CoP, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
 else
@@ -316,9 +316,9 @@ while ~valid
             mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName]);
         end
         
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', fileName], ...
+        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID], ...
               'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', fileName]);
+        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID]);
         disp('        Success');
         
         valid = true;
@@ -344,9 +344,7 @@ while ~valid
     selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        reconModes = [];
-        
-        valid = true;
+        return
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         reconModes = inputModes(Nt);
         
@@ -573,6 +571,7 @@ if plotRecon
     positionData = reconData.positionGrid;
     cMap = viridis(24);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    cLims = [-0.235; -0.023]; % Base Cp
 
     figHold = fig;
 
@@ -588,7 +587,6 @@ if plotRecon
         figName = ['Cp_Reconstruction_T', erase(figTime, '.')];
         CoM = reconData.p.CoP{i};
         figSubtitle = [num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
-        cLims = [-0.235; -0.023]; % Base Cp
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
@@ -621,9 +619,9 @@ while ~valid
             mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName]);
         end
         
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', fileName], ...
+        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID], ...
               'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', fileName]);
+        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID]);
         disp('        Success');
         
         valid = true;

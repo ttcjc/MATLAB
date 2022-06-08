@@ -211,7 +211,7 @@ switch format
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
         if ~all(mapPerim(1,:) == mapPerim(end,:))
-            mapPerim = vertcat(mapPerim, mapPerim(1,:)); % Close Boundary
+            mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
         clear basePoints basePoly;
@@ -240,8 +240,8 @@ end
 % Initialise POD Variables
 PODdata.positionGrid = mapData.positionGrid;
 PODdata.time = mapData.inst.time;
-PODdata.(PODvar).inst = mapData.inst.(PODvar);
 PODdata.(PODvar).mean = mapData.mean.(PODvar);
+PODdata.(PODvar).inst = mapData.inst.(PODvar);
 
 clear mapData;
 
@@ -451,6 +451,7 @@ if ~isempty(plotModes)
     positionData = PODdata.positionGrid;
     cMap = turbo(24);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    cLims = [-1; 1];
 
     for i = plotModes
         disp(['    Presenting Mode #', num2str(i), '...']);
@@ -469,7 +470,6 @@ if ~isempty(plotModes)
 
         CoM = [];
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
-        cLims = [-1; 1];
 
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
@@ -553,9 +553,7 @@ while ~valid
     selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        reconModes = [];
-        
-        valid = true;
+        return
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         reconModes = inputModes(Nt);
         
@@ -774,6 +772,14 @@ if plotRecon
     positionData = reconData.positionGrid;
     cMap = viridis(24);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    
+    if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32'}))
+        cLims = dLims;
+    elseif strcmp(PODvar, 'massNorm')
+        cLims = [0; 1];
+    else
+        cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
+    end
 
     figHold = fig;
 
@@ -804,14 +810,6 @@ if plotRecon
         end
         
         figSubtitle = [num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
-        
-        if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32'}))
-            cLims = dLims;
-        elseif strcmp(PODvar, 'massNorm')
-            cLims = [0; 1];
-        else
-            cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
-        end
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...

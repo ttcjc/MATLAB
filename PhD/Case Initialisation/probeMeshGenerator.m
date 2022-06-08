@@ -158,7 +158,7 @@ switch format
         basePerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
         if ~all(basePerim(1,:) == basePerim(end,:))
-            basePerim = vertcat(basePerim, basePerim(1,:)); % Close Boundary
+            basePerim = [basePerim; basePerim(1,:)]; % Close Boundary
         end
         
         clear basePoints basePoly;

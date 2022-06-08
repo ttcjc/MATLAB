@@ -216,7 +216,7 @@ switch format
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
         if ~all(mapPerim(1,:) == mapPerim(end,:))
-            mapPerim = vertcat(mapPerim, mapPerim(1,:)); % Close Boundary
+            mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
         clear basePoints basePoly;
@@ -769,6 +769,14 @@ if plotInst
     for i = 1:height(plotVars)
         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
         
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
+            cLims = dLims;
+        elseif strcmp(plotVars{i}, 'massNorm')
+            cLims = [0; 20]; % Max Base Contamination
+        else
+            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
+        end
+        
         figHold = fig;
         
         for j = 1:height(mapData.inst.time)
@@ -798,14 +806,6 @@ if plotInst
             
         figSubtitle = [num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
         
-        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
-            cLims = dLims;
-        elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 20]; % Max Base Contamination
-        else
-            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
-        end
-            
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
                                 CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);

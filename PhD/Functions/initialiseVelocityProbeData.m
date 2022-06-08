@@ -4,7 +4,7 @@
 % ----
 % Usage: [caseFolder, probeData, timePrecision, geometry, ...
 %         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(planar, normalise, nProc);
-%        'planar'    -> Extract Planar Data [True/False]
+%        'format'    -> Data Processing Format Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 %        'nProc'     -> Number of Processors Used for Parallel Collation
 
@@ -22,10 +22,17 @@
 % Windsor_2022
 
 
+%% Supported Processing Formats
+
+% Volumetric: 'volume'
+% Planar:     'planar'
+% Planar POD: 'planarPOD'
+
+
 %% Main Function
 
-function [caseName, probeData, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(planar, normalise, nProc)
+function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
+          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(format, normalise, nProc)
     
     % Select Case
     disp('Case Selection');
@@ -64,7 +71,7 @@ function [caseName, probeData, timePrecision, geometry, ...
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, 'probesVelocity', nProc);
+            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, 'probesVelocity', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesVelocity/*.mat'], ...
@@ -72,7 +79,9 @@ function [caseName, probeData, timePrecision, geometry, ...
     
             if contains(filePath, [caseName, '/probesVelocity'])
                 disp(['    Loading ''', fileName, '''...']);
+                dataID = load([filePath, fileName], 'dataID').dataID;
                 probeData = load([filePath, fileName], 'probeData').probeData;
+                sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                 disp('        Success');
                 
                 valid = true;
@@ -93,9 +102,13 @@ function [caseName, probeData, timePrecision, geometry, ...
     disp(' ');
         
     % Extract Planar Probe Data
-    if planar
-        probeData = extractPlanarVelocityProbeData(caseName, probeData);
-
+    if strcmp(format, 'planar')
+        probeData = extractPlanarVelocityProbeData(caseName, probeData, true);
+    elseif strcmp(format, 'planarPOD')
+        probeData = extractPlanarVelocityProbeData(caseName, probeData, false);
+    end
+    
+    if strcmp(format, 'planar') || strcmp(format, 'planarPOD')
         disp(' ');
         disp(' ');
     end
@@ -106,7 +119,7 @@ function [caseName, probeData, timePrecision, geometry, ...
     % Normalise Data Dimensions
     if normalise
         
-        if planar
+        if strcmp(format, 'planar') || strcmp(format, 'planarPOD')
             
             if contains(caseName, ["Run_Test", "Windsor"])
                 planes = fieldnames(probeData);

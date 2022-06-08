@@ -5,6 +5,7 @@
 % Usage: planeData = extractPlanarVelocityProbeData(caseName, volumeData);
 %        'caseName'   -> Case Name, Stored as a String
 %        'volumeData' -> Volumetric Probe Data, Collated Using 'readProbeData.m'
+%        'multiPlane' -> Selection of Multiple Planes [True/False]
 
 
 %% Changelog
@@ -25,7 +26,7 @@
 
 %% Main Function
 
-function planeData = extractPlanarVelocityProbeData(caseName, volumeData)
+function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiPlane)
 
     disp('Planar Probe Data Extraction');
     disp('-----------------------------');
@@ -54,26 +55,36 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData)
     disp('    Y (XZ-Plane)');
     disp('    Z (XY-Plane)');
     
-    valid = false;
-    while ~valid
-        disp(' ');
-        nPlanes = str2num(input('Select Desired Number of Planes [Scalar]: ', 's')); %#ok<ST2NM>
-
-        if isempty(nPlanes) || isnan(nPlanes) || length(nPlanes) > 1
-            disp('    WARNING: Invalid Entry');
-        else
-            valid = true;
+    if multiPlane
+        
+        valid = false;
+        while ~valid
+            disp(' ');
+            nPlanes = str2num(input('Select Desired Number of Planes [Scalar]: ', 's')); %#ok<ST2NM>
+            
+            if isempty(nPlanes) || isnan(nPlanes) || length(nPlanes) > 1
+                disp('    WARNING: Invalid Entry');
+            else
+                valid = true;
+            end
         end
-
+        clear valid;
+        
+    else
+        nPlanes = 1;
     end
-    clear valid;
     
     for i = 1:nPlanes
         
         valid = false;
         while ~valid
             disp(' ');
-            selection = input(['Select Orientation of Plane ', num2str(i), ' [X/Y/Z]: '], 's');
+            
+            if nPlanes == 1
+                selection = input('Select Orientation of Plane [X/Y/Z]: ', 's');
+            else
+                selection = input(['Select Orientation of Plane #', num2str(i), ' [X/Y/Z]: '], 's');
+            end
 
             if selection == 'x' | selection == 'X' %#ok<OR2>
                 planeData.(['p', num2str(i)]).planeOrientation = 'YZ';

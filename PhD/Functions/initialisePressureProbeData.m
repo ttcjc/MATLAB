@@ -21,7 +21,7 @@
 
 %% Main Function
 
-function [caseName, probeData, timePrecision, geometry, ...
+function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
           xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc)
     
     % Select Case
@@ -61,7 +61,9 @@ function [caseName, probeData, timePrecision, geometry, ...
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, 'probesPressure', nProc);
+            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, ...
+                                                                timeDirs, deltaT, timePrecision, ...
+                                                                'probesPressure', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesPressure/*.mat'], ...
@@ -69,7 +71,9 @@ function [caseName, probeData, timePrecision, geometry, ...
     
             if contains(filePath, [caseName, '/probesPressure'])
                 disp(['    Loading ''', fileName, '''...']);
+                dataID = load([filePath, fileName], 'dataID').dataID;
                 probeData = load([filePath, fileName], 'probeData').probeData;
+                sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                 disp('        Success');
                 
                 valid = true;

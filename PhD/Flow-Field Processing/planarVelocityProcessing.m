@@ -74,7 +74,7 @@ switch format
 
     case 'B'
         [caseName, velData, timePrecision, geometry, ...
-         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(true, normalise, nProc);    
+         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData('planar', normalise, nProc);    
 
     case 'C'
         [caseName, velData, geometry, ...

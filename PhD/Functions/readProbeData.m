@@ -32,7 +32,7 @@
 
 %% Main Function
 
-function probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, probeType, nProc) %#ok<INUSD>
+function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, probeType, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -121,6 +121,13 @@ function probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timeP
 
     end
     clear valid;
+    
+    % Define Data ID
+    startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
+    endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
+    freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
+
+    dataID = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
 
     % Reduce Time Instances to Desired Sampling Frequency
     probeData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
@@ -148,7 +155,7 @@ function probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timeP
             fclose(fileID);
 
     end
-
+    
     disp(' ');
 
     % Collate Instantaneous Field Data
@@ -292,17 +299,10 @@ function probeData = readProbeData(caseFolder, caseName, timeDirs, deltaT, timeP
             if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
-
-            startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
-            endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
-            
-            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
-            
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, fileName], ...
-                 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID], ...
+                 'dataID', 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

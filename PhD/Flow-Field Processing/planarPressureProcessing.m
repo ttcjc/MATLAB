@@ -73,7 +73,7 @@ switch format
         preData = preData.(cell2mat(fieldnames(preData)));
 
     case 'B'
-        [caseName, preData, timePrecision, geometry, ...
+        [caseName, dataID, preData, sampleInterval, timePrecision, geometry, ...
          xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc);    
 
     case 'C'
@@ -115,7 +115,7 @@ mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
 mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
 if ~all(mapPerim(1,:) == mapPerim(end,:))
-    mapPerim = vertcat(mapPerim, mapPerim(1,:)); % Close Boundary
+    mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
 end
 
 clear basePoints basePoly;

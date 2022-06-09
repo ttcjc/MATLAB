@@ -317,7 +317,7 @@ while ~valid
         end
         
         save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID], ...
-              'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
+             'dataID', 'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID]);
         disp('        Success');
         
@@ -408,7 +408,7 @@ for i = reconModes
     parforWaitBar(wB, Nt);
     
     % Identify Mode Contribution
-    mode = ['M_', num2str(i)];
+    mode = ['M', num2str(i)];
     
     modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
     pPrime = cell(Nt,1);
@@ -427,7 +427,7 @@ for i = reconModes
     
     reconData.(mode).modeMatrix = modeMatrix;
     reconData.(mode).prime = pPrime;
-    clear modeMatrix varPrime;
+    clear modeMatrix pPrime;
     
     % Add Mode to Reconstruction
     for j = 1:Nt
@@ -620,7 +620,7 @@ while ~valid
         end
         
         save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID], ...
-              'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
+             'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID]);
         disp('        Success');
         

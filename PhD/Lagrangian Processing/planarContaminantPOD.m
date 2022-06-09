@@ -617,7 +617,7 @@ for i = reconModes
     parforWaitBar(wB, Nt);
     
     % Identify Mode Contribution
-    mode = ['M_', num2str(i)];
+    mode = ['M', num2str(i)];
     
     modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
     varPrime = cell(Nt,1);

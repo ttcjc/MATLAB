@@ -2,16 +2,15 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, ...
-%                                    sampleInterval, timeDirs, deltaT, timePrecision, nProc);
+% Usage: LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, LagProps, ...
+%                                    sampleInterval, timeDirs, nProc);
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
+%        'dataID'         -> Data ID, Stored as a String
 %        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
 %        'sampleInterval' -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
-%        'deltaT'         -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
-%        'timePrecision'  -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
 %        'nProc'          -> Number of Processors Used for Parallel Collation
 
 
@@ -25,8 +24,8 @@
 
 %% Main Function
 
-function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, ...
-                                     sampleInterval, timeDirs, deltaT, timePrecision, nProc) %#ok<INUSD>
+function LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, LagProps, ...
+                                     sampleInterval, timeDirs, nProc) %#ok<INUSD>
     
     % Collate Volumetric Lagrangian Data
     disp('===============');
@@ -125,17 +124,10 @@ function LagData = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, 
             if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName], 'dir')
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName]);
             end
-
-            startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
-            endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
             
-            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
-            
-            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
-            
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, fileName]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, fileName], ...
-                 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/', dataID]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/', dataID], ...
+                 'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

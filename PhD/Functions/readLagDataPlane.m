@@ -2,15 +2,14 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Planar Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
-%                                   sampleInterval, timeDirs, deltaT, timePrecision);
+% Usage: LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
+%                                   sampleInterval, timeDirs);
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
+%        'dataID'         -> Data ID, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
 %        'sampleInterval' -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
-%        'deltaT'         -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
-%        'timePrecision'  -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
 
 
 %% Changelog
@@ -21,8 +20,8 @@
 
 %% Main Function
 
-function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
-                                    sampleInterval, timeDirs, deltaT, timePrecision)
+function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
+                                    sampleInterval, timeDirs)
     
     % Collate Planar Lagrangian Data
     disp('===========');
@@ -153,16 +152,9 @@ function LagData = readLagDataPlane(caseFolder, caseName, LagProps, ...
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName]);
             end
             
-            startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
-            endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
-            
-            freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
-            
-            fileName = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
-            
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, fileName]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, fileName], ...
-                 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/', dataID]);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/', dataID], ...
+                 'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

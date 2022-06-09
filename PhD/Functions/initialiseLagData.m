@@ -2,10 +2,10 @@
 % ----
 % Initialisation of OpenFOAM v7 Lagrangian Data for Further Processing
 % ----
-% Usage: [LagProps, LagDataPlane, LagDataSurface, ...
-%           LagDataVolume, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
-%                                                              plane, surface, volume, ...
-%                                                              timeDirs, deltaT, timePrecision, nProc);
+% Usage: [dataID, LagProps, LagDataPlane, LagDataSurface, ...
+%         LagDataVolume, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
+%                                                            plane, surface, volume, ...
+%                                                            timeDirs, deltaT, timePrecision, nProc);
 %        'caseFolder'    -> Case Path, Stored as s String
 %        'caseName'      -> Case Name, Stored as a String
 %        'cloudName'     -> OpenFOAM Cloud Name, Stored as a String
@@ -25,7 +25,7 @@
 
 %% Main Function
 
-function [LagProps, LagDataPlane, LagDataSurface, ...
+function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
           LagDataVolume, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
                                                              plane, surface, volume, ...
                                                              timeDirs, deltaT, timePrecision, nProc)
@@ -110,6 +110,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
 
                 if contains(filePath, ['LagData/plane/', caseName])
                     disp(['    Loading ''', fileName, '''...']);
+                    dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataPlane = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
@@ -145,6 +146,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
 
                 if contains(filePath, ['LagData/surface/', caseName])
                     disp(['    Loading ''', fileName, '''...']);
+                    dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataSurface = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
@@ -180,6 +182,7 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
 
                 if contains(filePath, ['LagData/volume/', caseName])
                     disp(['    Loading ''', fileName, '''...']);
+                    dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataVolume = load([filePath, fileName], 'LagData').LagData;
                     sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                     disp('        Success');
@@ -318,23 +321,33 @@ function [LagProps, LagDataPlane, LagDataSurface, ...
     end
     clear valid;
     
+    % Define Data ID
+    startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
+    endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
+    freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
+
+    dataID = ['T', startInst, '_T', endInst, '_F', freq, '.mat'];
+    
     % Collate Lagrangian Data
     if plane
         disp(' ');
-        LagDataPlane = readLagDataPlane(caseFolder, caseName, LagProps, ...
-                                        sampleInterval, timeDirs, deltaT, timePrecision);
+        
+        LagDataPlane = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
+                                        sampleInterval, timeDirs);
     end
     
     if surface
         disp(' ');
-        LagDataSurface = readLagDataSurface(caseFolder, caseName, LagProps, ...
-                                            sampleInterval, timeDirs, deltaT, timePrecision);
+        
+        LagDataSurface = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ...
+                                            sampleInterval, timeDirs);
     end
     
     if volume
         disp(' ');
-        LagDataVolume = readLagDataVolume(caseFolder, caseName, cloudName, LagProps, ...
-                                          sampleInterval, timeDirs, deltaT, timePrecision, nProc);
+        
+        LagDataVolume = readLagDataVolume(caseFolder, caseName, dataID, cloudName, LagProps, ...
+                                          sampleInterval, timeDirs, nProc);
     end
     
 end

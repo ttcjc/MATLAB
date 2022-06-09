@@ -343,7 +343,7 @@ while ~valid
         end
         
         save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName], ...
-              'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
+             'dataID', 'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName]);
         disp('        Success');
         
@@ -440,16 +440,24 @@ for i = reconModes
     parforWaitBar(wB, Nt);
     
     % Identify Mode Contribution
-    mode = ['M_', num2str(i)];
+    mode = ['M', num2str(i)];
     
-    modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
-    pPrime = cell(Nt,1);
+    uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
+    vModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(((Ns + 1):(2 * Ns)),i)';
+    wModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((((2 * Ns) + 1):end),i)';
+    uPrime = cell(Nt,1);
+    vPrime = uPrime;
+    wPrime = uPrime;
     
     parfor j = 1:Nt
-        pPrime{j} = zeros(Ns,1);
+        uPrime{j} = zeros(Ns,1);
+        vPrime{j} = uPrime{j}
+        wPrime{j} = uPrime{j}
         
         for k = 1:Ns
-            pPrime{j}(k) = modeMatrix(j,k);
+            uPrime{j}(k) = uModeMatrix(j,k);
+            vPrime{j}(k) = vModeMatrix(j,k);
+            wPrime{j}(k) = wModeMatrix(j,k);
         end
         
         send(dQ, []);
@@ -457,22 +465,207 @@ for i = reconModes
     
     delete(wB);
     
-    reconData.(mode).modeMatrix = modeMatrix;
-    reconData.(mode).prime = pPrime;
-    clear modeMatrix varPrime;
+    reconData.(mode).modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix];
+    reconData.(mode).u.prime = uPrime;
+    reconData.(mode).v.prime = vPrime;
+    reconData.(mode).w.prime = wPrime;
+    clear vModeMatrix uModeMatrix qModeMatrix uPrime vPrime wPrime;
     
     % Add Mode to Reconstruction
     for j = 1:Nt
-        reconData.p.inst{j} = reconData.p.inst{j} + reconData.(mode).prime{j};
+        reconData.u.inst{j} = reconData.u.inst{j} + reconData.(mode).u.prime{j};
+        reconData.v.inst{j} = reconData.v.inst{j} + reconData.(mode).v.prime{j};
+        reconData.w.inst{j} = reconData.w.inst{j} + reconData.(mode).w.prime{j};
     end
     
 end
 
+% Perform Blockage Correction
+if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+    Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+    At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+    
+    reconData.u.mean = reconData.u.mean * (At / (At - Am));
+    reconData.v.mean = reconData.v.mean * (At / (At - Am));
+    reconData.w.mean = reconData.w.mean * (At / (At - Am));
+    
+    for i = 1:1:height(reconData.time)
+    reconData.u.inst{i} = reconData.u.inst{i} * (At / (At - Am));
+    reconData.v.inst{i} = reconData.v.inst{i} * (At / (At - Am));
+    reconData.w.inst{i} = reconData.w.inst{i} * (At / (At - Am));
+    end
+    
+end
+
+evalc('delete(gcp(''nocreate''));');
+executionTime = toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
+
+disp(' ');
+
+disp('  SUCCESS  ');
+disp('***********');
+
+disp(' ');
+disp(' ');
 
 
+%% Select Reconstruction Presentation Options
+
+disp('Reconstruction Presentation Options');
+disp('------------------------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Reconstructed Field? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotRecon = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotRecon = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
 
 
+%% Present Reconstruction
 
+disp('Reconstruction Presentation');
+disp('----------------------------');
+
+disp(' ');
+
+if plotRecon
+    % Specify Default Axes Limits
+    orientation = PODdata.planeOrientation;
+    
+    switch orientation
+        
+        case 'YZ'
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 4.65925]; % [m]
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+            end
+            
+        case {'XZ', 'XY'}
+            
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.075]; % [m]
+                yLimsPlot = [-0.3445; 0.3445];
+                zLimsPlot = [0; 0.489];
+            end
+            
+    end
+    
+    if normalise
+        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+    end
+    
+    % Modify Axes and Data Limits Based on Format
+    xLimsData = PODdata.xLims;
+    yLimsData = PODdata.yLims;
+    zLimsData = PODdata.zLims;
+    
+    xLimsPlot = [min(min(xLimsPlot), min(xLimsData)); max(max(xLimsPlot), max(xLimsData))];
+    yLimsPlot = [min(min(yLimsPlot), min(yLimsData)); max(max(yLimsPlot), max(yLimsData))];
+    zLimsPlot = [min(min(zLimsPlot), min(zLimsData)); max(max(zLimsPlot), max(zLimsData))];
+    
+    positionData = PODdata.positionGrid;
+    nComponents = 1;
+    
+    switch orientation
+        
+        case 'YZ'
+            component = 'u';
+            
+        case 'XZ'
+            component = 'v';
+            
+        case 'XY'
+            component = 'w';
+    
+    end
+    
+    cMap = viridis(24);
+    streamlines = true;
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    cLims = [0; 40];
+    
+    figHold = fig;
+    
+    for i = 1:Nt
+        
+        if i ~= 1
+            clf(fig);
+            fig = figHold;
+        end
+        
+        vectorData = [reconData.u.inst{i}, reconData.v.inst{i}, reconData.w.inst{i}];
+        figTime = num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']);
+        figName = ['Velocity_Reconstruction_T', erase(figTime, '.')];
+        figSubtitle = [num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
+        
+        fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                                streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+    end
+    
+else
+    disp('    Skipping Reconstruction Presentation');
+end
+
+disp(' ');
+disp(' ');
+
+
+%% Save Reconstruction Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID], 'dir')
+            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID]);
+        end
+        
+        save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName], ...
+             'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
+        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName]);
+        disp('        Success');
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
 
 
 %% Local Functions

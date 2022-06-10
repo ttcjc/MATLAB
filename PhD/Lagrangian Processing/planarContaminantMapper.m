@@ -5,7 +5,7 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-normalise = true; % Normalisation of Dimensions
+normalise = true; % Normalisation of Dimensionsn
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
@@ -82,14 +82,16 @@ disp(' ');
 switch format
     
     case 'A'
-        [LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
-                                                                      false, true, false, ...
-                                                                      timeDirs, deltaT, timePrecision, nProc);
+        [dataID, LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, ...
+                                                                              cloudName, false, true, ...
+                                                                              false, timeDirs, deltaT, ...
+                                                                              timePrecision, nProc);
                                                                                 
     case 'B'
-        [LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, cloudName, ...
-                                                                      true, false, false, ...
-                                                                      timeDirs, deltaT, timePrecision, nProc);
+        [dataID, LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, ...
+                                                                              cloudName, true, false, ...
+                                                                              false, timeDirs, deltaT, ...
+                                                                              timePrecision, nProc);
 
         % Select Plane of Interest
         planes = fieldnames(LagData);
@@ -114,6 +116,10 @@ switch format
         clear planes;
         
         disp(['Plane of Interest: ', planePos]);
+end
+
+if normalise
+    dataID = [dataID, '_Norm'];
 end
 
 disp(' ');
@@ -166,6 +172,12 @@ while ~valid
 end
 clear valid;
 
+if normalise
+    dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
+else
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+end
+
 disp(' ');
 disp(' ');
 
@@ -186,6 +198,55 @@ evalc('parpool(nProc);');
 disp(' ');
 
 disp('    Initialising...');
+
+% Identify Empty Time Instances
+i = 1;
+while i <= height(LagData.time)
+    
+    if isempty(LagData.timeExact{i})
+        LagData.timeExact{i} = -1;
+        
+        for j = 1:height(LagProps)
+            LagData.(LagProps{j}){i} = -1;
+        end
+        
+    else
+        i = i + 1;
+    end
+    
+end
+clear i;
+
+% Shift Data Origin
+if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+    
+    for i = 1:height(LagData.time)
+        
+        if LagData.positionCartesian{i} ~= -1
+            LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
+        end
+        
+    end
+    
+end
+
+% Normalise Dimensions
+if normalise
+    
+    if contains(caseName, ["Run_Test", "Windsor"])
+        
+        for i = 1:height(LagData.time)
+            
+            if LagData.positionCartesian{i} ~= -1
+                LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
+                                                      spacePrecision);
+            end
+            
+        end
+        
+    end
+    
+end
 
 % Specify Map Boundaries
 switch format
@@ -240,55 +301,6 @@ switch format
             
         end
         
-end
-
-% Identify Empty Time Instances
-i = 1;
-while i <= height(LagData.time)
-    
-    if isempty(LagData.timeExact{i})
-        LagData.timeExact{i} = -1;
-        
-        for j = 1:height(LagProps)
-            LagData.(LagProps{j}){i} = -1;
-        end
-        
-    else
-        i = i + 1;
-    end
-    
-end
-clear i;
-
-% Shift Data Origin
-if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-    
-    for i = 1:height(LagData.time)
-        
-        if LagData.positionCartesian{i} ~= -1
-            LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
-        end
-        
-    end
-    
-end
-
-% Normalise Dimensions
-if normalise
-    
-    if contains(caseName, ["Run_Test", "Windsor"])
-        
-        for i = 1:height(LagData.time)
-            
-            if LagData.positionCartesian{i} ~= -1
-                LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
-                                                      spacePrecision);
-            end
-            
-        end
-        
-    end
-    
 end
 
 disp(' ');
@@ -370,7 +382,7 @@ switch format
         [y, z] = meshgrid(yLimsData (1):cellSizeY:yLimsData (2), zLimsData (1):cellSizeZ:zLimsData (2));
         
         mapData.positionGrid = zeros(height(y(:)),3);
-        mapData.positionGrid(:,1) = xLimsData ;
+        mapData.positionGrid(:,1) = xLimsData;
         mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
     
 end
@@ -842,43 +854,30 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName]);
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base'], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base']);
                 end
                 
             case 'B'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName]);
+                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos], 'dir')
+                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos]);
                 end
                 
-        end
-        
-        minD = num2str(dLims(1));
-        maxD = num2str(dLims(2));
-        startInst = erase(num2str(mapData.inst.time(1), ['%.', num2str(timePrecision), 'f']), '.');
-        endInst = erase(num2str(mapData.inst.time(end), ['%.', num2str(timePrecision), 'f']), '.');
-        
-        freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
-        
-        if normalise
-            fileName = ['/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '_Norm.mat'];
-        else
-            fileName = ['/D', minD, '_D', maxD, '_T', startInst, '_T', endInst, '_F', freq, '.mat'];
         end
         
         switch format
             
             case 'A'
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/base/', caseName, fileName], ...
-                     'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/base/', caseName, fileName]);
+                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat'], ...
+                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, fileName], ...
-                     'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
-                disp(['    Saving to: ~/Data/Numerical/MATLAB/contaminantMap/', planePos, '/', caseName, fileName]);
+                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat']);
+                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat'], ...
+                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end

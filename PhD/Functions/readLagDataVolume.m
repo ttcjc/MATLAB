@@ -121,12 +121,12 @@ function LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, La
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName]);
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume'], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/', dataID]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/', dataID], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

@@ -135,12 +135,12 @@ function LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ..
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName]);
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface'], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, '/', dataID]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, '/', dataID], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

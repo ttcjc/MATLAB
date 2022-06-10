@@ -71,7 +71,8 @@ function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, 
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, 'probesVelocity', nProc);
+            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, ...
+                                                                timePrecision, 'probesVelocity', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesVelocity/*.mat'], ...

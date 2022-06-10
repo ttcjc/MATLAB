@@ -148,12 +148,12 @@ function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName]);
+            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane'], 'dir')
+                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/', dataID]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/', dataID], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

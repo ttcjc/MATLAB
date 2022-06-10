@@ -50,7 +50,7 @@ function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, 
     disp(' ');
     disp(' ');
 
-    % Acquire Volumetric Probe Data
+    % Acquire Surface Probe Data
     disp('Surface Probe Data Acquisition');
     disp('-------------------------------');
     
@@ -61,9 +61,8 @@ function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, 
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, ...
-                                                                timeDirs, deltaT, timePrecision, ...
-                                                                'probesPressure', nProc);
+            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, ...
+                                                                timePrecision, 'probesPressure', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
             [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesPressure/*.mat'], ...

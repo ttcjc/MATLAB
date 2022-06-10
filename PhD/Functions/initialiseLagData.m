@@ -105,10 +105,10 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/plane/', caseName, '/*.mat'], ...
+                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane/*.mat'], ...
                                                  'Select Plane Data');
 
-                if contains(filePath, ['LagData/plane/', caseName])
+                if contains(filePath, ['/LagData/', caseName, '/plane'])
                     disp(['    Loading ''', fileName, '''...']);
                     dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataPlane = load([filePath, fileName], 'LagData').LagData;
@@ -141,10 +141,10 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/surface/', caseName, '/*.mat'], ...
+                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface/*.mat'], ...
                                                  'Select Surface Data');
 
-                if contains(filePath, ['LagData/surface/', caseName])
+                if contains(filePath, ['/LagData/', caseName, '/surface'])
                     disp(['    Loading ''', fileName, '''...']);
                     dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataSurface = load([filePath, fileName], 'LagData').LagData;
@@ -177,10 +177,10 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/volume/', caseName, '/*.mat'], ...
+                [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume/*.mat'], ...
                                                  'Select Volume Data');
 
-                if contains(filePath, ['LagData/volume/', caseName])
+                if contains(filePath, ['/LagData/', caseName, '/volume'])
                     disp(['    Loading ''', fileName, '''...']);
                     dataID = load([filePath, fileName], 'dataID').dataID;
                     LagDataVolume = load([filePath, fileName], 'LagData').LagData;
@@ -326,7 +326,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
     freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
-    dataID = ['T', startInst, '_T', endInst, '_F', freq, '.mat'];
+    dataID = ['T', startInst, '_T', endInst, '_F', freq];
     
     % Collate Lagrangian Data
     if plane

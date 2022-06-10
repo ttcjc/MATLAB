@@ -90,6 +90,33 @@ disp(' ');
 
 %% Data Formatting
 
+% Adjust Data Origin
+switch format
+
+    case {'A', 'B'}
+        
+        if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+            
+            if normalise
+                preData.position(:,1) = preData.position(:,1) + round((1.325 / 1.044), spacePrecision);
+                
+                if strcmp(preData.planeOrientation, 'YZ')
+                    preData.planePosition = preData.planePosition + round((1.325 / 1.044), spacePrecision);
+                end
+                
+            else
+                preData.position(:,1) = preData.position(:,1) + 1.325; %#ok<*UNRCH>
+                
+                if strcmp(preData.planeOrientation, 'YZ')
+                    preData.planePosition = preData.planePosition + 1.325;
+                end
+                
+            end
+            
+        end
+        
+end
+
 % Specify Map Boundaries
 parts = fieldnames(geometry);
 for i = 1:height(parts)
@@ -123,33 +150,6 @@ clear basePoints basePoly;
 xLimsData = xDims(2);
 yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
 zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
-
-% Adjust Data Origin
-switch format
-
-    case {'A', 'B'}
-        
-        if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-            
-            if normalise
-                preData.position(:,1) = preData.position(:,1) + round((1.325 / 1.044), spacePrecision);
-                
-                if strcmp(preData.planeOrientation, 'YZ')
-                    preData.planePosition = preData.planePosition + round((1.325 / 1.044), spacePrecision);
-                end
-                
-            else
-                preData.position(:,1) = preData.position(:,1) + 1.325; %#ok<*UNRCH>
-                
-                if strcmp(preData.planeOrientation, 'YZ')
-                    preData.planePosition = preData.planePosition + 1.325;
-                end
-                
-            end
-            
-        end
-        
-end
 
 % Shift Data off Base
 preData.position(:,1) = preData.position(:,1) + 1e-3;

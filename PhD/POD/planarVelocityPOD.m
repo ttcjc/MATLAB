@@ -1,4 +1,4 @@
-%% Planar Pressure POD Calculator v1.0
+%% Planar Velocity POD Calculator v2.0
 
 clear variables;
 close all;
@@ -22,13 +22,21 @@ disp (' ');
 
 %% Changelog
 
-% v1.0 - Initial Commit
+% v1.0 - Initial Commit (Base Contamination and Far-Field Extraction Plane)
+% v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 
 
 %% Initialisation
 
 [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc);    
+ xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData('planarPOD', normalise, nProc);
+
+if normalise
+    dataID = [dataID, '_Norm'];
+end
+
+planeName = cell2mat(fieldnames(probeData));
+probeData = probeData.(cell2mat(fieldnames(probeData)));
 
 disp(' ');
 disp(' ');
@@ -51,46 +59,23 @@ disp(' ');
 
 disp('    Initialising...');
 
-% Specify Map Boundaries
-parts = fieldnames(geometry);
-for i = 1:height(parts)
-    
-    if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-        break
-    end
-    
-    if i == height(parts)
-        error('Mismatch Between ''xDims'' and Geometry Bounding Box')
-    end
-    
-end
-
-geoPoints = geometry.(parts{i}).vertices;
-basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
-
-mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
-mapPerim = basePoints(mapPerim,:);
-basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-basePoly = polybuffer(basePoly, -0.0025, 'jointType', 'square');
-mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
-mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
-
-if ~all(mapPerim(1,:) == mapPerim(end,:))
-    mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
-end
-
-clear basePoints basePoly;
-
-xLimsData = xDims(2);
-yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
-zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
-
 % Initialise POD Variables
+PODdata.planeOrientation = probeData.planeOrientation;
+PODdata.xLims = probeData.xLims;
+PODdata.yLims = probeData.yLims;
+PODdata.zLims = probeData.zLims;
+
 PODdata.positionGrid = probeData.position;
 PODdata.time = probeData.time;
-PODdata.p.mean = probeData.pMean;
-PODdata.p.inst = probeData.p;
-PODdata.p.prime = probeData.pPrime;
+PODdata.u.mean = probeData.uMean;
+PODdata.v.mean = probeData.vMean;
+PODdata.w.mean = probeData.wMean;
+PODdata.u.inst = probeData.u;
+PODdata.v.inst = probeData.v;
+PODdata.w.inst = probeData.w;
+PODdata.u.prime = probeData.uPrime;
+PODdata.v.prime = probeData.vPrime;
+PODdata.w.prime = probeData.wPrime;
 
 clear probeData
 
@@ -99,14 +84,13 @@ if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(
     
     if normalise
         PODdata.positionGrid(:,1) = PODdata.positionGrid(:,1) + round((1.325 / 1.044), spacePrecision);
+        PODdata.xLims = PODdata.xLims + round((1.325 / 1.044), spacePrecision);
     else
         PODdata.positionGrid(:,1) = PODdata.positionGrid(:,1) + 1.325; %#ok<*UNRCH>
+        PODdata.xLims = PODdata.xLims + 1.325;
     end
     
 end
-
-% Shift Data off Base
-PODdata.positionGrid(:,1) = PODdata.positionGrid(:,1) + 1e-3;
 
 disp(' ');
 
@@ -124,23 +108,29 @@ afterEach(dQ, @parforWaitBar);
 parforWaitBar(wB, Nt);
 
 % Assemble Snapshot Matrix
-snapshotMatrix = zeros(Nt,Ns);
+uSnapshotMatrix = zeros(Nt,Ns);
+vSnapshotMatrix = uSnapshotMatrix;
+wSnapshotMatrix = uSnapshotMatrix;
 
-pPrime = PODdata.p.prime;
+uPrime = PODdata.u.prime;
+vPrime = PODdata.v.prime;
+wPrime = PODdata.w.prime;
 parfor i = 1:Nt
     
     for j = 1:Ns
-        snapshotMatrix(i,j) = pPrime{i}(j);
+        uSnapshotMatrix(i,j) = uPrime{i}(j);
+        vSnapshotMatrix(i,j) = vPrime{i}(j);
+        wSnapshotMatrix(i,j) = wPrime{i}(j);
     end
     
-    send(dQ, []);
+    send(dQ, []);    
 end
-clear varPrime;
+clear uPrime vPrime wPrime
 
 delete(wB);
 
-PODdata.snapshotMatrix = snapshotMatrix;
-clear snapshotMatrix;
+PODdata.snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
+clear uSnapshotMatrix vSnapshotMatrix wSnapshotMatrix;
 
 % Generate Correlation Matrix
 PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
@@ -257,37 +247,77 @@ disp('------------------');
 disp(' ');
 
 if ~isempty(plotModes)
-    % Define Plot Limits
-    orientation = 'YZ';
+    % Specify Default Axes Limits
+    orientation = PODdata.planeOrientation;
     
-    if contains(caseName, ["Run_Test", "Windsor"])
-        xLimsPlot = [0.31875; 1.52725];
-        yLimsPlot = [-0.2445; 0.2445];
-        zLimsPlot = [0; 0.389];
+    switch orientation
+        
+        case 'YZ'
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 4.65925]; % [m]
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+            end
+            
+        case {'XZ', 'XY'}
+            
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.075]; % [m]
+                yLimsPlot = [-0.3445; 0.3445];
+                zLimsPlot = [0; 0.489];
+            end
+            
     end
-
+    
     if normalise
         xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
         yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
         zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
     end
-
+    
+    % Modify Axes and Data Limits Based on Format
+    xLimsData = PODdata.xLims;
+    yLimsData = PODdata.yLims;
+    zLimsData = PODdata.zLims;
+    
+    xLimsPlot = [min(min(xLimsPlot), min(xLimsData)); max(max(xLimsPlot), max(xLimsData))];
+    yLimsPlot = [min(min(yLimsPlot), min(yLimsData)); max(max(yLimsPlot), max(yLimsData))];
+    zLimsPlot = [min(min(zLimsPlot), min(zLimsData)); max(max(zLimsPlot), max(zLimsData))];
+    
     positionData = PODdata.positionGrid;
+    nComponents = 1;
+    
+    switch orientation
+        
+        case 'YZ'
+            component = 'u';
+            
+        case 'XZ'
+            component = 'v';
+            
+        case 'XY'
+            component = 'w';
+    
+    end
+    
     cMap = turbo(24);
+    streamlines = true;
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
-
+    
     for i = plotModes
         disp(['    Presenting Mode #', num2str(i), '...']);
-
-        scalarData = rescale(PODdata.phi_mode(:,i), -1, 1);
-        figName = ['Pressure_Planar_POD_M', num2str(i)];
-        CoM = [];
+        
+        vectorData = rescale([PODdata.phi_mode((1:Ns),i), ...
+                              PODdata.phi_mode(((Ns + 1):(2 * Ns)),i), ...
+                              PODdata.phi_mode((((2 * Ns) + 1):end),i)], -1, 1);
+        figName = ['Velocity_Planar_POD_M', num2str(i)];
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
-
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+        
+        fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                                streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
 else
@@ -312,13 +342,13 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName]);
+        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID], 'dir')
+            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID]);
         end
         
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID], ...
+        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat']);
+        save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat'], ...
              'dataID', 'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID]);
         disp('        Success');
         
         valid = true;
@@ -386,11 +416,17 @@ disp('    Initialising...');
 % Initialise Reconstruction Variables
 reconData.positionGrid = PODdata.positionGrid;
 reconData.time = PODdata.time;
-reconData.p.mean = PODdata.p.mean;
-reconData.p.inst = cell(Nt,1);
+reconData.u.mean = PODdata.u.mean;
+reconData.v.mean = PODdata.v.mean;
+reconData.w.mean = PODdata.w.mean;
+reconData.u.inst = cell(Nt,1);
+reconData.v.inst = reconData.u.inst;
+reconData.w.inst = reconData.u.inst;
 
 for i = 1:Nt
-    reconData.p.inst{i} = reconData.p.mean;
+    reconData.u.inst{i} = reconData.u.mean;
+    reconData.v.inst{i} = reconData.v.mean;
+    reconData.w.inst{i} = reconData.w.mean;
 end
 
 disp(' ');
@@ -410,14 +446,22 @@ for i = reconModes
     % Identify Mode Contribution
     mode = ['M', num2str(i)];
     
-    modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
-    pPrime = cell(Nt,1);
+    uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
+    vModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(((Ns + 1):(2 * Ns)),i)';
+    wModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((((2 * Ns) + 1):end),i)';
+    uPrime = cell(Nt,1);
+    vPrime = uPrime;
+    wPrime = uPrime;
     
     parfor j = 1:Nt
-        pPrime{j} = zeros(Ns,1);
+        uPrime{j} = zeros(Ns,1);
+        vPrime{j} = uPrime{j}
+        wPrime{j} = uPrime{j}
         
         for k = 1:Ns
-            pPrime{j}(k) = modeMatrix(j,k);
+            uPrime{j}(k) = uModeMatrix(j,k);
+            vPrime{j}(k) = vModeMatrix(j,k);
+            wPrime{j}(k) = wModeMatrix(j,k);
         end
         
         send(dQ, []);
@@ -425,28 +469,17 @@ for i = reconModes
     
     delete(wB);
     
-    reconData.(mode).modeMatrix = modeMatrix;
-    reconData.(mode).prime = pPrime;
-    clear modeMatrix pPrime;
+    reconData.(mode).modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix];
+    reconData.(mode).u.prime = uPrime;
+    reconData.(mode).v.prime = vPrime;
+    reconData.(mode).w.prime = wPrime;
+    clear vModeMatrix uModeMatrix qModeMatrix uPrime vPrime wPrime;
     
     % Add Mode to Reconstruction
     for j = 1:Nt
-        reconData.p.inst{j} = reconData.p.inst{j} + reconData.(mode).prime{j};
-    end
-    
-end
-
-% Calculate Pressure Coefficient
-if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-    U = 40; % m/s
-    rho = 1.269; % kg/m^3
-    pRef = 0 * rho; % Pa
-    
-    reconData.Cp.mean = (reconData.p.mean - pRef) / (0.5 * rho * U^2);
-    reconData.Cp.inst = cell(height(reconData.time),1);
-    
-    for i = 1:height(reconData.time)
-        reconData.Cp.inst{i} = (reconData.p{i} - pRef) / (0.5 * rho * U^2);
+        reconData.u.inst{j} = reconData.u.inst{j} + reconData.(mode).u.prime{j};
+        reconData.v.inst{j} = reconData.v.inst{j} + reconData.(mode).v.prime{j};
+        reconData.w.inst{j} = reconData.w.inst{j} + reconData.(mode).w.prime{j};
     end
     
 end
@@ -456,49 +489,17 @@ if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(
     Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
     At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
     
-    reconData.p.mean = (reconData.Cp.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-    reconData.Cp.mean = (reconData.Cp.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
+    reconData.u.mean = reconData.u.mean * (At / (At - Am));
+    reconData.v.mean = reconData.v.mean * (At / (At - Am));
+    reconData.w.mean = reconData.w.mean * (At / (At - Am));
     
-    for i = 1:height(reconData.time)
-        reconData.p.inst{i} = (reconData.Cp.inst{i} + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-        reconData.Cp.inst{i} = (reconData.Cp.inst{i} + (2 * (Am / At))) / (1 + (2 * (Am / At)));
+    for i = 1:1:height(reconData.time)
+    reconData.u.inst{i} = reconData.u.inst{i} * (At / (At - Am));
+    reconData.v.inst{i} = reconData.v.inst{i} * (At / (At - Am));
+    reconData.w.inst{i} = reconData.w.inst{i} * (At / (At - Am));
     end
     
 end
-
-% Initialise Progress Bar
-wB = waitbar(0, 'Calculating Reconstructed Centre of Pressure', 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, Nt);
-
-% Calculate Reconstructed CoP
-CoP = cell(Nt,1);
-
-p = reconData.Cp.inst;
-positionGrid = reconData.positionGrid;
-parfor i = 1:Nt
-    CoP{i} = zeros(1,3);
-    CoP{i}(1) = positionGrid(1,1); %#ok<PFBNS>
-    
-    for j = 1:height(positionGrid)
-        CoP{i}(2) = CoP{i}(2) + (p{i}(j) * positionGrid(j,2));
-        CoP{i}(3) = CoP{i}(3) + (p{i}(j) * positionGrid(j,3));
-    end
-    
-    CoP{i}(2) = CoP{i}(2) / sum(p{i});
-    CoP{i}(3) = CoP{i}(3) / sum(p{i});
-    send(dQ, []);
-end
-clear p positionGrid;
-
-delete(wB);
-
-reconData.p.CoP = CoP;
-reconData.Cp.CoP = reconData.p.CoP;
-clear CoP;
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
@@ -553,28 +554,66 @@ disp('----------------------------');
 disp(' ');
 
 if plotRecon
-    % Define Plot Limits
-    orientation = 'YZ';
+    % Specify Default Axes Limits
+    orientation = PODdata.planeOrientation;
     
-    if contains(caseName, ["Run_Test", "Windsor"])
-        xLimsPlot = [0.31875; 1.52725];
-        yLimsPlot = [-0.2445; 0.2445];
-        zLimsPlot = [0; 0.389];
+    switch orientation
+        
+        case 'YZ'
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 4.65925]; % [m]
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+            end
+            
+        case {'XZ', 'XY'}
+            
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.075]; % [m]
+                yLimsPlot = [-0.3445; 0.3445];
+                zLimsPlot = [0; 0.489];
+            end
+            
     end
-
+    
     if normalise
         xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
         yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
         zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
     end
-
-    positionData = reconData.positionGrid;
+    
+    % Modify Axes and Data Limits Based on Format
+    xLimsData = PODdata.xLims;
+    yLimsData = PODdata.yLims;
+    zLimsData = PODdata.zLims;
+    
+    xLimsPlot = [min(min(xLimsPlot), min(xLimsData)); max(max(xLimsPlot), max(xLimsData))];
+    yLimsPlot = [min(min(yLimsPlot), min(yLimsData)); max(max(yLimsPlot), max(yLimsData))];
+    zLimsPlot = [min(min(zLimsPlot), min(zLimsData)); max(max(zLimsPlot), max(zLimsData))];
+    
+    positionData = PODdata.positionGrid;
+    nComponents = 1;
+    
+    switch orientation
+        
+        case 'YZ'
+            component = 'u';
+            
+        case 'XZ'
+            component = 'v';
+            
+        case 'XY'
+            component = 'w';
+    
+    end
+    
     cMap = viridis(24);
+    streamlines = true;
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
-    cLims = [-0.235; -0.023]; % Base Cp
-
+    cLims = [0; 40];
+    
     figHold = fig;
-
+    
     for i = 1:Nt
         
         if i ~= 1
@@ -582,15 +621,15 @@ if plotRecon
             fig = figHold;
         end
         
-        scalarData = reconData.Cp.inst{i};
+        vectorData = [reconData.u.inst{i}, reconData.v.inst{i}, reconData.w.inst{i}];
         figTime = num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']);
-        figName = ['Cp_Reconstruction_T', erase(figTime, '.')];
-        CoM = reconData.p.CoP{i};
+        figName = ['Velocity_Reconstruction_T', erase(figTime, '.')];
         figSubtitle = [num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
         
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+        fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                vectorData, nComponents, component, fig, figName, cMap, geometry, ...
+                                streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
 else
@@ -615,13 +654,13 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName]);
+        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID], 'dir')
+            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID]);
         end
         
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID], ...
+        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '.mat']);        
+        save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName ,'.mat'], ...
              'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID]);
         disp('        Success');
         
         valid = true;

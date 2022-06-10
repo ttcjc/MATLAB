@@ -2,7 +2,8 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Probe Data Generated using 'PODmeshGenerator.m'
 % ----
-% Usage: probeData = readProbeData(caseFolder, timeDirs, timePrecision probeType, nProc);
+% Usage: [dataID, probeData, sampleInterval] = readProbeData(caseFolder, timeDirs, timePrecision ...
+%                                                            probeType, nProc);
 %        'caseFolder'    -> Case Path Stored as String
 %        'caseName'      -> Case Name, Stored as a String
 %        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
@@ -32,7 +33,8 @@
 
 %% Main Function
 
-function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, timePrecision, probeType, nProc) %#ok<INUSD>
+function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, ...
+                                                             timePrecision, probeType, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
         disp('Probe Data Identified in the Following Time Directories:');
@@ -127,7 +129,7 @@ function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseNam
     endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
     freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
-    dataID = ['/T', startInst, '_T', endInst, '_F', freq, '.mat'];
+    dataID = ['/T', startInst, '_T', endInst, '_F', freq];
 
     % Reduce Time Instances to Desired Sampling Frequency
     probeData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
@@ -300,8 +302,8 @@ function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseNam
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID]);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID, '.mat'], ...
                  'dataID', 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

@@ -73,7 +73,7 @@ switch format
          xDims, yDims, zDims, spacePrecision] = initialisePVdata('U', normalise);
 
     case 'B'
-        [caseName, velData, timePrecision, geometry, ...
+        [caseName, dataID, velData, timePrecision, geometry, ...
          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData('planar', normalise, nProc);    
 
     case 'C'

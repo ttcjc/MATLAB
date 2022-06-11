@@ -353,8 +353,8 @@ tickData = (0:(((ceil(modesEnergetic / 10) * 10) - 0) / 5):(ceil(modesEnergetic 
 xticks(tickData(2:(end - 1)));
 tickData = (0:(((ceil(max(PODdata.modeEnergy)/10) * 10) - 0) / 5):(ceil(max(PODdata.modeEnergy)/10) * 10));
 yticks(tickData(2:(end - 1)));
-xL = xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
-yL = ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
+xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
+ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 

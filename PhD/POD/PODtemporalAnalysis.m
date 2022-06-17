@@ -5,7 +5,7 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-nModes = 6; % Analyse First ‘nModes’ Energetic Modes [Even Integer]
+nModes = 8; % Analyse First ‘nModes’ Energetic Modes [Even Integer]
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
@@ -167,7 +167,7 @@ for i = 1:height(PODfields)
     % Figure Setup
     fig = fig + 1;
     figName = [PODfields{i}, '_POD_Mode_Temporal_Analysis'];
-    set(figure(fig), 'outerPosition', [(25 + 875 * (i - 1)), 25, 850, 850], 'name', figName);
+    set(figure(fig), 'outerPosition', [(25 + 875 * (fig - 1)), 25, 850, 850], 'name', figName);
     set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
              'fontSize', 20, 'layer', 'top');
     tiledlayout((nModes / 2),2);
@@ -177,23 +177,22 @@ for i = 1:height(PODfields)
         x(1:height(temporalData.(PODfields{i}).PODdata.A_coeff(:,j))) = temporalData.(PODfields{i}).PODdata.A_coeff(:,j);
         [PSD, freq] = pwelch(x, 128, 64, n, Fs);
         Sr = (freq * 0.289) / 40;
-        PMS = PSD .* Sr;
         
         % Plot
         nexttile;
         hold on;
-        plot(Sr(1:floor(n / 2)), rescale(PMS(1:floor(n / 2))), ...
+        plot(Sr(1:floor(n / 2)), rescale(PSD(1:floor(n / 2))), ...
              'lineWidth', 1.5, 'color', ([74, 24, 99] / 255));
         
         % Figure Formatting
-        set(gca, 'xScale', 'log');
+        set(gca, 'xScale', 'log', 'yScale', 'log');
         title(['M', num2str(j)]);
         axis on;
         box on;
         grid off;
-        xlim([0; 1]);
-        ylim([0; 1.2]);
-        tickData = [1e-2, 1e-1];
+        xlim([1e-3; 1]);
+        ylim([0; 10]);
+        tickData = [1e-3, 1e-2, 1e-1, 1];
         xticks(tickData);
         tickData = [];
         yticks(tickData);

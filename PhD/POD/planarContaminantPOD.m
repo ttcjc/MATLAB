@@ -119,7 +119,7 @@ timePrecision = strfind(fileName, '_T') - 3;
 switch format
     
     case 'B'
-        planePos = filePath((namePos(end - 2) + 1):(namePos(end - 1) - 1));
+        planePos = filePath((namePos(end - 1) + 1):(namePos(end) - 1));
 
 end
 
@@ -222,7 +222,8 @@ switch format
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
     case 'B'
-        if contains(caseName, 'Run_Test') || contains(caseName, 'Windsor')
+    
+        if contains(caseName, ["Run_Test", "Windsor"])
             mapPerim = [];
             
             xLimsData = mapData.positionGrid(1,1);

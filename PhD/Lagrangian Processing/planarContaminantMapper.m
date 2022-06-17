@@ -13,7 +13,7 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-massNormalisation = 3.810600208515075e-10; % Square-Back Base Time-Average
+massNormalisation = 3.944150754311134e-10; % Square-Back Base Time-Average
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -287,7 +287,8 @@ switch format
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
     case 'B'
-        if contains(caseName, 'Run_Test') || contains(caseName, 'Windsor')
+    
+        if contains(caseName, ["Run_Test", "Windsor"])
             mapPerim = [];
             
             xLimsData = LagData.positionCartesian{end}(1,1);
@@ -329,7 +330,7 @@ switch format
             if positionCartesian{i} ~= -1
                 index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
                                 ((d{i} * 1e6) <= dLims(2)) & ...
-                                (positionCartesian{i}(:,1) == xLimsData ) & ...
+                                (positionCartesian{i}(:,1) == xLimsData) & ...
                                 (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
                                 (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
                                 (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
@@ -379,7 +380,7 @@ switch format
         cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
         cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
         
-        [y, z] = meshgrid(yLimsData (1):cellSizeY:yLimsData (2), zLimsData (1):cellSizeZ:zLimsData (2));
+        [y, z] = meshgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
         
         mapData.positionGrid = zeros(height(y(:)),3);
         mapData.positionGrid(:,1) = xLimsData;
@@ -743,10 +744,10 @@ if plotMean
         switch format
             
             case 'A'
-                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map'];
+                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
                 
             case 'B'
-                figName = ['Time_Averaged_', planePos, '_', plotVars{i}, '_Map'];
+                figName = ['Time_Averaged_', planePos, '_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
                 
         end
         
@@ -762,8 +763,8 @@ if plotMean
 %             cLims = dLims;
             cLims = [0; 40]; % Max Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 1]; % Max Base Contamination
-%             cLims = [0; 20]; % Max Planar Contamination
+%             cLims = [0; 1]; % Max Base Contamination
+            cLims = [0; 20]; % Max Planar Contamination
         else
             cLims = [0; max(scalarData)];
         end
@@ -804,10 +805,10 @@ if plotInst
             switch format
                 
                 case 'A'
-                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.')];
+                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
                 
                 case 'B'
-                    figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.')];
+                    figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
             end
             
         if contains(plotVars{i}, ["mass", "massNorm"])

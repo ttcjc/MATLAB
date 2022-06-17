@@ -73,10 +73,12 @@ function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
         wB.Children.Title.Interpreter = 'none';
 
         % Collate Data
+        timeZero = LagData.(plane).time(1) - (LagData.(plane).time(2) - LagData.(plane).time(1));
         for j = 1:height(LagData.(plane).time)
             
             if j == 1
-                index = find(content(:,1) <= LagData.(plane).time(j));
+                index = find((content(:,1) > timeZero) & ...
+                             (content(:,1) <= LagData.(plane).time(1)));
             else
                 index = find((content(:,1) > LagData.(plane).time(j - 1)) & ...
                              (content(:,1) <= LagData.(plane).time(j)));
@@ -94,6 +96,7 @@ function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
             
             waitbar((j / height(LagData.(plane).time)), wB);
         end
+        clear timeZero
         
         delete(wB);
     end

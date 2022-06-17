@@ -129,7 +129,7 @@ function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseNam
     endInst = erase(num2str(str2double(timeDirs(end).name), ['%.', num2str(timePrecision), 'f']), '.');
     freq = num2str(round((1 / (deltaT * sampleInterval)), timePrecision));
 
-    dataID = ['/T', startInst, '_T', endInst, '_F', freq];
+    dataID = ['T', startInst, '_T', endInst, '_F', freq];
 
     % Reduce Time Instances to Desired Sampling Frequency
     probeData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
@@ -302,8 +302,8 @@ function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseNam
                 mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, dataID, '.mat'], ...
+            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat']);
+            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat'], ...
                  'dataID', 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

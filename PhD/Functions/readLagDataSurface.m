@@ -66,10 +66,12 @@ function LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ..
     wB.Children.Title.Interpreter = 'none';
 
     % Collate Data
+    timeZero = LagData.time(1) - (LagData.time(2) - LagData.time(1));
     for i = 1:height(LagData.time)
 
         if i == 1
-            index = find(content(:,1) <= LagData.time(i));
+            index = find((content(:,1) > timeZero) & ...
+                         (content(:,1) <= LagData.time(1)));
         else
             index = find((content(:,1) > LagData.time(i - 1)) & ...
                          (content(:,1) <= LagData.time(i)));
@@ -87,6 +89,7 @@ function LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ..
 
         waitbar((i / height(LagData.time)), wB);
     end
+    clear timeZero;
 
     delete(wB);
     

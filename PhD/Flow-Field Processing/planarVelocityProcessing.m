@@ -321,7 +321,7 @@ for i = 1:height(plotPlanes)
         case 'YZ'
 
             if contains(caseName, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 4.65925]; % [m]
+                xLimsPlot = [0.31875; 4.65925];
                 yLimsPlot = [-0.5945; 0.5945];
                 zLimsPlot = [0; 0.739];
             end
@@ -329,7 +329,7 @@ for i = 1:height(plotPlanes)
         case {'XZ', 'XY'}
 
             if contains(caseName, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 1.075]; % [m]
+                xLimsPlot = [0.31875; 1.075];
                 yLimsPlot = [-0.3445; 0.3445];
                 zLimsPlot = [0; 0.489];
             end

@@ -317,12 +317,12 @@ switch format
         
         cellVolume = cellSizeX * cellSizeY * cellSizeZ;
         
-        [volData.x, volData.y, volData.z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                                   yLimsData(1):cellSizeY:yLimsData(2), ...
-                                                   zLimsData(1):cellSizeZ:zLimsData(2));
+        [volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                                                            yLimsData(1):cellSizeY:yLimsData(2), ...
+                                                            zLimsData(1):cellSizeZ:zLimsData(2));
 end
 
-volData.inst.time = contaminantData.time;
+volumeData.inst.time = contaminantData.time;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Assigning Particles to Mesh Nodes', 'name', 'Progress');
@@ -330,17 +330,17 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(volData.inst.time));
+parforWaitBar(wB, height(volumeData.inst.time));
 
 % Assign Particles to Volume Nodes
-index = cell(height(volData.inst.time),1); % Array Position of Closest Mesh Node
+index = cell(height(volumeData.inst.time),1); % Array Position of Closest Mesh Node
 
 totalParticles = cellfun(@height, contaminantData.positionCartesian);
 positionCartesian = contaminantData.positionCartesian;
-x = volData.x;
-y = volData.y;
-z = volData.z;
-parfor i = 1:height(volData.inst.time)
+x = volumeData.x;
+y = volumeData.y;
+z = volumeData.z;
+parfor i = 1:height(volumeData.inst.time)
     
     if positionCartesian{i} ~= -1
         index{i} = zeros(height(positionCartesian{i}),3);
@@ -366,10 +366,10 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(volData.inst.time));
+parforWaitBar(wB, height(volumeData.inst.time));
 
 % Calculate Instantaneous Field Variables
-nParticles = cell(height(volData.inst.time),1); % Number of Particles in Cell
+nParticles = cell(height(volumeData.inst.time),1); % Number of Particles in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
 d20 = nParticles; % Surface Mean Diameter in Cell
 d30 = nParticles; % Volume Mean Diameter in Cell
@@ -378,10 +378,10 @@ mass = nParticles; % Total Mass in Cell
 volFraction = nParticles; % Fraction of Cell Volume Occupied by Spray
 
 totalParticles = cellfun(@height, contaminantData.positionCartesian);
-x = volData.x;
+x = volumeData.x;
 nParticle = contaminantData.nParticle;
 d = contaminantData.d;
-parfor i = 1:height(volData.inst.time)
+parfor i = 1:height(volumeData.inst.time)
     nParticles{i} = zeros(size(x));
     d10{i} = nParticles{i};
     d20{i} = nParticles{i};
@@ -428,13 +428,13 @@ delete(wB);
 
 clear contaminantData;
 
-volData.inst.nParticles = nParticles;
-volData.inst.d10 = d10;
-volData.inst.d20 = d20;
-volData.inst.d30 = d30;
-volData.inst.d32 = d32;
-volData.inst.mass = mass;
-volData.inst.volFraction = volFraction;
+volumeData.inst.nParticles = nParticles;
+volumeData.inst.d10 = d10;
+volumeData.inst.d20 = d20;
+volumeData.inst.d30 = d30;
+volumeData.inst.d32 = d32;
+volumeData.inst.mass = mass;
+volumeData.inst.volFraction = volFraction;
 clear nParticles d10 d20 d30 d32 mass volFraction;
 
 disp(' ');
@@ -448,10 +448,10 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(volData.inst.time));
+parforWaitBar(wB, height(volumeData.inst.time));
 
 % Calculate Time-Averaged Field Variables
-nParticlesMean = zeros(size(volData.x));
+nParticlesMean = zeros(size(volumeData.x));
 d10Mean = nParticlesMean;
 d20Mean = nParticlesMean;
 d30Mean = nParticlesMean;
@@ -459,14 +459,14 @@ d32Mean = nParticlesMean;
 massMean = nParticlesMean;
 volFractionMean = nParticlesMean;
 
-nParticles = volData.inst.nParticles;
-d10 = volData.inst.d10;
-d20 = volData.inst.d20;
-d30 = volData.inst.d30;
-d32 = volData.inst.d32;
-mass = volData.inst.mass;
-volFraction = volData.inst.volFraction;
-parfor i = 1:height(volData.inst.time)
+nParticles = volumeData.inst.nParticles;
+d10 = volumeData.inst.d10;
+d20 = volumeData.inst.d20;
+d30 = volumeData.inst.d30;
+d32 = volumeData.inst.d32;
+mass = volumeData.inst.mass;
+volFraction = volumeData.inst.volFraction;
+parfor i = 1:height(volumeData.inst.time)
     nParticlesMean = nParticlesMean + nParticles{i};
     d10Mean = d10Mean + d10{i};
     d20Mean = d20Mean + d20{i};
@@ -481,13 +481,13 @@ clear nParticles d10 d20 d30 d32 mass volFraction;
 
 delete(wB);
 
-volData.mean.nParticles = nParticlesMean / height(volData.inst.time);
-volData.mean.d10 = d10Mean / height(volData.inst.time);
-volData.mean.d20 = d20Mean / height(volData.inst.time);
-volData.mean.d30 = d30Mean / height(volData.inst.time);
-volData.mean.d32 = d32Mean / height(volData.inst.time);
-volData.mean.mass = massMean / height(volData.inst.time);
-volData.mean.volFraction = volFractionMean / height(volData.inst.time);
+volumeData.mean.nParticles = nParticlesMean / height(volumeData.inst.time);
+volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
+volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
+volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
+volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
+volumeData.mean.mass = massMean / height(volumeData.inst.time);
+volumeData.mean.volFraction = volFractionMean / height(volumeData.inst.time);
 clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean volFractionMean;
 
 evalc('delete(gcp(''nocreate''));');
@@ -506,6 +506,60 @@ disp(' ');
 disp(' ');
 
 %% Select Presentation Options
+
+disp('Presentation Options');
+disp('---------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Time-Averaged Volume Field? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMean = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMean = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Instantaneous Volume Fields? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotInst = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotInst = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Present Volume Fields
+
+disp('Volume Field Presentation');
+disp('--------------------------');
+
+disp(' ');
 
 
 %% Local Functions

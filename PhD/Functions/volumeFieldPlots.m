@@ -13,24 +13,29 @@
 
 %% Main Function
 
-function fig = volumeFieldPlots(xLims, yLims, zLims, volumeData, fig, figName, geometry, POD, xInit, yInit, zInit, ...
-                                isoValue, figTitle, figSubtitle)
+function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
+                                fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
+                                figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot)
+                            
+%         x = xInit;
+%         y = yInit;
+%         z = zInit;
 
     % Generate Refined Grid
-    cellSize = 4e-3;
+    cellSize = 2e-3;
 
-    cellSizeX = (yLims(2) - yLims(1)) / round(((yLims(2) - yLims(1)) / cellSize));
-    cellSizeY = (yLims(2) - yLims(1)) / round(((yLims(2) - yLims(1)) / cellSize));
-    cellSizeZ = (zLims(2) - zLims(1)) / round(((zLims(2) - zLims(1)) / cellSize));
+    cellSizeX = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
+    cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
+    cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
     
-    [x, y, z] = ndgrid(xLims(1):cellSizeX:xLims(2), ...
-                       yLims(1):cellSizeY:yLims(2), ...
-                       zLims(1):cellSizeZ:zLims(2));
+    [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                       yLimsData(1):cellSizeY:yLimsData(2), ...
+                       zLimsData(1):cellSizeZ:zLimsData(2));
 
-    volumeData = interp3(xInit, yInit, zInit, volumeData, x, y, z);
+    fieldData = interpn(xInit, yInit, zInit, fieldData, x, y, z);
 
     % Smooth Data
-    volumeData = smooth3(volumeData, 'gaussian');
+    fieldData = smooth3(fieldData, 'gaussian');
     
     % Figure Setup
     fig = fig + 1;
@@ -52,17 +57,17 @@ function fig = volumeFieldPlots(xLims, yLims, zLims, volumeData, fig, figName, g
     end
 
     if POD
-        iso = isosurface(x, y, z, volumeData, isoValue);
+        iso = isosurface(x, y, z, fieldData, isoValue);
         iso = patch(iso, 'faceColor', max(cMap), 'edgeColor', 'none');
-        isonormals(volumData, iso);
+        isonormals(fieldData, iso);
         
-        iso = isosurface(x, y, z, volumeData, -isoValue);
+        iso = isosurface(x, y, z, fieldData, -isoValue);
         iso = patch(iso, 'faceColor', min(cMap), 'edgeColor', 'none');
-        isonormals(volumData, iso);
+        isonormals(fieldData, iso);
     else
-        iso = isosurface(x, y, z, volumeData, isoValue);
+        iso = isosurface(x, y, z, fieldData, isoValue);
         iso = patch(iso, 'faceColor', fieldColour, 'edgeColor', 'none');
-        isonormals(volumData, iso);
+        isonormals(fieldData, iso);
     end
     
     % Figure Formatting
@@ -72,9 +77,9 @@ function fig = volumeFieldPlots(xLims, yLims, zLims, volumeData, fig, figName, g
     axis on;
     box on;
     view([30, 30]);
-    xlim([xLims(1), xLims(2)]);
-    ylim([yLims(1), yLims(2)]);
-    zlim([zLims(1), zLims(2)]);
+    xlim([xLimsPlot(1), xLimsPlot(2)]);
+    ylim([yLimsPlot(1), yLimsPlot(2)]);
+    zlim([zLimsPlot(1), zLimsPlot(2)]);
     tickData = [];
     xticks(tickData);
     tickData = [];

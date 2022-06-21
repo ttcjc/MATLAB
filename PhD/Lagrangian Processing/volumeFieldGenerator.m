@@ -230,7 +230,7 @@ switch format
     case 'B'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsData = [0.31875; 4.65925];
+            xLimsData = [0.31875; 3.61525];
             yLimsData = [-0.5945; 0.5945];
             zLimsData = [0; 0.739];
         end
@@ -371,9 +371,9 @@ parforWaitBar(wB, height(volumeData.inst.time));
 % Calculate Instantaneous Field Variables
 nParticles = cell(height(volumeData.inst.time),1); % Number of Particles in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
-d20 = nParticles; % Surface Mean Diameter in Cell
-d30 = nParticles; % Volume Mean Diameter in Cell
-d32 = nParticles; % Sauter Mean Diameter in Cell
+% d20 = nParticles; % Surface Mean Diameter in Cell
+% d30 = nParticles; % Volume Mean Diameter in Cell
+% d32 = nParticles; % Sauter Mean Diameter in Cell
 mass = nParticles; % Total Mass in Cell
 volFraction = nParticles; % Fraction of Cell Volume Occupied by Spray
 
@@ -384,9 +384,9 @@ d = contaminantData.d;
 parfor i = 1:height(volumeData.inst.time)
     nParticles{i} = zeros(size(x));
     d10{i} = nParticles{i};
-    d20{i} = nParticles{i};
-    d30{i} = nParticles{i};
-    d32{i} = nParticles{i};
+%     d20{i} = nParticles{i};
+%     d30{i} = nParticles{i};
+%     d32{i} = nParticles{i};
     mass{i} = nParticles{i};
     volFraction{i} = nParticles{i};
     
@@ -397,11 +397,11 @@ parfor i = 1:height(volumeData.inst.time)
         d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
                                                               (nParticle{i}(j) * d{i}(j));
                                                           
-        d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-                                                              (nParticle{i}(j) * (d{i}(j)^2));
+%         d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * (d{i}(j)^2));
                                                           
-        d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-                                                              (nParticle{i}(j) * (d{i}(j)^3));
+%         d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * (d{i}(j)^3));
                                                           
         mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
                                                                (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
@@ -409,16 +409,16 @@ parfor i = 1:height(volumeData.inst.time)
     
     volFraction{i} = mass{i} / cellVolume;
     mass{i} = 1000 * mass{i};
-    d32{i} = (d30{i} ./ d20{i}) * 1e6;
-    d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
-    d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
+%     d32{i} = (d30{i} ./ d20{i}) * 1e6;
+%     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
+%     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
     d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
     
     % Set Empty Cells Back to Zero
     d10{i}(isnan(d10{i})) = 0;
-    d20{i}(isnan(d20{i})) = 0;
-    d30{i}(isnan(d30{i})) = 0;
-    d32{i}(isnan(d32{i})) = 0;
+%     d20{i}(isnan(d20{i})) = 0;
+%     d30{i}(isnan(d30{i})) = 0;
+%     d32{i}(isnan(d32{i})) = 0;
     
     send(dQ, []);
 end
@@ -430,9 +430,9 @@ clear contaminantData;
 
 volumeData.inst.nParticles = nParticles;
 volumeData.inst.d10 = d10;
-volumeData.inst.d20 = d20;
-volumeData.inst.d30 = d30;
-volumeData.inst.d32 = d32;
+% volumeData.inst.d20 = d20;
+% volumeData.inst.d30 = d30;
+% volumeData.inst.d32 = d32;
 volumeData.inst.mass = mass;
 volumeData.inst.volFraction = volFraction;
 clear nParticles d10 d20 d30 d32 mass volFraction;
@@ -453,25 +453,25 @@ parforWaitBar(wB, height(volumeData.inst.time));
 % Calculate Time-Averaged Field Variables
 nParticlesMean = zeros(size(volumeData.x));
 d10Mean = nParticlesMean;
-d20Mean = nParticlesMean;
-d30Mean = nParticlesMean;
-d32Mean = nParticlesMean;
+% d20Mean = nParticlesMean;
+% d30Mean = nParticlesMean;
+% d32Mean = nParticlesMean;
 massMean = nParticlesMean;
 volFractionMean = nParticlesMean;
 
 nParticles = volumeData.inst.nParticles;
 d10 = volumeData.inst.d10;
-d20 = volumeData.inst.d20;
-d30 = volumeData.inst.d30;
-d32 = volumeData.inst.d32;
+% d20 = volumeData.inst.d20;
+% d30 = volumeData.inst.d30;
+% d32 = volumeData.inst.d32;
 mass = volumeData.inst.mass;
 volFraction = volumeData.inst.volFraction;
 parfor i = 1:height(volumeData.inst.time)
     nParticlesMean = nParticlesMean + nParticles{i};
     d10Mean = d10Mean + d10{i};
-    d20Mean = d20Mean + d20{i};
-    d30Mean = d30Mean + d30{i};
-    d32Mean = d32Mean + d32{i};
+%     d20Mean = d20Mean + d20{i};
+%     d30Mean = d30Mean + d30{i};
+%     d32Mean = d32Mean + d32{i};
     massMean = massMean + mass{i};
     volFractionMean = volFractionMean + volFraction{i};
     
@@ -483,9 +483,9 @@ delete(wB);
 
 volumeData.mean.nParticles = nParticlesMean / height(volumeData.inst.time);
 volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
-volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
-volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
-volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
+% volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
+% volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
+% volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
 volumeData.mean.mass = massMean / height(volumeData.inst.time);
 volumeData.mean.volFraction = volFractionMean / height(volumeData.inst.time);
 clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean volFractionMean;
@@ -560,6 +560,38 @@ disp('Volume Field Presentation');
 disp('--------------------------');
 
 disp(' ');
+
+xInit = volumeData.x;
+yInit = volumeData.y;
+zInit = volumeData.z;
+POD = false;
+cMap = [];
+figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+xLimsPlot = xLimsData;
+yLimsPlot = yLimsData;
+zLimsPlot = zLimsData;
+
+if plotMean
+    fieldData = volumeData.mean.volFraction;
+    isoValue = 1e-8;
+    figName = ['Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
+              '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+    if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
+        fieldColour = ([74, 24, 99] / 255);
+    elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
+        fieldColour = ([230, 0, 126] / 255);
+    elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
+        fieldColour = ([34, 196, 172] / 255);
+    else
+        fieldColour = ([252, 194, 29] / 255);
+    end
+    
+    figSubtitle = ' ';
+    
+    fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
+                           fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
+                           figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot);
+end
 
 
 %% Local Functions

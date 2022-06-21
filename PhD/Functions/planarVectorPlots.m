@@ -46,39 +46,39 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
-            [x, y, z] = meshgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+            [x, y, z] = ndgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
+                               yLimsData(1):cellSizeY:yLimsData(2), ...
+                               zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'none');
             
             u = zeros(size(x));
-            u(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            u(2,:,:) = interp(y(2,:,:), z(2,:,:));
             u(isnan(u)) = 0;
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,2), ...
                                           'linear', 'none');
             
             v = zeros(size(x));
-            v(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            v(2,:,:) = interp(y(2,:,:), z(2,:,:));
             v(isnan(v)) = 0;
             
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), vectorData(:,3), ...
                                           'linear', 'none');
             
             w = zeros(size(x));
-            w(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            w(2,:,:) = interp(y(2,:,:), z(2,:,:));
             w(isnan(w)) = 0;
             
             % Evaluate Vector Components for Contour
             if nComponents == 1
                 vector = eval(component);
-                vector = vector(:,2,:);
+                vector = vector(2,:,:);
             elseif nComponents == 2
-                vector = sqrt(v(:,2,:).^2 + w(:,2,:).^2);
+                vector = sqrt(v(2,:,:).^2 + w(2,:,:).^2);
             elseif nComponents == 3
-                vector = sqrt(u(:,2,:).^2 + v(:,2,:).^2 + w(:,2,:).^2);
+                vector = sqrt(u(2,:,:).^2 + v(2,:,:).^2 + w(2,:,:).^2);
             else
                 error('Invalid Number of Vector Components');
             end
@@ -89,39 +89,39 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = cellSize;
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / cellSize);
             
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                               (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
+                               zLimsData(1):cellSizeZ:zLimsData(2));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,1), ...
                                           'linear', 'none');
             
             u = zeros(size(x));
-            u(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            u(:,2,:) = interp(x(:,2,:), z(:,2,:));
             u(isnan(u)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,2), ...
                                           'linear', 'none');
             
             v = zeros(size(x));
-            v(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            v(:,2,:) = interp(x(:,2,:), z(:,2,:));
             v(isnan(v)) = 0;
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), vectorData(:,3), ...
                                           'linear', 'none');
             
             w = zeros(size(x));
-            w(2,:,:) = interp(x(2,:,:), z(2,:,:));
+            w(:,2,:) = interp(x(:,2,:), z(:,2,:));
             w(isnan(w)) = 0;
             
             % Evaluate Vector Components for Contour
             if nComponents == 1
                 vector = eval(component);
-                vector = vector(2,:,:);
+                vector = vector(:,2,:);
             elseif nComponents == 2
-                vector = sqrt(u(2,:,:).^2 + w(2,:,:).^2);
+                vector = sqrt(u(:,2,:).^2 + w(:,2,:).^2);
             elseif nComponents == 3
-                vector = sqrt(u(2,:,:).^2 + v(2,:,:).^2 + w(2,:,:).^2);
+                vector = sqrt(u(:,2,:).^2 + v(:,2,:).^2 + w(:,2,:).^2);
             else
                 error('Invalid Number of Vector Components');
             end
@@ -132,9 +132,9 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / cellSize);
             cellSizeZ = cellSize;
             
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
+            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                               yLimsData(1):cellSizeY:yLimsData(2), ...
+                               (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
             
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), vectorData(:,1), ...
                                           'linear', 'none');
@@ -195,14 +195,20 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                       'lineStyle', 'none');
             end
             
-            surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
+            surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-             if streamlines
+            
+            if streamlines
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                v = permute(v, [2,1,3]);
+                w = permute(w, [2,1,3]);
+                
                 streams = streamslice(x, y, z, zeros(size(x)), v, w, xLimsData, [], [], ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
-             end
+            end
             
             if xLimsData < xDims(1) || xLimsData > xDims(2)
 
@@ -273,14 +279,20 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                       'lineStyle', 'none');
             end
             
-            surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(vector), ...
+            surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-             if streamlines
+            
+            if streamlines
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                u = permute(u, [2,1,3]);
+                w = permute(w, [2,1,3]);
+
                 streams = streamslice(x, y, z, u, zeros(size(x)), w, [], yLimsData, [], ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
-             end
+            end
             
             if yLimsData < yDims(1)
 
@@ -353,12 +365,18 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-             if streamlines
+            
+            if streamlines
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                u = permute(u, [2,1,3]);
+                v = permute(v, [2,1,3]);
+                
                 streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], zLimsData, ...
                                       2, 'arrows', 'linear');
                 set(streams, 'color', 'k');
-             end
+            end
             
             if zLimsData > zDims(2)
 

@@ -380,7 +380,7 @@ switch format
         cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
         cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
         
-        [y, z] = meshgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
+        [y, z] = ndgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
         
         mapData.positionGrid = zeros(height(y(:)),3);
         mapData.positionGrid(:,1) = xLimsData;

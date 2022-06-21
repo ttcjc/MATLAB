@@ -177,7 +177,7 @@ switch format
         cellSizeY = (yLims(2) - yLims(1)) / round((yLims(2) - yLims(1)) / cellSize);
         cellSizeZ = (zLims(2) - zLims(1)) / round((zLims(2) - zLims(1)) / cellSize);
 
-        [y, z] = meshgrid(yLims(1):cellSizeY:yLims(2), zLims(1):cellSizeZ:zLims(2));
+        [y, z] = ndgrid(yLims(1):cellSizeY:yLims(2), zLims(1):cellSizeZ:zLims(2));
 
         % Convert Mesh to Readable Format        
         meshPoints = zeros(height(y(:)),3);
@@ -235,9 +235,9 @@ switch format
         % Generate Initial Mesh
         disp('    Generating Initial Volume Mesh...');
 
-        [x, y, z] = meshgrid(xLims(1):cellSize:xLims(2), ...
-                             yLims(1):cellSize:yLims(2), ...
-                             zLims(1):cellSize:zLims(2));
+        [x, y, z] = ndgrid(xLims(1):cellSize:xLims(2), ...
+                           yLims(1):cellSize:yLims(2), ...
+                           zLims(1):cellSize:zLims(2));
         
         % Convert Mesh to Readable Format
         meshPoints = [x(:), y(:), z(:)];

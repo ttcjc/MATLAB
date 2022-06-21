@@ -45,15 +45,15 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
             
-            [x, y, z] = meshgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+            [x, y, z] = ndgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
+                               yLimsData(1):cellSizeY:yLimsData(2), ...
+                               zLimsData(1):cellSizeZ:zLimsData(2));
                              
             interp = scatteredInterpolant(positionData(:,2), positionData(:,3), scalarData, ...
                                           'linear', 'none');
     
             scalar = zeros(size(x));
-            scalar(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            scalar(2,:,:) = interp(y(2,:,:), z(2,:,:));
             
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(y, z, mapPerim(:,2), mapPerim(:,3));
@@ -69,15 +69,15 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = cellSize;
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
 
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
-                                 zLimsData(1):cellSizeZ:zLimsData(2));
+            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                               (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
+                               zLimsData(1):cellSizeZ:zLimsData(2));
                              
             interp = scatteredInterpolant(positionData(:,1), positionData(:,3), scalarData, ...
                                           'linear', 'none');
     
             scalar = zeros(size(x));
-            scalar(2,:,:) = interp(y(2,:,:), z(2,:,:));
+            scalar(:,2,:) = interp(y(:,2,:), z(:,2,:));
             
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(x, z, mapPerim(:,1), mapPerim(:,3));
@@ -93,9 +93,9 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
             cellSizeZ = cellSize;
             
-            [x, y, z] = meshgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                 yLimsData(1):cellSizeY:yLimsData(2), ...
-                                 (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
+            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                               yLimsData(1):cellSizeY:yLimsData(2), ...
+                               (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
                              
             interp = scatteredInterpolant(positionData(:,1), positionData(:,2), scalarData, ...
                                           'linear', 'none');
@@ -137,7 +137,7 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                       'lineStyle', 'none');
             end
             
-            surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
+            surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
             if xLimsData < xDims(1) || xLimsData > xDims(2)
@@ -213,7 +213,7 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                       'lineStyle', 'none');
             end
             
-            surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
+            surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
             if yLimsData < yDims(1)

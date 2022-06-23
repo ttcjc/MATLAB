@@ -12,12 +12,12 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('===============================');
-disp ('Planar Velocity Processing v4.0');
-disp ('===============================');
+disp('===============================');
+disp('Planar Velocity Processing v4.0');
+disp('===============================');
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Changelog
@@ -60,8 +60,8 @@ while ~valid
 
 end
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Initialisation
@@ -258,8 +258,8 @@ switch format
         
 end
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Data Presentation
@@ -329,7 +329,7 @@ for i = 1:height(plotPlanes)
         case {'XZ', 'XY'}
 
             if contains(caseName, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 1.075];
+                xLimsPlot = [0.31875; 1.08325];
                 yLimsPlot = [-0.3445; 0.3445];
                 zLimsPlot = [0; 0.489];
             end

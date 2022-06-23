@@ -9,12 +9,12 @@ figHold = 0;
 
 cellSize = 8e-3; % Base Mesh Cell Size [m]
 
-disp ('=========================');
-disp ('Probe Mesh Generator v1.0');
-disp ('=========================');
+disp('=========================');
+disp('Probe Mesh Generator v1.0');
+disp('=========================');
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Changelog
@@ -56,8 +56,8 @@ while ~valid
 
 end
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Select Type Case
@@ -91,15 +91,15 @@ disp(' ');
 
 disp(['Case: ', caseType]);
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
 [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(false);
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Delete Previously Generated Meshes

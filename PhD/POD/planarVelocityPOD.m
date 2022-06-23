@@ -12,12 +12,12 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('===================================');
-disp ('Planar Pressure POD Calculator v1.0');
-disp ('===================================');
+disp('===================================');
+disp('Planar Pressure POD Calculator v1.0');
+disp('===================================');
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Changelog
@@ -262,7 +262,7 @@ if ~isempty(plotModes)
         case {'XZ', 'XY'}
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.075]; % [m]
+                xLimsPlot = [0.31875; 1.08325]; % [m]
                 yLimsPlot = [-0.3445; 0.3445];
                 zLimsPlot = [0; 0.489];
             end
@@ -569,7 +569,7 @@ if plotRecon
         case {'XZ', 'XY'}
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.075]; % [m]
+                xLimsPlot = [0.31875; 1.08325]; % [m]
                 yLimsPlot = [-0.3445; 0.3445];
                 zLimsPlot = [0; 0.489];
             end

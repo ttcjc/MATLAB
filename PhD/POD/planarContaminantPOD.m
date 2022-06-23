@@ -10,12 +10,12 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('======================================');
-disp ('Planar Contaminant POD Calculator v2.0');
-disp ('======================================');
+disp('======================================');
+disp('Planar Contaminant POD Calculator v2.0');
+disp('======================================');
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Changelog
@@ -135,7 +135,7 @@ disp(' ');
 disp(' ');
 
 
-%% Select Mapping Options
+%% Select POD Options
 
 disp('POD Options');
 disp('------------');

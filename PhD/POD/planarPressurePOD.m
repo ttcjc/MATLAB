@@ -12,12 +12,12 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp ('===================================');
-disp ('Planar Pressure POD Calculator v1.0');
-disp ('===================================');
+disp('===================================');
+disp('Planar Pressure POD Calculator v1.0');
+disp('===================================');
 
-disp (' ');
-disp (' ');
+disp(' ');
+disp(' ');
 
 
 %% Changelog

@@ -46,7 +46,7 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeom
         disp(['    ', parts]);
     end
 
-    disp (' ');
+    disp(' ');
 
     disp('Defining Geometry Boundaries...');
     
@@ -99,7 +99,7 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeom
     spacePrecision = max([xPre, yPre, zPre]);
 
     if normalise
-        disp (' ');
+        disp(' ');
         
         disp('Normalising Dimensions...');
         

@@ -701,38 +701,40 @@ disp('-----------------');
 
 disp(' ');
 
-% Define Plot Limits
-switch format
-    
-    case 'A'
-        orientation = 'YZ';
-        
-        if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsPlot = [0.31875; 1.52725];
-            yLimsPlot = [-0.2445; 0.2445];
-            zLimsPlot = [0; 0.389];
-        end
-        
-    case 'B'
-        orientation = 'YZ';
-        
-        if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsPlot = [0.31875; 4.65925];
-            yLimsPlot = [-0.5945; 0.5945];
-            zLimsPlot = [0; 0.739];
-        end
-        
-end
+if plotInst || plotMean
+    % Define Plot Limits
+    switch format
 
-if normalise
-    xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-    yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-    zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-end
+        case 'A'
+            orientation = 'YZ';
 
-positionData = mapData.positionGrid;
-cMap = viridis(24);
-figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.52725];
+                yLimsPlot = [-0.2445; 0.2445];
+                zLimsPlot = [0; 0.389];
+            end
+
+        case 'B'
+            orientation = 'YZ';
+
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 4.65925];
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+            end
+
+    end
+
+    if normalise
+        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+    end
+
+    positionData = mapData.positionGrid;
+    cMap = viridis(24);
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+end
 
 if plotMean
     
@@ -817,7 +819,7 @@ if plotInst
             CoM = [];
         end
             
-        figSubtitle = [num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
+        figSubtitle = [figTime, ' \it{s}'];
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...

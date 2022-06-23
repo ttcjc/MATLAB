@@ -17,12 +17,8 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
                                 fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
                                 figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot)
                             
-%         x = xInit;
-%         y = yInit;
-%         z = zInit;
-
     % Generate Refined Grid
-    cellSize = 2e-3;
+    cellSize = 4e-3;
 
     cellSizeX = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
     cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));

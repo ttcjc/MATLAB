@@ -2,8 +2,9 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Surface Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ...
+% Usage: LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
 %                                     sampleInterval, timeDirs);
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
@@ -19,7 +20,7 @@
 
 %% Main Function
 
-function LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ...
+function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
                                       sampleInterval, timeDirs)
     
     % Collate Planar Lagrangian Data
@@ -138,12 +139,12 @@ function LagData = readLagDataSurface(caseFolder, caseName, dataID, LagProps, ..
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface'], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface']);
+            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface'], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat'], ...
+            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat']);
+            save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

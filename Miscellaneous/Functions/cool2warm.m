@@ -1,10 +1,10 @@
-%% Viridis Colour Map v1.0
+%% Cool2Warm Colour Map v1.0
 % ----
-% A Perceptually Uniform Colour Map
-% Viridis Is One of the Matplotlib Colour Maps, Originally Contributed by Eric Firing
+% A Diverging (Double-Ended) Color Map With a Smooth Transition in the Middle to Prevent Artifacts at the Midpoint
+% First Featured in ParaView
 % See https://www.kennethmoreland.com/color-advice/
 % ----
-% Usage: map = viridis(m)
+% Usage: map = cool2warm(m)
 %        'm' -> Desired Map Levels
 
 
@@ -15,7 +15,7 @@
 
 %% Main Function
 
-function map = viridis(m)
+function map = cool2warm(m)
 
     if nargin < 1
         f = get(groot,'CurrentFigure');

@@ -2,8 +2,9 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Planar Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
+% Usage: LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
 %                                   sampleInterval, timeDirs);
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
@@ -20,7 +21,7 @@
 
 %% Main Function
 
-function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
+function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
                                     sampleInterval, timeDirs)
     
     % Collate Planar Lagrangian Data
@@ -151,12 +152,12 @@ function LagData = readLagDataPlane(caseFolder, caseName, dataID, LagProps, ...
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane'], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane']);
+            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane'], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat'], ...
+            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat']);
+            save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

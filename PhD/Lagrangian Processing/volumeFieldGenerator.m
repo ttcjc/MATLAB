@@ -13,6 +13,9 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -80,7 +83,7 @@ disp(' ');
 
 %% Initialise Lagrangian Data
 
-[dataID, LagProps, ~, ~, LagData, sampleInterval] = initialiseLagData(caseFolder, caseName, ...
+[dataID, LagProps, ~, ~, LagData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
                                                                       cloudName, false, false, ...
                                                                       true, timeDirs, deltaT, ...
                                                                       timePrecision, nProc);
@@ -565,6 +568,17 @@ if plotInst || plotMean
     zInit = volumeData.z;
     POD = false;
     cMap = [];
+    
+    if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
+        fieldColour = ([74, 24, 99] / 255);
+    elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
+        fieldColour = ([230, 0, 126] / 255);
+    elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
+        fieldColour = ([34, 196, 172] / 255);
+    else
+        fieldColour = ([252, 194, 29] / 255);
+    end
+
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     xLimsPlot = xLimsData;
     yLimsPlot = yLimsData;
@@ -576,16 +590,17 @@ if plotMean
     
     fieldData = volumeData.mean.volFraction;
     isoValue = 1e-8;
-    figName = ['Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
-              '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-    if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-        fieldColour = ([74, 24, 99] / 255);
-    elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-        fieldColour = ([230, 0, 126] / 255);
-    elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-        fieldColour = ([34, 196, 172] / 255);
-    else
-        fieldColour = ([252, 194, 29] / 255);
+
+    switch format
+
+        case 'A'
+            figName = ['Near_Field_Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
+                       '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+        case 'B'
+            figName = ['Far_Field_Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
+                       '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
     end
     
     figSubtitle = ' ';
@@ -612,17 +627,17 @@ if plotInst
         fieldData = volumeData.inst.volFraction{i};
         isoValue = 1.5e-6;
         figTime = num2str(volumeData.inst.time(i), ['%.', num2str(timePrecision), 'f']);
-        figName = ['Instantaneous_Spray_Volume_Fraction_', num2str(isoValue), ...
-                   '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-               
-        if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-            fieldColour = ([74, 24, 99] / 255);
-        elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-            fieldColour = ([230, 0, 126] / 255);
-        elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-            fieldColour = ([34, 196, 172] / 255);
-        else
-            fieldColour = ([252, 194, 29] / 255);
+
+        switch format
+
+            case 'A'
+                figName = ['Near_Field_Instantaneous_Spray_Volume_Fraction_', num2str(isoValue), ...
+                           '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+            case 'B'
+                figName = ['Far_Field_Instantaneous_Spray_Volume_Fraction_', num2str(isoValue), ...
+                           '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
         end
         
         figSubtitle = [figTime, ' \it{s}'];
@@ -638,9 +653,10 @@ end
 
 if ~plotMean && ~plotInst
     disp('    Skipping Volume Field Presentation');
+
+    disp(' ');
 end
 
-disp(' ');
 disp(' ');
 
 
@@ -685,14 +701,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/nearField'], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/nearField']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField']);
                 end
                 
             case 'B'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/farField'], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/farField']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField']);
                 end
                 
         end
@@ -700,14 +716,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat'], ...
                      'dataID', 'volumeData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat'], ...
                      'dataID', 'volumeData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
@@ -719,6 +735,7 @@ while ~valid
     end
 
 end
+clear valid
 
 
 %% Local Functions

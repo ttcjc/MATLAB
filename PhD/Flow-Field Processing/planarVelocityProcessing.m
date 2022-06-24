@@ -401,6 +401,8 @@ for i = 1:height(plotPlanes)
                             vectorData, nComponents, component, fig, figName, cMap, geometry, ...
                             streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+
+    disp(' ');
     
     switch format
         

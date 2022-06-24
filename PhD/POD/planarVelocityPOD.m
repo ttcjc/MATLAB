@@ -9,6 +9,9 @@ normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -29,7 +32,7 @@ disp(' ');
 %% Initialisation
 
 [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData('planarPOD', normalise, nProc);
+ xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, 'planarPOD', normalise, nProc);
 
 if normalise
     dataID = [dataID, '_Norm'];
@@ -342,12 +345,12 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID]);
+        if ~exist([saveLocation, '/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID], 'dir')
+            mkdir([saveLocation, '/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID]);
         end
         
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat']);
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat'], ...
+        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat']);
+        save([saveLocation, '/Numerical/MATLAB/planarVelocityPOD/', caseName, '/', dataID, '/', planeName, '.mat'], ...
              'dataID', 'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp('        Success');
         
@@ -654,12 +657,12 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID]);
+        if ~exist([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID], 'dir')
+            mkdir([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID]);
         end
         
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '.mat']);        
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName ,'.mat'], ...
+        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '.mat']);        
+        save([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName ,'.mat'], ...
              'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp('        Success');
         

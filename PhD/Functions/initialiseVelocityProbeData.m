@@ -3,7 +3,8 @@
 % Initialisation of OpenFOAM v7 Volumetric Velocity Probe Data for Further Processing
 % ----
 % Usage: [caseFolder, probeData, timePrecision, geometry, ...
-%         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(planar, normalise, nProc);
+%         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, format, normalise, nProc);
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'format'    -> Data Processing Format Stored as String
 %        'normalise' -> Normalise Dimensions [True/False]
 %        'nProc'     -> Number of Processors Used for Parallel Collation
@@ -32,7 +33,7 @@
 %% Main Function
 
 function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(format, normalise, nProc)
+          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, format, normalise, nProc)
     
     % Select Case
     disp('Case Selection');
@@ -71,11 +72,11 @@ function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, 
     
         if selection == 'n' | selection == 'N' %#ok<OR2>
             disp(' ');
-            [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, ...
+            [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseFolder, caseName, timeDirs, deltaT, ...
                                                                 timePrecision, 'probesVelocity', nProc);
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/probesVelocity/*.mat'], ...
+            [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/probeData/', caseName, '/probesVelocity/*.mat'], ...
                                              'Select Probe Data');
     
             if contains(filePath, [caseName, '/probesVelocity'])

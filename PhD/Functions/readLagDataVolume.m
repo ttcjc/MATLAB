@@ -2,8 +2,9 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, LagProps, ...
+% Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
 %                                    sampleInterval, timeDirs, nProc);
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
@@ -24,7 +25,7 @@
 
 %% Main Function
 
-function LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, LagProps, ...
+function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
                                      sampleInterval, timeDirs, nProc) %#ok<INUSD>
     
     % Collate Volumetric Lagrangian Data
@@ -121,12 +122,12 @@ function LagData = readLagDataVolume(caseFolder, caseName, dataID, cloudName, La
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume'], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume']);
+            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume'], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume']);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat'], ...
+            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat']);
+            save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

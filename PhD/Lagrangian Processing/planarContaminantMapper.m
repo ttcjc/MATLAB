@@ -15,6 +15,9 @@ cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
 massNormalisation = 3.944150754311134e-10; % Square-Back Base Time-Average
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -82,13 +85,13 @@ disp(' ');
 switch format
     
     case 'A'
-        [dataID, LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, ...
+        [dataID, LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
                                                                               cloudName, false, true, ...
                                                                               false, timeDirs, deltaT, ...
                                                                               timePrecision, nProc);
                                                                                 
     case 'B'
-        [dataID, LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(caseFolder, caseName, ...
+        [dataID, LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
                                                                               cloudName, true, false, ...
                                                                               false, timeDirs, deltaT, ...
                                                                               timePrecision, nProc);
@@ -833,9 +836,10 @@ end
 
 if ~plotMean && ~plotInst
     disp('    Skipping Map Presentation');
+
+    disp(' ');
 end
 
-disp(' ');
 disp(' ');
 
 
@@ -857,14 +861,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base'], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base']);
                 end
                 
             case 'B'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos]);
                 end
                 
         end
@@ -872,14 +876,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat'], ...
                      'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat'], ...
                      'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         

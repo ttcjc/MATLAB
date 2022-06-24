@@ -9,6 +9,9 @@ normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -28,7 +31,7 @@ disp(' ');
 %% Initialisation
 
 [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc);    
+ xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLocation, normalise, nProc);    
 
 if normalise
     dataID = [dataID, '_Norm'];
@@ -316,12 +319,12 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName]);
+        if ~exist([saveLocation, '/Numerical/MATLAB/planarPressurePOD/', caseName], 'dir')
+            mkdir([saveLocation, '/Numerical/MATLAB/planarPressurePOD/', caseName]);
         end
         
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID, '.mat']);
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID, '.mat'], ...
+        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID, '.mat']);
+        save([saveLocation, '/Numerical/MATLAB/planarPressurePOD/', caseName, '/', dataID, '.mat'], ...
              'dataID', 'PODdata', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp('        Success');
         
@@ -619,12 +622,12 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName], 'dir')
-            mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName]);
+        if ~exist([saveLocation, '/Numerical/MATLAB/planarPressureReconstruction/', caseName], 'dir')
+            mkdir([saveLocation, '/Numerical/MATLAB/planarPressureReconstruction/', caseName]);
         end
         
-        disp(['    Saving to: ~/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID, '.mat']);
-        save(['/mnt/Processing/Data/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID, '.mat'], ...
+        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID, '.mat']);
+        save([saveLocation, '/Numerical/MATLAB/planarPressureReconstruction/', caseName, '/', dataID, '.mat'], ...
              'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
          disp('        Success');
         

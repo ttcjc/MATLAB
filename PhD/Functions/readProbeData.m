@@ -4,6 +4,7 @@
 % ----
 % Usage: [dataID, probeData, sampleInterval] = readProbeData(caseFolder, timeDirs, timePrecision ...
 %                                                            probeType, nProc);
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'    -> Case Path Stored as String
 %        'caseName'      -> Case Name, Stored as a String
 %        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
@@ -33,7 +34,7 @@
 
 %% Main Function
 
-function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseName, timeDirs, deltaT, ...
+function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseFolder, caseName, timeDirs, deltaT, ...
                                                              timePrecision, probeType, nProc) %#ok<INUSD>
 
     if ~isempty(timeDirs)
@@ -298,12 +299,12 @@ function [dataID, probeData, sampleInterval] = readProbeData(caseFolder, caseNam
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
-                mkdir(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
+            if ~exist([saveLocation, '/Numerical/MATLAB/probeData/', caseName, '/', probeType], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/probeData/', caseName, '/', probeType]);
             end
             
-            disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat']);
-            save(['/mnt/Processing/Data/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat'], ...
+            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat']);
+            save([saveLocation, '/Numerical/MATLAB/probeData/', caseName, '/', probeType, '/', dataID, '.mat'], ...
                  'dataID', 'probeData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

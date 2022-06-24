@@ -7,6 +7,9 @@ evalc('delete(gcp(''nocreate''));');
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -68,7 +71,7 @@ disp('----------------------------');
 valid = false;
 while ~valid
     disp(' ');
-    [fileName, filePath] = uigetfile('/mnt/Processing/Data/Numerical/MATLAB/contaminantMap/*.mat', ...
+    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/contaminantMap/*.mat'], ...
                                       'Select Map Data');
     
     switch format
@@ -504,14 +507,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar]);
                 end
                 
             case 'B'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar]);
                 end
                 
         end
@@ -519,14 +522,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
@@ -811,7 +814,7 @@ if plotRecon
             CoM = [];
         end
         
-        figSubtitle = [num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
+        figSubtitle = [figTime, ' \it{s}'];
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
@@ -844,14 +847,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar]);
                 end
                 
             case 'B'
                 
-                if ~exist(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar], 'dir')
-                    mkdir(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar]);
                 end
                 
         end
@@ -859,14 +862,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: /mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
-                save(['/mnt/Processing/Data/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         

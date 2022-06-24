@@ -54,11 +54,11 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
 
     if POD
         iso = isosurface(x, y, z, fieldData, isoValue);
-        iso = patch(iso, 'faceColor', max(cMap), 'edgeColor', 'none');
+        iso = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
         isonormals(fieldData, iso);
         
         iso = isosurface(x, y, z, fieldData, -isoValue);
-        iso = patch(iso, 'faceColor', min(cMap), 'edgeColor', 'none');
+        iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
         isonormals(fieldData, iso);
     else
         iso = isosurface(x, y, z, fieldData, isoValue);

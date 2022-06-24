@@ -7,6 +7,9 @@ evalc('delete(gcp(''nocreate''));');
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
@@ -61,13 +64,13 @@ disp(' ');
 
 %% Acquire Volume Field
 
-disp('Contaminant Map Acquisition');
-disp('----------------------------');
+disp('Volume Field Acquisition');
+disp('-------------------------');
 
 valid = false;
 while ~valid
     disp(' ');
-    [fileName, filePath] = uigetfile('/mnt/Processing/Data/Numerical/MATLAB/volumeField/*.mat', ...
+    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/volumeField/*.mat'], ...
                                       'Select Map Data');
     
     switch format
@@ -207,29 +210,21 @@ Nt = height(PODdata.time); % Number of Time Instances
 % Initialise Progress Bar
 wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, Nt);
 
 % Assemble Snapshot Matrix
-snapshotMatrix = zeros(Nt,Ns);
+PODdata.snapshotMatrix = zeros(Nt,Ns);
 
 varPrime = PODdata.(PODvar).prime;
-parfor i = 1:Nt
+for i = 1:Nt
     
     for j = 1:Ns
-        snapshotMatrix(i,j) = varPrime{i}(j);
+        PODdata.snapshotMatrix(i,j) = PODdata.(PODvar).prime{i}(j);
     end
     
-    send(dQ, []);
+    waitbar((i / Nt), wB);
 end
-clear varPrime;
 
 delete(wB);
-
-PODdata.snapshotMatrix = snapshotMatrix;
-clear snapshotMatrix;
 
 % Generate Correlation Matrix
 PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
@@ -392,7 +387,7 @@ if ~isempty(plotModes)
     yInit = reshape(PODdata.positionGrid(:,2), gridShape);
     zInit = reshape(PODdata.positionGrid(:,3), gridShape);
     POD = true;
-    cMap = turbo(24);
+    cMap = cool2warm(24);
     fieldColour = [];
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     xLimsPlot = xLimsData;
@@ -403,7 +398,7 @@ if ~isempty(plotModes)
         disp(['    Presenting Mode #', num2str(i), '...']);
         
         fieldData = reshape(rescale(PODdata.phi_mode(:,i), -1, 1), gridShape);
-        isoValue = 0.25;
+        isoValue = 0.15;
         
         switch format
 
@@ -424,4 +419,374 @@ if ~isempty(plotModes)
     
 else
     disp('    Skipping Mode Presentation');
+end
+
+disp(' ');
+disp(' ');
+
+
+%% Save POD Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        switch format
+            
+            case 'A'
+                
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField']);
+                end
+                
+            case 'B'
+                
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField']);
+                end
+                
+        end
+        
+        switch format
+            
+            case 'A'
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', dataID, '.mat'], ...
+                     'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp('        Success');
+                 
+            case 'B'
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', dataID, '.mat'], ...
+                     'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp('        Success');
+        
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Select Reconstruction Options
+
+disp('Reconstruction Options');
+disp('-----------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        return
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        reconModes = inputModes(Nt);
+        
+        if reconModes == -1
+            continue
+        end
+        
+        reconModes = sort(reconModes);
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Perform Field Reconstruction
+
+disp('Field Reconstruction');
+disp('---------------------');
+
+disp(' ');
+
+disp('***********');
+disp('  RUNNING ');
+
+tic;
+evalc('parpool(nProc);');
+
+disp(' ');
+
+disp('    Initialising...');
+
+% Initialise Reconstruction Variables
+reconData.positionGrid = PODdata.positionGrid;
+reconData.time = PODdata.time;
+reconData.(PODvar).mean = PODdata.(PODvar).mean;
+reconData.(PODvar).inst = cell(Nt,1);
+
+for i = 1:Nt
+    reconData.(PODvar).inst{i} = reconData.(PODvar).mean;
+end
+
+disp(' ');
+
+% Perform Reconstruction
+disp('    Performing Field Reconstruction...');
+
+for i = reconModes
+    % Initialise Progress Bar
+    wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    
+    % Identify Mode Contribution
+    mode = ['M', num2str(i)];
+    
+    reconData.(mode).modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
+    reconData.(mode).prime = cell(Nt,1);
+    
+    for j = 1:Nt
+        reconData.(mode).prime{j} = zeros(Ns,1);
+        
+        for k = 1:Ns
+            reconData.(mode).prime{j}(k) = reconData.(mode).modeMatrix(j,k);
+        end
+        
+        waitbar((j / Nt), wB);    
+    end
+    
+    delete(wB);
+    
+    % Add Mode to Reconstruction
+    for j = 1:Nt
+        reconData.(PODvar).inst{j} = reconData.(PODvar).inst{j} + reconData.(mode).prime{j};
+    end
+    
+end
+
+evalc('delete(gcp(''nocreate''));');
+executionTime = toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
+
+disp(' ');
+
+disp('  SUCCESS  ');
+disp('***********');
+
+disp(' ');
+disp(' ');
+
+
+%% Select Reconstruction Presentation Options
+
+disp('Reconstruction Presentation Options');
+disp('------------------------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Reconstructed Field? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotRecon = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotRecon = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Present Reconstruction
+
+disp('Reconstruction Presentation');
+disp('----------------------------');
+
+disp(' ');
+
+if plotRecon
+    % Specify Region Boundaries
+    switch format
+
+        case 'A'
+
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsData = [0.31875; 1.38325];
+                yLimsData = [-0.3445; 0.3445];
+                zLimsData = [0; 0.489];
+            end
+
+        case 'B'
+
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsData = [0.31875; 3.61525];
+                yLimsData = [-0.5945; 0.5945];
+                zLimsData = [0; 0.739];
+            end
+
+    end
+
+    if normalise
+        xLimsData = round((xLimsData / 1.044), spacePrecision);
+        yLimsData = round((yLimsData / 1.044), spacePrecision);
+        zLimsData = round((zLimsData / 1.044), spacePrecision);
+    end
+    
+    % Format Position Grid
+    gridShape = [height(unique(reconData.positionGrid(:,1))), ...
+                 height(unique(reconData.positionGrid(:,2))), ...
+                 height(unique(reconData.positionGrid(:,3)))];
+             
+    xInit = reshape(reconData.positionGrid(:,1), gridShape);
+    yInit = reshape(reconData.positionGrid(:,2), gridShape);
+    zInit = reshape(reconData.positionGrid(:,3), gridShape);
+    POD = false;
+    cMap = [];
+
+    if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
+        fieldColour = ([74, 24, 99] / 255);
+    elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
+        fieldColour = ([230, 0, 126] / 255);
+    elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
+        fieldColour = ([34, 196, 172] / 255);
+    else
+        fieldColour = ([252, 194, 29] / 255);
+    end
+
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    xLimsPlot = xLimsData;
+    yLimsPlot = yLimsData;
+    zLimsPlot = zLimsData;
+    
+    figHold = fig;
+    
+    for i = 1:Nt
+        
+        if i ~= 1
+            clf(fig);
+            fig = figHold;
+        end
+
+        fieldData = reshape(reconData.(PODvar).inst{i}, gridShape);
+        isoValue = 1.5e-6;
+        figTime = num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']);
+
+        switch format
+
+            case 'A'
+                figName = ['Near_Field_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
+
+            case 'B'
+                figName = ['Far_Field_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
+
+        end
+        
+        figSubtitle = [figTime, ' \it{s}'];
+        
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
+                               fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
+                               figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot); 
+
+    end
+
+else
+    disp('    Skipping Reconstruction Presentation');
+end
+
+disp(' ');
+disp(' ');
+
+
+%% Save Reconstruction Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        switch format
+            
+            case 'A'
+                
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/nearField/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/nearField/', PODvar]);
+                end
+                
+            case 'B'
+                
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/farField/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/farField/', PODvar]);
+                end
+                
+        end
+        
+        switch format
+            
+            case 'A'
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/nearField/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/nearField/', PODvar, '/', dataID, '.mat'], ...
+                     'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp('        Success');
+                 
+            case 'B'
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/farField/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantReconstruction/', caseName, '/farField/', PODvar, '/', dataID, '.mat'], ...
+                     'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp('        Success');
+        
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+
+%% Local Functions
+
+function modes = inputModes(nModes)
+
+    modes = str2num(input('    Input Desired Modes (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
+    
+    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes >= nModes)
+        disp('        WARNING: Invalid Entry');
+        modes = -1;
+    end
+
 end

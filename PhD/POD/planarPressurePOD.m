@@ -9,8 +9,8 @@ normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -52,7 +52,6 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
 
 disp(' ');
 
@@ -125,29 +124,20 @@ Nt = height(PODdata.time); % Number of Time Instances
 % Initialise Progress Bar
 wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, Nt);
 
 % Assemble Snapshot Matrix
-snapshotMatrix = zeros(Nt,Ns);
+PODdata.snapshotMatrix = zeros(Nt,Ns);
 
-pPrime = PODdata.p.prime;
-parfor i = 1:Nt
+for i = 1:Nt
     
     for j = 1:Ns
-        snapshotMatrix(i,j) = pPrime{i}(j);
+        PODdata.snapshotMatrix(i,j) = PODdata.p.prime{i}(j);
     end
     
-    send(dQ, []);
+    waitbar((i / Nt), wB);
 end
-clear varPrime;
 
 delete(wB);
-
-PODdata.snapshotMatrix = snapshotMatrix;
-clear snapshotMatrix;
 
 % Generate Correlation Matrix
 PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
@@ -205,7 +195,6 @@ hold off;
 pause(2);
 exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');
@@ -280,7 +269,7 @@ if ~isempty(plotModes)
     end
 
     positionData = PODdata.positionGrid;
-    cMap = turbo(24);
+    cMap = cool2warm(24);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
 
@@ -384,7 +373,6 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
 
 disp(' ');
 
@@ -409,32 +397,24 @@ for i = reconModes
     % Initialise Progress Bar
     wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
-    dQ = parallel.pool.DataQueue;
-    afterEach(dQ, @parforWaitBar);
-
-    parforWaitBar(wB, Nt);
     
     % Identify Mode Contribution
     mode = ['M', num2str(i)];
     
-    modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
-    pPrime = cell(Nt,1);
+    reconData.(mode).modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
+    reconData.(mode).prime = cell(Nt,1);
     
-    parfor j = 1:Nt
-        pPrime{j} = zeros(Ns,1);
+    for j = 1:Nt
+        reconData.(mode).prime{j} = zeros(Ns,1);
         
         for k = 1:Ns
-            pPrime{j}(k) = modeMatrix(j,k);
+            reconData.(mode).prime{j}(k) = reconData.(mode).modeMatrix(j,k);
         end
         
-        send(dQ, []);
+        waitbar((j / Nt), wB);
     end
     
     delete(wB);
-    
-    reconData.(mode).modeMatrix = modeMatrix;
-    reconData.(mode).prime = pPrime;
-    clear modeMatrix pPrime;
     
     % Add Mode to Reconstruction
     for j = 1:Nt
@@ -476,38 +456,29 @@ end
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Reconstructed Centre of Pressure', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, Nt);
 
 % Calculate Reconstructed CoP
-CoP = cell(Nt,1);
+reconData.p.CoP = cell(Nt,1);
 
-p = reconData.Cp.inst;
-positionGrid = reconData.positionGrid;
-parfor i = 1:Nt
-    CoP{i} = zeros(1,3);
-    CoP{i}(1) = positionGrid(1,1); %#ok<PFBNS>
+for i = 1:Nt
+    reconData.p.CoP{i} = zeros(1,3);
+    reconData.p.CoP{i}(1) = reconData.positionGrid(1,1);
     
-    for j = 1:height(positionGrid)
-        CoP{i}(2) = CoP{i}(2) + (p{i}(j) * positionGrid(j,2));
-        CoP{i}(3) = CoP{i}(3) + (p{i}(j) * positionGrid(j,3));
+    for j = 1:height(reconData.positionGrid)
+        reconData.p.CoP{i}(2) = reconData.p.CoP{i}(2) + ...
+                                (reconData.Cp.inst{i}(j) * reconData.positionGrid(j,2));
+        reconData.p.CoP{i}(3) = reconData.p.CoP{i}(3) + ...
+                                (reconData.Cp.inst{i}(j) * reconData.positionGrid(j,3));
     end
     
-    CoP{i}(2) = CoP{i}(2) / sum(p{i});
-    CoP{i}(3) = CoP{i}(3) / sum(p{i});
-    send(dQ, []);
+    reconData.p.CoP{i}(2) = reconData.p.CoP{i}(2) / sum(reconData.Cp.inst{i});
+    reconData.p.CoP{i}(3) = reconData.p.CoP{i}(3) / sum(reconData.Cp.inst{i});
+    
+    waitbar((i / Nt), wB);
 end
-clear p positionGrid;
 
 delete(wB);
 
-reconData.p.CoP = CoP;
-reconData.Cp.CoP = reconData.p.CoP;
-clear CoP;
-
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');

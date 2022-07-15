@@ -26,8 +26,23 @@ disp(' ');
 
 %% Initialise Case
 
-[caseFolder, caseName, ~, ~, ~, ~, ...
- ~, ~, ~, ~, ~] = initialiseCaseData(normalise);
+% Select Case
+disp('Case Selection');
+disp('---------------');
+
+caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
+
+namePos = max(strfind(caseFolder, '/')) + 1;
+caseName = caseFolder(namePos:end);
+
+disp(' ');
+
+disp(['Case: ', caseName]);
+
+% Confirm Support
+if ~contains(caseName, ["Run_Test", "Windsor"])
+    error('Invalid Case Directory (Unsupported Case Type)');
+end
 
 disp(' ');
 disp(' ');
@@ -64,22 +79,26 @@ for i = 1:height(coeffDirs)
     fileID = fopen([caseFolder, '/postProcessing/forceCoeffs/', coeffDirs(i).name, '/forceCoeffs.dat']);
     content = textscan(fileID, '%f %f %f %f %f %f', 'headerLines', 9, 'delimiter', '\n', 'collectOutput', true);
 
-    coeffData.time = [coeffData.time; content{i,1}];
-    coeffData.Cd = [coeffData.Cd; content{i,3}];
-    coeffData.Cl = [coeffData.Cl; content{i,4}];
+    coeffData.time = [coeffData.time; content{1}(:,1)];
+    coeffData.Cd = [coeffData.Cd; content{1}(:,3)];
+    coeffData.Cl = [coeffData.Cl; content{1}(:,4)];
 
     fclose(fileID);
 end
 
 % Load Experimental Values
 if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-    coeffData.Cd_Exp = 0;
+    coeffData.Cd_Exp = 0.350;
+    coeffData.Cl_Exp = 0.134;
 elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-    coeffData.Cd_Exp = 0;
+    coeffData.Cd_Exp = 0.328;
+    coeffData.Cl_Exp = 0.107;
 elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-    coeffData.Cd_Exp = 0;
+    coeffData.Cd_Exp = 0.333;
+    coeffData.Cl_Exp = 0.195;
 else
     coeffData.Cd_Exp = nan;
+    coeffData.Cl_Exp = nan;
 end
 
 % Perform Blockage Correction
@@ -136,7 +155,7 @@ hold on;
 
 % Plot
 plot(coeffData.time(10:end), coeffData.Cd(10:end), 'lineWidth', 1.5, 'color', ([74, 24, 99] / 255));
-xline(2, 'k', 'Start of Flow-Field Averaging', 'lineWidth', 1.5);
+xline(1, 'k', 'Start of Averaging', 'lineWidth', 1.5);
 
 % Figure Formatting
 axis on;
@@ -148,6 +167,8 @@ tickData = (0:0.5:5);
 xticks(tickData(2:(end - 1)));
 tickData = (0.25:0.025:0.45);
 yticks(tickData(2:(end - 1)));
+xtickformat('%.1f');
+ytickformat('%+.3f');
 xlabel({' ', '{\bf{Time (\it{s})}}'}, 'fontName', 'LM Roman 12');
 ylabel({'{\bf{C_D}}', ' '}, 'fontName', 'LM Roman 12');
 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
@@ -168,21 +189,23 @@ set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
 hold on;
 
 % Plot
-plot(coeffData.time(10:end), coeffData.Cl(10:end), 'lineWidth', 1.5, 'color', ([74, 24, 99] / 255));
-xline(2, 'k', 'Start of Flow-Field Averaging', 'lineWidth', 1.5);
+plot(coeffData.time(10:end), coeffData.Cl(10:end), 'lineWidth', 1.5, 'color', ([230, 0, 126] / 255));
+xline(1, 'k', 'Start of Averaging', 'lineWidth', 1.5);
 
 % Figure Formatting
 axis on;
 box on;
 grid off;
 xlim([0; 5]);
-ylim([0.25; 0.45]);
+ylim([-0.05; 0.15]);
 tickData = (0:0.5:5);
 xticks(tickData(2:(end - 1)));
-tickData = (0.25:0.025:0.45);
+tickData = (-0.05:0.025:0.15);
 yticks(tickData(2:(end - 1)));
+xtickformat('%.1f');
+ytickformat('%+.3f');
 xlabel({' ', '{\bf{Time (\it{s})}}'}, 'fontName', 'LM Roman 12');
-ylabel({'{\bf{C_l}}', ' '}, 'fontName', 'LM Roman 12');
+ylabel({'{\bf{C_L}}', ' '}, 'fontName', 'LM Roman 12');
 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 

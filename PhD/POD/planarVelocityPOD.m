@@ -9,8 +9,8 @@ normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -56,7 +56,6 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
 
 disp(' ');
 
@@ -105,30 +104,22 @@ Nt = height(PODdata.time); % Number of Time Instances
 % Initialise Progress Bar
 wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, Nt);
 
 % Assemble Snapshot Matrix
 uSnapshotMatrix = zeros(Nt,Ns);
 vSnapshotMatrix = uSnapshotMatrix;
 wSnapshotMatrix = uSnapshotMatrix;
 
-uPrime = PODdata.u.prime;
-vPrime = PODdata.v.prime;
-wPrime = PODdata.w.prime;
-parfor i = 1:Nt
+for i = 1:Nt
     
     for j = 1:Ns
-        uSnapshotMatrix(i,j) = uPrime{i}(j);
-        vSnapshotMatrix(i,j) = vPrime{i}(j);
-        wSnapshotMatrix(i,j) = wPrime{i}(j);
+        uSnapshotMatrix(i,j) = PODdata.u.prime{i}(j);
+        vSnapshotMatrix(i,j) = PODdata.v.prime{i}(j);
+        wSnapshotMatrix(i,j) = PODdata.w.prime{i}(j);
     end
     
-    send(dQ, []);    
+    waitbar((i / Nt), wB);
 end
-clear uPrime vPrime wPrime
 
 delete(wB);
 
@@ -191,7 +182,6 @@ hold off;
 pause(2);
 exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');
@@ -303,7 +293,7 @@ if ~isempty(plotModes)
     
     end
     
-    cMap = turbo(24);
+    cMap = cool2warm(24);
     streamlines = true;
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
@@ -441,10 +431,6 @@ for i = reconModes
     % Initialise Progress Bar
     wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
-    dQ = parallel.pool.DataQueue;
-    afterEach(dQ, @parforWaitBar);
-
-    parforWaitBar(wB, Nt);
     
     % Identify Mode Contribution
     mode = ['M', num2str(i)];
@@ -452,31 +438,29 @@ for i = reconModes
     uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
     vModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(((Ns + 1):(2 * Ns)),i)';
     wModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((((2 * Ns) + 1):end),i)';
-    uPrime = cell(Nt,1);
-    vPrime = uPrime;
-    wPrime = uPrime;
     
-    parfor j = 1:Nt
-        uPrime{j} = zeros(Ns,1);
-        vPrime{j} = uPrime{j}
-        wPrime{j} = uPrime{j}
+    reconData.(mode).u.prime = cell(Nt,1);
+    reconData.(mode).v.prime = reconData.(mode).u.prime;
+    reconData.(mode).w.prime = reconData.(mode).u.prime;
+    
+    for j = 1:Nt
+        reconData.(mode).u.prime{j} = zeros(Ns,1);
+        reconData.(mode).v.prime{j} = reconData.(mode).u.prime{j};
+        reconData.(mode).w.prime{j} = reconData.(mode).u.prime{j};
         
         for k = 1:Ns
-            uPrime{j}(k) = uModeMatrix(j,k);
-            vPrime{j}(k) = vModeMatrix(j,k);
-            wPrime{j}(k) = wModeMatrix(j,k);
+            reconData.(mode).u.prime{j}(k) = uModeMatrix(j,k);
+            reconData.(mode).v.prime{j}(k) = vModeMatrix(j,k);
+            reconData.(mode).w.prime{j}(k) = wModeMatrix(j,k);
         end
         
-        send(dQ, []);
+         waitbar((j / Nt), wB);
     end
     
     delete(wB);
     
     reconData.(mode).modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix];
-    reconData.(mode).u.prime = uPrime;
-    reconData.(mode).v.prime = vPrime;
-    reconData.(mode).w.prime = wPrime;
-    clear vModeMatrix uModeMatrix qModeMatrix uPrime vPrime wPrime;
+    clear uModeMatrix vModeMatrix wModeMatrix;
     
     % Add Mode to Reconstruction
     for j = 1:Nt
@@ -504,7 +488,6 @@ if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(
     
 end
 
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');

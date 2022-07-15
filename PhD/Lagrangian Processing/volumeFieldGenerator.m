@@ -5,7 +5,7 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-normalise = true; % Normalisation of Dimensionsn
+normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
@@ -13,8 +13,8 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -567,6 +567,7 @@ if plotInst || plotMean
     yInit = volumeData.y;
     zInit = volumeData.z;
     POD = false;
+    fieldDataB = [];
     cMap = [];
     
     if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
@@ -588,26 +589,27 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
-    fieldData = volumeData.mean.volFraction;
-    isoValue = 1e-8;
-
+    fieldDataA = volumeData.mean.volFraction;
+    
     switch format
 
         case 'A'
             figName = ['Near_Field_Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
-                       '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                       '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 
         case 'B'
             figName = ['Far_Field_Time_Averaged_Spray_Volume_Fraction_', num2str(isoValue), ...
-                       '_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                       '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 
     end
     
+    isoValue = 1e-8;
     figSubtitle = ' ';
     
-    fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
-                           fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
-                           figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot);
+    fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+                           fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+                           cMap, fieldColour, figTitle, figSubtitle, ...
+                           xLimsPlot, yLimsPlot, zLimsPlot);
                        
     disp(' ');
 end
@@ -617,6 +619,8 @@ if plotInst
     
     figHold = fig;
     
+    isoValue = 1e-6;
+    
     for i = 1:height(volumeData.inst.time)
         
         if i ~= 1
@@ -624,8 +628,7 @@ if plotInst
             fig = figHold;
         end
         
-        fieldData = volumeData.inst.volFraction{i};
-        isoValue = 1.5e-6;
+        fieldDataA = volumeData.inst.volFraction{i};
         figTime = num2str(volumeData.inst.time(i), ['%.', num2str(timePrecision), 'f']);
 
         switch format
@@ -642,9 +645,10 @@ if plotInst
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
-                               fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
-                               figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot);
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+                               cMap, fieldColour, figTitle, figSubtitle, ...
+                               xLimsPlot, yLimsPlot, zLimsPlot);
                            
     end
     
@@ -735,7 +739,7 @@ while ~valid
     end
 
 end
-clear valid
+clear valid;
 
 
 %% Local Functions

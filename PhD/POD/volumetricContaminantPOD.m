@@ -5,10 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -171,7 +169,6 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
 
 disp(' ');
 
@@ -259,10 +256,10 @@ fig = fig + 1;
 switch format
     
     case 'A'
-        figName = ['Base_', PODvar, '_Planar_POD_Energy_Content'];
+        figName = ['Near_Field_', PODvar, '_Planar_POD_Energy_Content'];
         
     case 'B'
-        figName = [planePos, '_', PODvar, '_Planar_POD_Energy_Content'];
+        figName = ['Far_Field_', PODvar, '_Planar_POD_Energy_Content'];
         
 end
         
@@ -292,7 +289,6 @@ hold off;
 pause(2);
 exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');
@@ -387,6 +383,7 @@ if ~isempty(plotModes)
     yInit = reshape(PODdata.positionGrid(:,2), gridShape);
     zInit = reshape(PODdata.positionGrid(:,3), gridShape);
     POD = true;
+    isoValue = 5e-7;
     cMap = cool2warm(24);
     fieldColour = [];
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -397,8 +394,21 @@ if ~isempty(plotModes)
     for i = plotModes
         disp(['    Presenting Mode #', num2str(i), '...']);
         
-        fieldData = reshape(rescale(PODdata.phi_mode(:,i), -1, 1), gridShape);
-        isoValue = 0.15;
+        modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
+        
+        [~, indexA] = min(PODdata.A_coeff(:,i));
+        [~, indexB] = max(PODdata.A_coeff(:,i));
+        
+        primeFieldA = zeros(Ns,1);
+        primeFieldB = zeros(Ns,1);
+        
+        for j = 1:Ns
+            primeFieldA(j) = modeMatrix(indexA,j);
+            primeFieldB(j) = modeMatrix(indexB,j);
+        end
+        
+        fieldDataA = reshape(primeFieldA, gridShape);
+        fieldDataB = reshape(primeFieldB, gridShape);
         
         switch format
 
@@ -409,12 +419,13 @@ if ~isempty(plotModes)
                 figName = ['Far_Field_', PODvar, '_Volumetric_POD_M', num2str(i)];
 
         end
-        
+
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
-        
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
-                               fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
-                               figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot);
+
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+                               cMap, fieldColour, figTitle, figSubtitle, ...
+                               xLimsPlot, yLimsPlot, zLimsPlot);
     end
     
 else
@@ -443,14 +454,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', PODvar]);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', PODvar]);
                 end
                 
         end
@@ -458,14 +469,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/nearField/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/volumetricContaminantPOD/', caseName, '/farField/', PODvar, '/', dataID, '.mat'], ...
                      'dataID', 'PODdata', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
@@ -527,7 +538,6 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
 
 disp(' ');
 
@@ -566,7 +576,7 @@ for i = reconModes
             reconData.(mode).prime{j}(k) = reconData.(mode).modeMatrix(j,k);
         end
         
-        waitbar((j / Nt), wB);    
+        waitbar((j / Nt), wB);
     end
     
     delete(wB);
@@ -578,7 +588,6 @@ for i = reconModes
     
 end
 
-evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
 
 disp(' ');
@@ -667,6 +676,8 @@ if plotRecon
     yInit = reshape(reconData.positionGrid(:,2), gridShape);
     zInit = reshape(reconData.positionGrid(:,3), gridShape);
     POD = false;
+    fieldDataB = [];
+    isoValue = 1e-6;
     cMap = [];
 
     if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
@@ -693,8 +704,7 @@ if plotRecon
             fig = figHold;
         end
 
-        fieldData = reshape(reconData.(PODvar).inst{i}, gridShape);
-        isoValue = 1.5e-6;
+        fieldDataA = reshape(reconData.(PODvar).inst{i}, gridShape);
         figTime = num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']);
 
         switch format
@@ -709,9 +719,10 @@ if plotRecon
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
-                               fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
-                               figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot); 
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+                               cMap, fieldColour, figTitle, figSubtitle, ...
+                               xLimsPlot, yLimsPlot, zLimsPlot);
 
     end
 

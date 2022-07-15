@@ -397,18 +397,21 @@ for i = 1:height(plotPlanes)
     figSubtitle = ' ';
     cLims = [0, 1];
     
-    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-                            vectorData, nComponents, component, fig, figName, cMap, geometry, ...
-                            streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, ...
+                            positionData, vectorData, nComponents, component, ...
+                            fig, figName, cMap, geometry, streamlines, ...
+                            xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+end
 
-    disp(' ');
-    
-    switch format
-        
-        case 'B'
-            
-            if plotInst
+disp(' ');
+
+switch format
+
+    case 'B'
+
+        if plotInst
+            for i = 1:height(plotPlanes)
                 figHold = fig;
                 
                 for j = 1:height(velData.(plotPlanes{i}).time)
@@ -417,20 +420,21 @@ for i = 1:height(plotPlanes)
                         clf(fig)
                         fig = figHold;
                     end
-                    
+
                     vectorData = [velData.(plotPlanes{i}).u{j}, velData.(plotPlanes{i}).v{j}, velData.(plotPlanes{i}).w{j}];
                     figTime = num2str(velData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
                     figName = [caseName, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
-                    figSubtitle = [num2str(velData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
+                    figSubtitle = [figTime, ' \it{s}'];
                     
-                    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-                                            vectorData, nComponents, component, fig, figName, cMap, geometry, ...
-                                            streamlines, xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
+                    fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, ...
+                                            positionData, vectorData, nComponents, component, ...
+                                            fig, figName, cMap, geometry, streamlines, ...
+                                            xDims, yDims, zDims, figTitle, figSubtitle, cLims, ...
                                             xLimsPlot, yLimsPlot, zLimsPlot, normalise);
                 end
                 
             end
             
-    end
-    
+        end
+        
 end

@@ -2,7 +2,10 @@
 % ----
 % Plots Previously Processed Volume Fields
 % ----
-% Usage: fig = volumeFieldPlots()
+% Usage: fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+%                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+%                               cMap, fieldColour, figTitle, figSubtitle, ...
+%                               xLimsPlot, yLimsPlot, zLimsPlot);
 
 
 %% Changelog
@@ -13,9 +16,10 @@
 
 %% Main Function
 
-function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, fieldData, ...
-                                fig, figName, geometry, POD, isoValue, cMap, fieldColour, ...
-                                figTitle, figSubtitle, xLimsPlot, yLimsPlot, zLimsPlot)
+function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
+                                fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
+                                cMap, fieldColour, figTitle, figSubtitle, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot)
                             
     % Generate Refined Grid
     cellSize = 4e-3;
@@ -28,10 +32,18 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
                        yLimsData(1):cellSizeY:yLimsData(2), ...
                        zLimsData(1):cellSizeZ:zLimsData(2));
 
-    fieldData = interpn(xInit, yInit, zInit, fieldData, x, y, z);
-
     % Smooth Data
-    fieldData = smooth3(fieldData, 'gaussian');
+    if POD
+        fieldDataA = interpn(xInit, yInit, zInit, fieldDataA, x, y, z);
+        fieldDataB = interpn(xInit, yInit, zInit, fieldDataB, x, y, z);
+        
+        fieldDataA = smooth3(fieldDataA, 'gaussian');
+        fieldDataB = smooth3(fieldDataB, 'gaussian');
+    else
+        fieldDataA = interpn(xInit, yInit, zInit, fieldDataA, x, y, z);
+        
+        fieldDataA = smooth3(fieldDataA, 'gaussian');
+    end
     
     % Figure Setup
     fig = fig + 1;
@@ -53,17 +65,17 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     end
 
     if POD
-        iso = isosurface(x, y, z, fieldData, isoValue);
-        iso = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
-        isonormals(fieldData, iso);
-        
-        iso = isosurface(x, y, z, fieldData, -isoValue);
+        iso = isosurface(x, y, z, fieldDataA, isoValue);
         iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
-        isonormals(fieldData, iso);
+        isonormals(fieldDataA, iso);
+        
+        iso = isosurface(x, y, z, fieldDataB, isoValue);
+        iso = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
+        isonormals(fieldDataB, iso);
     else
-        iso = isosurface(x, y, z, fieldData, isoValue);
+        iso = isosurface(x, y, z, fieldDataA, isoValue);
         iso = patch(iso, 'faceColor', fieldColour, 'edgeColor', 'none');
-        isonormals(fieldData, iso);
+        isonormals(fieldDataA, iso);
     end
     
     % Figure Formatting

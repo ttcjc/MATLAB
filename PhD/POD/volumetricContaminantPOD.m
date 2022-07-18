@@ -43,11 +43,9 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
-        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -514,10 +512,8 @@ while ~valid
     selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        reconstruct = false;
-        valid = true;
+        return;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        reconstruct = true;
         nModes = inputModes(Nt);
         
         if nModes == -1

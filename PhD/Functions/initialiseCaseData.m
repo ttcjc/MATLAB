@@ -56,4 +56,3 @@ function [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
     [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
     
 end
-    

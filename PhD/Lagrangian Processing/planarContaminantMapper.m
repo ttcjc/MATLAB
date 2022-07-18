@@ -5,6 +5,9 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
 normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
@@ -14,9 +17,6 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
 massNormalisation = 3.944150754311134e-10; % Square-Back Base Time-Average
-
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -63,11 +63,9 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
-        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -143,7 +141,6 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         dLims = [1; 120];
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         dLims(1) = inputD('Min');

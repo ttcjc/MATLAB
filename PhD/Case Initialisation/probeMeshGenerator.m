@@ -4,10 +4,10 @@ clear variables;
 close all;
 clc;
 
+cellSize = 8e-3; % Base Mesh Cell Size [m]
+
 fig = 0;
 figHold = 0;
-
-cellSize = 8e-3; % Base Mesh Cell Size [m]
 
 disp('=========================');
 disp('Probe Mesh Generator v1.0');

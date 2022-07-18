@@ -211,5 +211,3 @@ hold off;
 
 pause(2);
 exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
-
-            

@@ -43,11 +43,9 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
-        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');

@@ -5,6 +5,18 @@
 % Usage: fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
 %                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
 %                               xLimsPlot, yLimsPlot, zLimsPlot);
+%        '*LimsData'   -> Contour Plot Limits
+%        '*Init'       -> Initial 3D Arrays of Cartesian Positions
+%        'POD'         -> POD Mode Presentation [True/False]
+%        'fieldData'   -> 3D Array of Field Data @ '*Init' Points
+%        'fig'         -> Figure Number
+%        'figName'     -> Figure Name
+%        'geometry'    -> STL(s) to Include in Plot
+%        'isoValue'    -> Field Value Used for Isosurface
+%        'cMap'        -> Colour Map
+%        'figTitle'    -> Leave Blank ('-') for Formatting Purposes
+%        'figSubtitle' -> Figure Title
+%        '*LimsPlot'   -> 3D Axes Limits
 
 
 %% Changelog
@@ -51,7 +63,7 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
             end
             
         else
-            error('Plotting of POD Modes Necessitates ''fieldData'' Be in the Form of a {2,1} Cell Array');
+            error('Presentation of POD Modes Necessitates ''fieldData'' Be in the Form of a {2,1} Cell Array');
         end
         
     else

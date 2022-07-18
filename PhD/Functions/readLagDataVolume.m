@@ -4,7 +4,7 @@
 % ----
 % Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
 %                                    sampleInterval, timeDirs, nProc);
-%        'saveLocation'  -> Start of File Path, Stored as a String
+%        'saveLocation'   -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String

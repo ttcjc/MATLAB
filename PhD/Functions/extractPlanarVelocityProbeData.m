@@ -2,7 +2,7 @@
 % ----
 % Extracts Planar Probe Data From Volumetric Data Processed Using ‘readProbeData.m'
 % ----
-% Usage: planeData = extractPlanarVelocityProbeData(caseName, volumeData);
+% Usage: planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiPlane);
 %        'caseName'   -> Case Name, Stored as a String
 %        'volumeData' -> Volumetric Probe Data, Collated Using 'readProbeData.m'
 %        'multiPlane' -> Selection of Multiple Planes [True/False]

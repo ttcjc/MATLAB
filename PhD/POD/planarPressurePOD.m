@@ -5,12 +5,12 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
 normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -221,17 +221,17 @@ while ~valid
     selection = input('Plot Individual Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotModes = [];
-        
+        plotModes = false;
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotModes = inputModes(Nt);
+        plotModes = true;
+        nModes = inputModes(Nt);
         
-        if plotModes == -1
+        if nModes == -1
             continue
+        else
+            nModes = sort(nModes);
         end
-        
-        plotModes = sort(plotModes);
         
         valid = true;
     else
@@ -273,7 +273,7 @@ if ~isempty(plotModes)
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
 
-    for i = plotModes
+    for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
 
         scalarData = rescale(PODdata.phi_mode(:,i), -1, 1);
@@ -340,15 +340,15 @@ while ~valid
     selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        return
+        return;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        reconModes = inputModes(Nt);
+        nModes = inputModes(Nt);
         
-        if reconModes == -1
+        if nModes == -1
             continue
+        else
+            nModes = sort(nModes);
         end
-        
-        reconModes = sort(reconModes);
         
         valid = true;
     else
@@ -393,7 +393,7 @@ disp(' ');
 % Perform Reconstruction
 disp('    Performing Field Reconstruction...');
 
-for i = reconModes
+for i = nModes
     % Initialise Progress Bar
     wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
@@ -506,10 +506,14 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotRecon = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotRecon = true;
+        nFrames = inputFrames(Nt);
+        
+        if nFrames == -1
+            continue
+        end
         
         valid = true;
     else
@@ -553,7 +557,7 @@ if plotRecon
 
     figHold = fig;
 
-    for i = 1:Nt
+    for i = 1:nFrames
         
         if i ~= 1
             clf(fig);
@@ -615,11 +619,23 @@ clear valid;
 
 function modes = inputModes(nModes)
 
-    modes = str2num(input('    Input Desired Modes (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
+    modes = str2num(input('    Input Desired Modes [Row Vector Form]: ', 's')); %#ok<ST2NM>
     
-    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes >= nModes)
+    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes > nModes)
         disp('        WARNING: Invalid Entry');
         modes = -1;
+    end
+
+end
+
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1 - ', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
     end
 
 end

@@ -146,7 +146,14 @@ while ~valid
 
     if ~valid
         disp('WARNING: No Mapping Variable Selected');
+        continue
     end
+    
+    if ~strcmp(PODvar{index}, 'volFraction')
+        disp('WARNING: Unsupported POD Variable');
+        valid = false;
+    end
+        
 end
 clear valid;
 
@@ -315,17 +322,17 @@ while ~valid
     selection = input('Plot Individual Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotModes = [];
-        
+        plotModes = false;
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotModes = inputModes(Nt);
+        plotModes = true;
+        nModes = inputModes(Nt);
         
-        if plotModes == -1
+        if nModes == -1
             continue
+        else
+            nModes = sort(nModes);
         end
-        
-        plotModes = sort(plotModes);
         
         valid = true;
     else
@@ -346,7 +353,7 @@ disp('------------------');
 
 disp(' ');
 
-if ~isempty(plotModes)
+if plotModes
     % Specify Region Boundaries
     switch format
 
@@ -385,13 +392,12 @@ if ~isempty(plotModes)
     POD = true;
     isoValue = 5e-7;
     cMap = cool2warm(24);
-    fieldColour = [];
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     xLimsPlot = xLimsData;
     yLimsPlot = yLimsData;
     zLimsPlot = zLimsData;
     
-    for i = plotModes
+    for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
         
         modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
@@ -410,6 +416,10 @@ if ~isempty(plotModes)
         fieldDataA = reshape(primeFieldA, gridShape);
         fieldDataB = reshape(primeFieldB, gridShape);
         
+        fieldData = {fieldDataA; fieldDataB};
+        
+        clear indexA indexB primeFieldA primeFieldB fieldDataA fieldDataB
+        
         switch format
 
             case 'A'
@@ -422,9 +432,8 @@ if ~isempty(plotModes)
 
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
 
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-                               cMap, fieldColour, figTitle, figSubtitle, ...
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
                                xLimsPlot, yLimsPlot, zLimsPlot);
     end
     
@@ -505,15 +514,17 @@ while ~valid
     selection = input('Perform Field Reconstruction Using N Modes? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        return
+        reconstruct = false;
+        valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        reconModes = inputModes(Nt);
+        reconstruct = true;
+        nModes = inputModes(Nt);
         
-        if reconModes == -1
+        if nModes == -1
             continue
+        else
+            nModes = sort(nModes);
         end
-        
-        reconModes = sort(reconModes);
         
         valid = true;
     else
@@ -558,7 +569,7 @@ disp(' ');
 % Perform Reconstruction
 disp('    Performing Field Reconstruction...');
 
-for i = reconModes
+for i = nModes
     % Initialise Progress Bar
     wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
@@ -615,10 +626,14 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotRecon = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotRecon = true;
+        nFrames = inputFrames(Nt);
+        
+        if nFrames == -1
+            continue
+        end
         
         valid = true;
     else
@@ -676,18 +691,16 @@ if plotRecon
     yInit = reshape(reconData.positionGrid(:,2), gridShape);
     zInit = reshape(reconData.positionGrid(:,3), gridShape);
     POD = false;
-    fieldDataB = [];
     isoValue = 1e-6;
-    cMap = [];
 
     if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-        fieldColour = ([74, 24, 99] / 255);
+        cMap = ([74, 24, 99] / 255);
     elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-        fieldColour = ([230, 0, 126] / 255);
+        cMap = ([230, 0, 126] / 255);
     elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-        fieldColour = ([34, 196, 172] / 255);
+        cMap = ([34, 196, 172] / 255);
     else
-        fieldColour = ([252, 194, 29] / 255);
+        cMap = ([252, 194, 29] / 255);
     end
 
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -697,14 +710,14 @@ if plotRecon
     
     figHold = fig;
     
-    for i = 1:Nt
+    for i = 1:nFrames
         
         if i ~= 1
             clf(fig);
             fig = figHold;
         end
 
-        fieldDataA = reshape(reconData.(PODvar).inst{i}, gridShape);
+        fieldData = reshape(reconData.(PODvar).inst{i}, gridShape);
         figTime = num2str(reconData.time(i), ['%.', num2str(timePrecision), 'f']);
 
         switch format
@@ -719,9 +732,8 @@ if plotRecon
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-                               cMap, fieldColour, figTitle, figSubtitle, ...
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
                                xLimsPlot, yLimsPlot, zLimsPlot);
 
     end
@@ -793,11 +805,23 @@ clear valid;
 
 function modes = inputModes(nModes)
 
-    modes = str2num(input('    Input Desired Modes (Row Vector Form) [s]: ', 's')); %#ok<ST2NM>
+    modes = str2num(input('    Input Desired Modes [Row Vector Form]: ', 's')); %#ok<ST2NM>
     
-    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes >= nModes)
+    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes > nModes)
         disp('        WARNING: Invalid Entry');
         modes = -1;
+    end
+
+end
+
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1 - ', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
     end
 
 end

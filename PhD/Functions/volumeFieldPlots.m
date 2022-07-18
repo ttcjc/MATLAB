@@ -2,9 +2,8 @@
 % ----
 % Plots Previously Processed Volume Fields
 % ----
-% Usage: fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-%                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-%                               cMap, fieldColour, figTitle, figSubtitle, ...
+% Usage: fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+%                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
 %                               xLimsPlot, yLimsPlot, zLimsPlot);
 
 
@@ -12,37 +11,58 @@
 
 % v1.0 - Initial Commit
 % v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
+% v2.1 - Cleaned-up POD Functionality
 
 
 %% Main Function
 
-function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-                                fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-                                cMap, fieldColour, figTitle, figSubtitle, ...
+function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                                fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
                                 xLimsPlot, yLimsPlot, zLimsPlot)
-                            
+    
     % Generate Refined Grid
     cellSize = 4e-3;
 
-    cellSizeX = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
+    cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
     cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
     cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
     
     [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                        yLimsData(1):cellSizeY:yLimsData(2), ...
                        zLimsData(1):cellSizeZ:zLimsData(2));
+    
+    % Convert From 'ndgrid' to 'meshgrid' Format
+    xInit = permute(xInit, [2,1,3]);
+    yInit = permute(yInit, [2,1,3]);
+    zInit = permute(zInit, [2,1,3]);
+    x = permute(x, [2,1,3]);
+    y = permute(y, [2,1,3]);
+    z = permute(z, [2,1,3]);
 
     % Smooth Data
     if POD
-        fieldDataA = interpn(xInit, yInit, zInit, fieldDataA, x, y, z);
-        fieldDataB = interpn(xInit, yInit, zInit, fieldDataB, x, y, z);
         
-        fieldDataA = smooth3(fieldDataA, 'gaussian');
-        fieldDataB = smooth3(fieldDataB, 'gaussian');
+        if iscell(fieldData) && height(fieldData) == 2
+            
+            for i = 1:height(fieldData)
+                fieldData{i} = permute(fieldData{i}, [2,1,3]);
+                fieldData{i} = interp3(xInit, yInit, zInit, fieldData{i}, x, y, z);
+                fieldData{i} = smooth3(fieldData{i}, 'gaussian');
+            end
+            
+        else
+            error('Plotting of POD Modes Necessitates ''fieldData'' Be in the Form of a {2,1} Cell Array');
+        end
+        
     else
-        fieldDataA = interpn(xInit, yInit, zInit, fieldDataA, x, y, z);
         
-        fieldDataA = smooth3(fieldDataA, 'gaussian');
+        if ~iscell(fieldData)
+            fieldData = permute(fieldData, [2,1,3]);
+            fieldData = interp3(xInit, yInit, zInit, fieldData, x, y, z);
+            fieldData = smooth3(fieldData, 'gaussian');
+        else
+            error('''fieldData'' Must Be a 3D Array of Type ''double''');
+        end
     end
     
     % Figure Setup
@@ -61,21 +81,21 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
               'vertices', geometry.(parts{i}).vertices, ...
               'faceColor', ([128, 128, 128] / 255), ...
               'edgeColor', ([128, 128, 128] / 255), ...
-            'lineStyle', 'none');
+              'lineStyle', 'none');
     end
 
     if POD
-        iso = isosurface(x, y, z, fieldDataA, isoValue);
+        iso = isosurface(x, y, z, fieldData{1}, isoValue);
         iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
-        isonormals(fieldDataA, iso);
+        iso.VertexNormals = isonormals(x, y, z, fieldData{1}, iso);
         
-        iso = isosurface(x, y, z, fieldDataB, isoValue);
+        iso = isosurface(x, y, z, fieldData{2}, isoValue);
         iso = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
-        isonormals(fieldDataB, iso);
+        iso.VertexNormals = isonormals(x, y, z, fieldData{2}, iso);
     else
-        iso = isosurface(x, y, z, fieldDataA, isoValue);
-        iso = patch(iso, 'faceColor', fieldColour, 'edgeColor', 'none');
-        isonormals(fieldDataA, iso);
+        iso = isosurface(x, y, z, fieldData, isoValue);
+        iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+        iso.VertexNormals = isonormals(x, y, z, fieldData, iso);
     end
     
     % Figure Formatting
@@ -98,4 +118,4 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     hold off;
     
     pause(2);
-    exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+    exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);

@@ -5,6 +5,9 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
 normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
@@ -12,9 +15,6 @@ cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
-
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -312,9 +312,9 @@ switch format
     
     case {'A', 'B'}
         % Adjust Uniform Cell Size to Fit Region of Interest
-        cellSizeX = (xLimsData (2) - xLimsData (1)) / round(((xLimsData (2) - xLimsData (1)) / cellSize));
-        cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
-        cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
+        cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
+        cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
+        cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
         
         cellVolume = cellSizeX * cellSizeY * cellSizeZ;
         
@@ -518,11 +518,9 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -538,10 +536,14 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
+        nFrames = inputFrames(height(volumeData.inst.time));
+        
+        if nFrames == -1
+            continue
+        end
         
         valid = true;
     else
@@ -567,17 +569,15 @@ if plotInst || plotMean
     yInit = volumeData.y;
     zInit = volumeData.z;
     POD = false;
-    fieldDataB = [];
-    cMap = [];
     
     if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-        fieldColour = ([74, 24, 99] / 255);
+        cMap = ([74, 24, 99] / 255);
     elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-        fieldColour = ([230, 0, 126] / 255);
+        cMap = ([230, 0, 126] / 255);
     elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-        fieldColour = ([34, 196, 172] / 255);
+        cMap = ([34, 196, 172] / 255);
     else
-        fieldColour = ([252, 194, 29] / 255);
+        cMap = ([252, 194, 29] / 255);
     end
 
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -589,7 +589,8 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
-    fieldDataA = volumeData.mean.volFraction;
+    fieldData = volumeData.mean.volFraction;
+    isoValue = 1e-8;
     
     switch format
 
@@ -603,12 +604,10 @@ if plotMean
 
     end
     
-    isoValue = 1e-8;
     figSubtitle = ' ';
     
-    fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-                           fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-                           cMap, fieldColour, figTitle, figSubtitle, ...
+    fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                           fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
                            xLimsPlot, yLimsPlot, zLimsPlot);
                        
     disp(' ');
@@ -621,14 +620,14 @@ if plotInst
     
     isoValue = 1e-6;
     
-    for i = 1:height(volumeData.inst.time)
+    for i = 1:nFrames
         
         if i ~= 1
             clf(fig);
             fig = figHold;
         end
         
-        fieldDataA = volumeData.inst.volFraction{i};
+        fieldData = volumeData.inst.volFraction{i};
         figTime = num2str(volumeData.inst.time(i), ['%.', num2str(timePrecision), 'f']);
 
         switch format
@@ -645,9 +644,8 @@ if plotInst
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, ...
-                               fieldDataA, fieldDataB, fig, figName, geometry, isoValue, ...
-                               cMap, fieldColour, figTitle, figSubtitle, ...
+        fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
                                xLimsPlot, yLimsPlot, zLimsPlot);
                            
     end
@@ -753,4 +751,16 @@ function D = inputD(type)
         D = -1;
     end
     
+end
+
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1 - ', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
+
 end

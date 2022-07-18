@@ -199,6 +199,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                  'lineStyle', 'none', 'faceLighting', 'none');
             
             if streamlines
+                % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);
@@ -283,6 +284,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                  'lineStyle', 'none', 'faceLighting', 'none');
             
             if streamlines
+                % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);
@@ -367,6 +369,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                  'lineStyle', 'none', 'faceLighting', 'none');
             
             if streamlines
+                % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);

@@ -96,113 +96,122 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     disp('Lagrangian Data Load');
     disp('---------------------');
     
-    if plane
+    loadData = true;
+    while loadData
         
-        valid = false;
-        while ~valid
-            disp(' ');
-            selection = input('Load Saved Plane Data? [y/n]: ', 's');
-
-            if selection == 'n' | selection == 'N' %#ok<OR2>
-                valid = true;
-            elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/*.mat'], ...
-                                                 'Select Plane Data');
-
-                if contains(filePath, ['/LagData/', caseName, '/plane'])
-                    disp(['    Loading ''', fileName, '''...']);
-                    dataID = load([filePath, fileName], 'dataID').dataID;
-                    LagDataPlane = load([filePath, fileName], 'LagData').LagData;
-                    sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
-                    disp('        Success');
-                    
-                    valid = true;
-                else
-                    disp('    WARNING: Invalid File Selection');
-                    clear fileName filePath;
-                end
-
-            else
-                disp('    WARNING: Invalid Entry');
-                clear fileName filePath;
-            end
-
-        end
-        clear valid;
-        
-    end
+        if plane
+            
+            valid = false;
+            while ~valid
+                disp(' ');
+                selection = input('Load Saved Plane Data? [y/n]: ', 's');
     
-    if surface
-        
-        valid = false;
-        while ~valid
-            disp(' ');
-            selection = input('Load Saved Surface Data? [y/n]: ', 's');
-
-            if selection == 'n' | selection == 'N' %#ok<OR2>
-                valid = true;
-            elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/*.mat'], ...
-                                                 'Select Surface Data');
-
-                if contains(filePath, ['/LagData/', caseName, '/surface'])
-                    disp(['    Loading ''', fileName, '''...']);
-                    dataID = load([filePath, fileName], 'dataID').dataID;
-                    LagDataSurface = load([filePath, fileName], 'LagData').LagData;
-                    sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
-                    disp('        Success');
-                    
+                if selection == 'n' | selection == 'N' %#ok<OR2>
+                    loadData = false;
                     valid = true;
-                else
-                    disp('    WARNING: Invalid File Selection');
-                    clear fileName filePath;
-                end
-
-            else
-                disp('    WARNING: Invalid Entry');
-                clear fileName filePath;
-            end
-
-        end
-        clear valid;
-        
-    end
+                elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/*.mat'], ...
+                                                     'Select Plane Data');
     
-    if volume
-        
-        valid = false;
-        while ~valid
-            disp(' ');
-            selection = input('Load Saved Volume Data? [y/n]: ', 's');
-
-            if selection == 'n' | selection == 'N' %#ok<OR2>
-                valid = true;
-            elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/*.mat'], ...
-                                                 'Select Volume Data');
-
-                if contains(filePath, ['/LagData/', caseName, '/volume'])
-                    disp(['    Loading ''', fileName, '''...']);
-                    dataID = load([filePath, fileName], 'dataID').dataID;
-                    LagDataVolume = load([filePath, fileName], 'LagData').LagData;
-                    sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
-                    disp('        Success');
-                    
-                    valid = true;
+                    if contains(filePath, ['/LagData/', caseName, '/plane'])
+                        disp(['    Loading ''', fileName, '''...']);
+                        dataID = load([filePath, fileName], 'dataID').dataID;
+                        LagDataPlane = load([filePath, fileName], 'LagData').LagData;
+                        sampleIntervalPlane = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        disp('        Success');
+                        
+                        valid = true;
+                    else
+                        disp('    WARNING: Invalid File Selection');
+                        clear fileName filePath;
+                    end
+    
                 else
-                    disp('    WARNING: Invalid File Selection');
+                    disp('    WARNING: Invalid Entry');
                     clear fileName filePath;
                 end
-
-            else
-                disp('    WARNING: Invalid Entry');
-                clear fileName filePath;
+    
             end
-
+            clear valid;
+            
         end
-        clear valid;
         
+        if surface
+            
+            valid = false;
+            while ~valid
+                disp(' ');
+                selection = input('Load Saved Surface Data? [y/n]: ', 's');
+    
+                if selection == 'n' | selection == 'N' %#ok<OR2>
+                    loadData = false;
+                    valid = true;
+                elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/*.mat'], ...
+                                                     'Select Surface Data');
+    
+                    if contains(filePath, ['/LagData/', caseName, '/surface'])
+                        disp(['    Loading ''', fileName, '''...']);
+                        dataID = load([filePath, fileName], 'dataID').dataID;
+                        LagDataSurface = load([filePath, fileName], 'LagData').LagData;
+                        sampleIntervalSurface = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        disp('        Success');
+                        
+                        valid = true;
+                    else
+                        disp('    WARNING: Invalid File Selection');
+                        clear fileName filePath;
+                    end
+    
+                else
+                    disp('    WARNING: Invalid Entry');
+                    clear fileName filePath;
+                end
+    
+            end
+            clear valid;
+            
+        end
+        
+        if volume
+            
+            valid = false;
+            while ~valid
+                disp(' ');
+                selection = input('Load Saved Volume Data? [y/n]: ', 's');
+    
+                if selection == 'n' | selection == 'N' %#ok<OR2>
+                    loadData = false;
+                    valid = true;
+                elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/*.mat'], ...
+                                                     'Select Volume Data');
+    
+                    if contains(filePath, ['/LagData/', caseName, '/volume'])
+                        disp(['    Loading ''', fileName, '''...']);
+                        dataID = load([filePath, fileName], 'dataID').dataID;
+                        LagDataVolume = load([filePath, fileName], 'LagData').LagData;
+                        sampleIntervalVolume = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        disp('        Success');
+                        
+                        valid = true;
+                    else
+                        disp('    WARNING: Invalid File Selection');
+                        clear fileName filePath;
+                    end
+    
+                else
+                    disp('    WARNING: Invalid Entry');
+                    clear fileName filePath;
+                end
+    
+            end
+            clear valid;
+            
+        end
+
     end
+    clear loadData;
     
     % Confirm Required Data Exists
     valid = true;
@@ -217,12 +226,63 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     if volume && isempty(LagDataVolume)
         valid = false;
     end
-    
+
+    disp(' ');
+
+    % Confirm Matching Sampling Intervals
     if valid
-        return
+
+        if plane && surface && volume
+
+            if sampleIntervalPlane ~= sampleIntervalSurface || sampleIntervalPlane ~= sampleIntervalVolume
+                disp('WARNING: Sample Intervals Do Not Match');
+                disp(' ')
+
+                valid = false;
+            else
+                sampleInterval = sampleIntervalPlane;
+            end
+
+        elseif plane && surface
+
+            if sampleIntervalPlane ~= sampleIntervalSurface
+                disp('WARNING: Sample Intervals Do Not Match');
+                disp(' ')
+                
+                valid = false;
+            else
+                sampleInterval = sampleIntervalPlane;
+            end
+
+        elseif plane && volume
+
+            if sampleIntervalPlane ~= sampleIntervalVolume
+                disp('WARNING: Sample Intervals Do Not Match');
+                disp(' ')
+                
+                valid = false;
+            else
+                sampleInterval = sampleIntervalPlane;
+            end
+
+        elseif surface && volume
+
+            if sampleIntervalSurface ~= sampleIntervalVolume
+                disp('WARNING: Sample Intervals Do Not Match');
+                disp(' ')
+                
+                valid = false;
+            else
+                sampleInterval = sampleIntervalSurface;
+            end
+
+        end
+
+    end
+
+    if valid
+        return;
     else
-        disp(' ');
-        
         disp('WARNING: Required Data Unavailable');
         disp('         Collating New Data...');
     end
@@ -256,19 +316,19 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             startTime = inputTime('Start');
             
             if startTime == -1
-                continue
+                continue;
             end
             
             endTime = inputTime('End');
             
             if endTime == -1
-                continue
+                continue;
             elseif endTime < startTime
                 disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
-                continue
+                continue;
             elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
                 disp('        WARNING: No Lagrangian Data in Selected Time Range');
-                continue
+                continue;
             end
 
             i = 1;
@@ -306,7 +366,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             sampleInterval = inputFreq(round((1 / deltaT), timePrecision));
             
             if sampleInterval == -1
-                continue
+                continue;
             end
             
             if sampleInterval >= (floor(height(timeDirs) / 2))

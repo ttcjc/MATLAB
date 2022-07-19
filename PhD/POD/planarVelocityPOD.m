@@ -79,7 +79,7 @@ PODdata.u.prime = probeData.uPrime;
 PODdata.v.prime = probeData.vPrime;
 PODdata.w.prime = probeData.wPrime;
 
-clear probeData
+clear probeData;
 
 % Adjust Data Origin
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
@@ -215,7 +215,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -372,7 +372,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -521,7 +521,7 @@ while ~valid
         nFrames = inputFrames(Nt);
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

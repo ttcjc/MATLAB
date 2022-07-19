@@ -138,7 +138,7 @@ switch format
         for i = 1:height(parts)
             
             if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-                break
+                break;
             end
             
             if i == height(parts)

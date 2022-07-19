@@ -301,7 +301,7 @@ switch format
                 nFrames = inputFrames(height(velData.(planes{1}).time));
 
                 if nFrames == -1
-                    continue
+                    continue;
                 end
 
                 valid = true;

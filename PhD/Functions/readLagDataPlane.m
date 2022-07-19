@@ -126,7 +126,7 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
 
                 if k == 3
                     % Don't Sort 'origId' Twice
-                    continue
+                    continue;
                 else
                     LagData.(plane).(prop){j} = LagData.(plane).(prop){j}(index,:);
                 end

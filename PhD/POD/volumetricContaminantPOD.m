@@ -144,7 +144,7 @@ while ~valid
 
     if ~valid
         disp('WARNING: No Mapping Variable Selected');
-        continue
+        continue;
     end
     
     if ~strcmp(PODvar{index}, 'volFraction')
@@ -327,7 +327,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -517,7 +517,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -628,7 +628,7 @@ while ~valid
         nFrames = inputFrames(Nt);
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

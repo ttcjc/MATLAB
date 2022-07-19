@@ -190,7 +190,7 @@ switch format
         for i = 1:height(parts)
             
             if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-                break
+                break;
             end
             
             if i == height(parts)
@@ -385,7 +385,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -549,7 +549,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -694,7 +694,7 @@ while ~valid
         nFrames = inputFrames(Nt);
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

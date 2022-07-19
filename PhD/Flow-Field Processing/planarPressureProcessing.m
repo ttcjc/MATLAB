@@ -122,7 +122,7 @@ parts = fieldnames(geometry);
 for i = 1:height(parts)
     
     if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-        break
+        break;
     end
     
     if i == height(parts)
@@ -279,7 +279,7 @@ switch format
                 nFrames = inputFrames(height(preData.time));
 
                 if nFrames == -1
-                    continue
+                    continue;
                 end
 
                 valid = true;

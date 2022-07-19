@@ -60,19 +60,19 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
             startTime = inputTime('Start');
             
             if startTime == -1
-                continue
+                continue;
             end
             
             endTime = inputTime('End');
             
             if endTime == -1
-                continue
+                continue;
             elseif endTime < startTime
                 disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
-                continue
+                continue;
             elseif endTime < str2double(timeDirs(1).name) || startTime > str2double(timeDirs(end).name)
                 disp('        WARNING: No Probe Data in Selected Time Range');
-                continue
+                continue;
             end
 
             i = 1;
@@ -109,7 +109,7 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
             sampleInterval = inputFreq(round((1 / deltaT), timePrecision));
             
             if sampleInterval == -1
-                continue
+                continue;
             end
             
             if sampleInterval >= (floor(height(timeDirs) / 2))

@@ -115,7 +115,7 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
             
             if j == 3
                 % Don't Sort 'origId' Twice
-                continue
+                continue;
             else
                 LagData.(prop){i} = LagData.(prop){i}(index,:);
             end

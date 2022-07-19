@@ -106,7 +106,7 @@ switch format
                                      'listString', planes);
             
             if ~valid
-                disp('WARNING: No Case Type Selected');
+                disp('WARNING: No Plane of Interest Selected');
             end
         
         end
@@ -146,13 +146,13 @@ while ~valid
         dLims(1) = inputD('Min');
 
         if dLims(1) == -1
-            continue
+            continue;
         end
 
         dLims(2) = inputD('Max');
 
         if dLims(2) == -1
-            continue
+            continue;
         end
         
         dLims = sort(dLims);
@@ -161,7 +161,7 @@ while ~valid
         
         if (dLims(2) < 1) || (dLims(1) > 120)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
-            continue
+            continue;
         end
         
         valid = true;
@@ -257,7 +257,7 @@ switch format
         for i = 1:height(parts)
             
             if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-                break
+                break;
             end
             
             if i == height(parts)
@@ -658,7 +658,7 @@ while ~valid
         nFrames = inputFrames(height(mapData.inst.time));
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

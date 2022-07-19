@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -81,21 +81,45 @@ disp(' ');
 switch format
 
     case 'A'
-        [dataID, LagProps, ~, ~, LagData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
-                                                                              cloudName, false, true, ...
-                                                                              true, timeDirs, deltaT, ...
-                                                                              timePrecision, nProc);
+        [dataID, LagProps, ~, impactData, volumeData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
+                                                                                          cloudName, false, true, ...
+                                                                                          true, timeDirs, deltaT, ...
+                                                                                          timePrecision, nProc);
 
     case 'B'
-        [dataID, LagProps, ~, ~, LagData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
-                                                                              cloudName, true, false, ...
-                                                                              true, timeDirs, deltaT, ...
-                                                                              timePrecision, nProc);
+        [dataID, LagProps, impactData, ~, volumeData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
+                                                                                          cloudName, true, false, ...
+                                                                                          true, timeDirs, deltaT, ...
+                                                                                          timePrecision, nProc);
+        
+        % Select Plane of Interest
+        planes = fieldnames(impactData);
+        
+        valid = false;
+        while ~valid
+            disp(' ');
+            [index, valid] = listdlg('listSize', [300, 300], ...
+                                     'selectionMode', 'single', ...
+                                     'name', 'Select Plane of Interest', ...
+                                     'listString', planes);
+            
+            if ~valid
+                disp('WARNING: No Plane of Interest Selected');
+            end
+        
+        end
+        clear valid;
+
+        impactData = impactData.(planes{index});
+        planePos = erase(planes{index}, '.');
+        clear planes;
+        
+        disp(['Plane of Interest: ', planePos]);
 end
 
-if normalise
-    dataID = [dataID, '_Norm'];
-end
+% if normalise
+%     dataID = [dataID, '_Norm'];
+% end
 
 disp(' ');
 disp(' ');
@@ -105,6 +129,42 @@ disp(' ');
 
 disp('Tracking Options');
 disp('-----------------');
+
+disp(' ');
+
+disp('Possible Tracking Methods:');
+disp('    A: Particle Ejections at Specified Time Instance');
+disp('    B: Particle Impacts at Specified Time Instance');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Select Tracking Method [A/B]: ', 's');
+
+    if selection == 'a' | selection == 'A' %#ok<OR2>
+        format = 'C';
+        trackingTime = inputTime('Ejection', impactData.time, impactData.d);
+        
+        if trackingTime == -1
+            continue;
+        end
+
+        valid = true;
+    elseif selection == 'b' | selection == 'B' %#ok<OR2>
+        format = 'D';
+        trackingTime = inputTime('Impact', impactData.time, impactData.d);
+
+        if trackingTime == -1
+            continue;
+        end
+
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
 
 dLims = zeros(2,1);
 
@@ -120,13 +180,13 @@ while ~valid
         dLims(1) = inputD('Min');
 
         if dLims(1) == -1
-            continue
+            continue;
         end
 
         dLims(2) = inputD('Max');
 
         if dLims(2) == -1
-            continue
+            continue;
         end
         
         dLims = sort(dLims);
@@ -135,7 +195,7 @@ while ~valid
         
         if (dLims(2) < 1) || (dLims(1) > 120)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
-            continue
+            continue;
         end
         
         valid = true;
@@ -146,16 +206,16 @@ while ~valid
 end
 clear valid;
 
-if normalise
-    dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
-else
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-end
+% if normalise
+%     dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
+% else
+%     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+% end
 
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Enable Particle Position Interpolation? [y/n]: ', 's');
+    selection = input('Enable Interpolation of Particle Paths? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         interp = false;
@@ -174,29 +234,231 @@ disp(' ');
 disp(' ');
 
 
+%% Perform Particle Tracking
 
+disp('Particle Tracking');
+disp('------------------');
 
+disp(' ');
 
+disp('***********');
+disp('  RUNNING ');
 
+tic;
+evalc('parpool(nProc);');
 
+disp(' ');
 
+disp('    Initialising...');
 
+% Identify Empty Time Instances
+i = 1;
+while i <= height(volumeData.time)
+    
+    if isempty(volumeData.d{i})
+        
+        for j = 1:height(LagProps)
+            volumeData.(LagProps{j}){i} = -1;
+        end
+        
+    else
+        i = i + 1;
+    end
+    
+end
+clear i;
 
+% Remove Unnecessary Data
+switch format
 
+    % Retain Time Instances >= Tracking Time
+    case 'C'
+        impactData.timeExact = vertcat(impactData.origId{trackingTime:end});
+        
+        for i = 1:height(LagProps)
+            impactData.(LagProps{i}) = vertcat(impactData.(LagProps{i}){(trackingTime + 1):end});
+        end
+        
+        for i = 1:height(LagProps)
+            volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackingTime - 1):end);
+        end
 
+    % Retain Time Instances <= Tracking Time
+    case 'D'
+        impactData.timeExact = impactData.timeExact{trackingTime};
+        
+        for i = 1:height(LagProps)
+            impactData.(LagProps{i}) = impactData.(LagProps{i}){trackingTime};
+        end
 
+        for i = 1:height(LagProps)
+            volumeData.(LagProps{i}) = volumeData.(LagProps{i})(1:(trackingTime - 1));
+        end
 
+end
 
+% Shift Data Origin
+if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+    
+    for i = 1:height(volumeData.time)
+        
+        if volumeData.positionCartesian{i} ~= -1
+            volumeData.positionCartesian{i}(:,1) = volumeData.positionCartesian{i}(:,1) + 1.325;
+        end
 
+    end
+    
+    impactData.positionCartesian(:,1) = impactData.positionCartesian(:,1) + 1.325;
+end
 
+% Normalise Dimensions
+if normalise
+    
+    if contains(caseName, ["Run_Test", "Windsor"])
+        
+        for i = 1:height(volumeData.time)
+            
+            if volumeData.positionCartesian{i} ~= -1
+                volumeData.positionCartesian{i} = round((volumeData.positionCartesian{i} / 1.044), ...
+                                                        spacePrecision);
+            end
+            
+        end
+        
+        impactData.positionCartesian = round((impactData.positionCartesian / 1.044), ...
+                                             spacePrecision);
+    end
 
+end
 
+% Specify Region Boundaries
+switch format
+    
+    case 'A'
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            xLimsData = [0.31875; 1.38325];
+            yLimsData = [-0.3445; 0.3445];
+            zLimsData = [0; 0.489];
+            
+            if normalise
+                xLimsData = round((xLimsData / 1.044), spacePrecision);
+                yLimsData = round((yLimsData / 1.044), spacePrecision);
+                zLimsData = round((zLimsData / 1.044), spacePrecision);
+            end
 
+        end
+        
+    case 'B'
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            xLimsData = [0.31875; impactData.positionCartesian{end}(1,1)];
+            yLimsData = [-0.5945; 0.5945];
+            zLimsData = [0; 0.489];
+            
+            if normalise
+                xLimsData(1) = round((xLimsData(1) / 1.044), spacePrecision);
+                yLimsData = round((yLimsData / 1.044), spacePrecision);
+                zLimsData = round((zLimsData / 1.044), spacePrecision);
+            end
+            
+        end
+        
+end
 
+disp(' ');
 
+% Identify Particles of Interest
+disp('    Identifying Particles of Interest...');
+
+% Collate Particles of Interest
+index = find(((impactData.d * 1e6) >= dLims(1)) & ...
+             ((impactData.d * 1e6) <= dLims(2)) & ...
+             (impactData.positionCartesian(:,1) >= xLimsData (1)) & ...
+             (impactData.positionCartesian(:,1) <= xLimsData (2)) & ...
+             (impactData.positionCartesian(:,2) >= yLimsData (1)) & ...
+             (impactData.positionCartesian(:,2) <= yLimsData (2)) & ...
+             (impactData.positionCartesian(:,3) >= zLimsData (1)) & ...
+             (impactData.positionCartesian(:,3) <= zLimsData (2)));
+
+impactData.timeExact = impactData.timeExact(index);
+        
+for i = 1:height(LagProps)
+    impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+end
+
+switch format
+
+    case 'C'
+        activePreTime = setdiff([volumeData.origProcId{1}, volumeData.origId{1}], ...
+                                [impactData.origProcId, impactData.origId], 'rows', 'stable');
+        activePostTime = setdiff([volumeData.origProcId{2}, volumeData.origId{2}], ...
+                                 [impactData.origProcId, impactData.origId], 'rows', 'stable');
+
+        ejections = setdiff(activePostTime, activePreTime, 'rows', 'stable');
+
+        index = find(ismember([impactData.origProcId, impactData.origId], ejections, 'rows'));
+
+        impactData.timeExact = impactData.timeExact(index);
+                
+        for i = 1:height(LagProps)
+            impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+        end
+
+end
+
+% Initialise Progress Bar
+wB = waitbar(0, 'Removing Invalid Particles From Volume Data', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
+dQ = parallel.pool.DataQueue;
+afterEach(dQ, @parforWaitBar);
+
+parforWaitBar(wB, height(LagData.time));
+
+% Remove Invalid Particles From Volume Data
+index = cell(height(volumeData.time),1);
+
+particleIDimpact = [impactData.origProcId, impactData.origId];
+origProcId = volumeData.origProcId;
+origId = volumeData.origId;
+parfor i = 1:height(volumeData.time)
+    particleIDvolume = [origProcId{i}, origId{i}];
+
+    [~, index{i}] = intersect(particleIDvolume, particleIDimpact, 'stable');
+    
+    send(dQ, []);
+end
+clear particleIDimpact particleIDvolume origProcId origId;
+
+delete(wB);
+
+for i = 1:height(volumeData.time)
+    
+    for j = 1:height(LagProps)
+        volumeData.(LagProps{j}){i} = volumeData.(LagProps{j}){i}(index{i},:);
+    end
+    
+end
 
 
 %% Local Functions
+
+function time = inputTime(type, timeList, dList)
+
+    time = str2double(input(['    Input Desired ', type, 'Time [s]: '], 's'));
+
+    time = find(ismember(timeList, time));
+    
+    if isempty(time)
+        disp('        WARNING: Invalid Entry');
+        time = -1;
+    elseif isempty(dList{time})
+        disp(['        WARNING: No ', type, 's Recorded During Specified Time Instance']);
+        time = -1;
+    end
+    
+end
+
 
 function D = inputD(type)
 

@@ -112,13 +112,13 @@ while ~valid
         dLims(1) = inputD('Min');
 
         if dLims(1) == -1
-            continue
+            continue;
         end
 
         dLims(2) = inputD('Max');
 
         if dLims(2) == -1
-            continue
+            continue;
         end
         
         dLims = sort(dLims);
@@ -127,7 +127,7 @@ while ~valid
         
         if (dLims(2) < 1) || (dLims(1) > 120)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
-            continue
+            continue;
         end
         
         valid = true;
@@ -539,7 +539,7 @@ while ~valid
         nFrames = inputFrames(height(volumeData.inst.time));
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

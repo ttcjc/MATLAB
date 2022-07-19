@@ -64,7 +64,7 @@ PODdata.p.mean = probeData.pMean;
 PODdata.p.inst = probeData.p;
 PODdata.p.prime = probeData.pPrime;
 
-clear probeData
+clear probeData;
 
 % Adjust Data Origin
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
@@ -82,7 +82,7 @@ parts = fieldnames(geometry);
 for i = 1:height(parts)
     
     if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-        break
+        break;
     end
     
     if i == height(parts)
@@ -228,7 +228,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -345,7 +345,7 @@ while ~valid
         nModes = inputModes(Nt);
         
         if nModes == -1
-            continue
+            continue;
         else
             nModes = sort(nModes);
         end
@@ -512,7 +512,7 @@ while ~valid
         nFrames = inputFrames(Nt);
         
         if nFrames == -1
-            continue
+            continue;
         end
         
         valid = true;

@@ -121,19 +121,19 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).xLims = inputPos('Planar', 'X');
                     
                     if planeData.(['p', num2str(i)]).xLims == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
                     
                     if planeData.(['p', num2str(i)]).yLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
                     
                     if planeData.(['p', num2str(i)]).yLims(2) == -1
-                        continue
+                        continue;
                     end         
                     
                     planeData.(['p', num2str(i)]).yLims = sort(planeData.(['p', num2str(i)]).yLims);
@@ -141,13 +141,13 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
                     
                     if planeData.(['p', num2str(i)]).zLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
                     
                     if planeData.(['p', num2str(i)]).zLims(2) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).zLims = sort(planeData.(['p', num2str(i)]).zLims);
@@ -159,19 +159,19 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).yLims = inputPos('Planar', 'Y');
                     
                     if planeData.(['p', num2str(i)]).yLims == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
                     
                     if planeData.(['p', num2str(i)]).xLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
                     
                     if planeData.(['p', num2str(i)]).xLims(2) == -1
-                        continue
+                        continue;
                     end         
                     
                     planeData.(['p', num2str(i)]).xLims = sort(planeData.(['p', num2str(i)]).xLims);
@@ -179,13 +179,13 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).zLims(1) = inputPos('Lower', 'Z');
                     
                     if planeData.(['p', num2str(i)]).zLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).zLims(2) = inputPos('Upper', 'Z');
                     
                     if planeData.(['p', num2str(i)]).zLims(2) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).zLims = sort(planeData.(['p', num2str(i)]).zLims);
@@ -197,19 +197,19 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).zLims = inputPos('Planar', 'Z');
                     
                     if planeData.(['p', num2str(i)]).zLims == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).xLims(1) = inputPos('Lower', 'X');
                     
                     if planeData.(['p', num2str(i)]).xLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).xLims(2) = inputPos('Upper', 'X');
                     
                     if planeData.(['p', num2str(i)]).xLims(2) == -1
-                        continue
+                        continue;
                     end         
                     
                     planeData.(['p', num2str(i)]).xLims = sort(planeData.(['p', num2str(i)]).xLims);
@@ -217,13 +217,13 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                     planeData.(['p', num2str(i)]).yLims(1) = inputPos('Lower', 'Y');
                     
                     if planeData.(['p', num2str(i)]).yLims(1) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).yLims(2) = inputPos('Upper', 'Y');
                     
                     if planeData.(['p', num2str(i)]).yLims(2) == -1
-                        continue
+                        continue;
                     end
                     
                     planeData.(['p', num2str(i)]).yLims = sort(planeData.(['p', num2str(i)]).yLims);

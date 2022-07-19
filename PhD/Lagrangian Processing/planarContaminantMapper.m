@@ -652,10 +652,14 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
+        nFrames = inputFrames(height(mapData.inst.time));
+        
+        if nFrames == -1
+            continue
+        end
         
         valid = true;
     else
@@ -765,8 +769,8 @@ if plotMean
 %             cLims = dLims;
             cLims = [0; 40]; % Max Planar Contamination
         elseif strcmp(plotVars{i}, 'massNorm')
-%             cLims = [0; 1]; % Max Base Contamination
-            cLims = [0; 20]; % Max Planar Contamination
+            cLims = [0; 1]; % Max Base Contamination
+%             cLims = [0; 20]; % Max Planar Contamination
         else
             cLims = [0; max(scalarData)];
         end
@@ -794,7 +798,7 @@ if plotInst
         
         figHold = fig;
         
-        for j = 1:height(mapData.inst.time)
+        for j = 1:nFrames
             
             if j ~= 1
                 clf(fig);
@@ -892,6 +896,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 
 %% Local Functions
@@ -905,4 +910,16 @@ function D = inputD(type)
         D = -1;
     end
     
+end
+
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
+
 end

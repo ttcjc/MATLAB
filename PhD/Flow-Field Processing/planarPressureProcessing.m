@@ -273,18 +273,23 @@ switch format
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotInst = false;
-                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotInst = true;
-                
+                nFrames = inputFrames(height(preData.time));
+
+                if nFrames == -1
+                    continue
+                end
+
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');
             end
-            
+
         end
-        
+        clear valid;
+
 end
 
 % Define Plot Limits
@@ -330,7 +335,7 @@ switch format
             
             figHold = fig;
             
-            for i = 1:height(preData.time)
+            for i = 1:nFrames
                 
                 if i ~= 1
                     clf(fig)
@@ -350,4 +355,18 @@ switch format
             
         end
         
+end
+
+
+%% Local Functions
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
+
 end

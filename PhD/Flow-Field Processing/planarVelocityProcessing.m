@@ -59,6 +59,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 disp(' ');
 disp(' ');
@@ -294,18 +295,23 @@ switch format
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotInst = false;
-                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotInst = true;
-                
+                nFrames = inputFrames(height(velData.(planes{1}).time));
+
+                if nFrames == -1
+                    continue
+                end
+
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');
             end
-            
+
         end
-        
+        clear valid;
+
 end
 
 disp(' ');
@@ -414,7 +420,7 @@ switch format
             for i = 1:height(plotPlanes)
                 figHold = fig;
                 
-                for j = 1:height(velData.(plotPlanes{i}).time)
+                for j = 1:nFrames
                     
                     if j ~= 1
                         clf(fig)
@@ -437,4 +443,18 @@ switch format
             
         end
         
+end
+
+
+%% Local Functions
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
+
 end

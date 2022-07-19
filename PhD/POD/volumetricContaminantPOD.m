@@ -813,7 +813,7 @@ end
 
 function nFrames = inputFrames(Nt)
 
-    nFrames = str2double(input(['    Input Desired Frame Count [1 - ', num2str(Nt), ']: '], 's'));
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
     
     if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
         disp('        WARNING: Invalid Entry');

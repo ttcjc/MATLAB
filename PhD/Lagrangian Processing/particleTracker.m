@@ -60,10 +60,10 @@ while ~valid
     selection = input('Select Region of Interest [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
-        format = 'A';
+        formatA = 'A';
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
-        format = 'B';
+        formatA = 'B';
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -78,7 +78,7 @@ disp(' ');
 
 %% Initialise Lagrangian Data
 
-switch format
+switch formatA
 
     case 'A'
         [dataID, LagProps, ~, impactData, volumeData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, ...
@@ -142,7 +142,7 @@ while ~valid
     selection = input('Select Tracking Method [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
-        format = 'C';
+        formatB = 'C';
         trackingTime = inputTime('Ejection', impactData.time, impactData.d);
         
         if trackingTime == -1
@@ -151,7 +151,7 @@ while ~valid
 
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
-        format = 'D';
+        formatB = 'D';
         trackingTime = inputTime('Impact', impactData.time, impactData.d);
 
         if trackingTime == -1
@@ -269,27 +269,33 @@ end
 clear i;
 
 % Remove Unnecessary Data
-switch format
+switch formatB
 
-    % Retain Time Instances >= Tracking Time
+    % Retain Time Instances > Tracking Time
     case 'C'
-        impactData.timeExact = vertcat(impactData.origId{trackingTime:end});
+        impactData.time = impactData.time((trackingTime + 1):end);
+        impactData.timeExact = vertcat(impactData.timeExact{(trackingTime + 1):end});
         
         for i = 1:height(LagProps)
             impactData.(LagProps{i}) = vertcat(impactData.(LagProps{i}){(trackingTime + 1):end});
         end
         
+        volumeData.time = volumeData.time((trackingTime - 1):end);
+
         for i = 1:height(LagProps)
             volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackingTime - 1):end);
         end
 
-    % Retain Time Instances <= Tracking Time
+    % Retain Time Instances < Tracking Time
     case 'D'
+        impactData.time = impactData.time(trackingTime);
         impactData.timeExact = impactData.timeExact{trackingTime};
         
         for i = 1:height(LagProps)
             impactData.(LagProps{i}) = impactData.(LagProps{i}){trackingTime};
         end
+
+        volumeData.time = volumeData.time(1:(trackingTime - 1));
 
         for i = 1:height(LagProps)
             volumeData.(LagProps{i}) = volumeData.(LagProps{i})(1:(trackingTime - 1));
@@ -332,7 +338,7 @@ if normalise
 end
 
 % Specify Region Boundaries
-switch format
+switch formatA
     
     case 'A'
         
@@ -374,37 +380,17 @@ disp('    Identifying Particles of Interest...');
 % Collate Particles of Interest
 index = find(((impactData.d * 1e6) >= dLims(1)) & ...
              ((impactData.d * 1e6) <= dLims(2)) & ...
-             (impactData.positionCartesian(:,1) >= xLimsData (1)) & ...
-             (impactData.positionCartesian(:,1) <= xLimsData (2)) & ...
-             (impactData.positionCartesian(:,2) >= yLimsData (1)) & ...
-             (impactData.positionCartesian(:,2) <= yLimsData (2)) & ...
-             (impactData.positionCartesian(:,3) >= zLimsData (1)) & ...
-             (impactData.positionCartesian(:,3) <= zLimsData (2)));
+             (impactData.positionCartesian(:,1) >= xLimsData(1)) & ...
+             (impactData.positionCartesian(:,1) <= xLimsData(2)) & ...
+             (impactData.positionCartesian(:,2) >= yLimsData(1)) & ...
+             (impactData.positionCartesian(:,2) <= yLimsData(2)) & ...
+             (impactData.positionCartesian(:,3) >= zLimsData(1)) & ...
+             (impactData.positionCartesian(:,3) <= zLimsData(2)));
 
 impactData.timeExact = impactData.timeExact(index);
         
 for i = 1:height(LagProps)
     impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
-end
-
-switch format
-
-    case 'C'
-        activePreTime = setdiff([volumeData.origProcId{1}, volumeData.origId{1}], ...
-                                [impactData.origProcId, impactData.origId], 'rows', 'stable');
-        activePostTime = setdiff([volumeData.origProcId{2}, volumeData.origId{2}], ...
-                                 [impactData.origProcId, impactData.origId], 'rows', 'stable');
-
-        ejections = setdiff(activePostTime, activePreTime, 'rows', 'stable');
-
-        index = find(ismember([impactData.origProcId, impactData.origId], ejections, 'rows'));
-
-        impactData.timeExact = impactData.timeExact(index);
-                
-        for i = 1:height(LagProps)
-            impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
-        end
-
 end
 
 % Initialise Progress Bar
@@ -413,7 +399,7 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(LagData.time));
+parforWaitBar(wB, height(volumeData.time));
 
 % Remove Invalid Particles From Volume Data
 index = cell(height(volumeData.time),1);
@@ -424,7 +410,7 @@ origId = volumeData.origId;
 parfor i = 1:height(volumeData.time)
     particleIDvolume = [origProcId{i}, origId{i}];
 
-    [~, index{i}] = intersect(particleIDvolume, particleIDimpact, 'stable');
+    [~, index{i}] = intersect(particleIDvolume, particleIDimpact, 'rows', 'stable');
     
     send(dQ, []);
 end
@@ -440,12 +426,58 @@ for i = 1:height(volumeData.time)
     
 end
 
+switch formatB
+
+    % Identify Impinging Particles Ejected During Specified Time Instance
+    case 'C'
+        activePreTime = [volumeData.origProcId{1}, volumeData.origId{1}];
+        activePostTime = [volumeData.origProcId{2}, volumeData.origId{2}];
+        
+        ejections = setdiff(activePostTime, activePreTime, 'rows', 'stable');
+        
+        index = find(ismember([impactData.origProcId, impactData.origId], ejections, 'rows'));
+
+        impactData.timeExact = impactData.timeExact(index);
+                
+        for i = 1:height(LagProps)
+            impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+        end
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% Limit Tracking Count
+switch formatA
+
+    case 'A'
+        disp([num2str(height(impactData.positionCartesian)), ' Valid Particles Recorded on Surface'])
+    
+    case 'B'
+        disp([num2str(height(impactData.positionCartesian)), ' Valid Particles Passed Through Plane of Interest'])
+
+end
+
 
 %% Local Functions
 
 function time = inputTime(type, timeList, dList)
 
-    time = str2double(input(['    Input Desired ', type, 'Time [s]: '], 's'));
+    time = str2double(input(['    Input Desired ', type, ' Time [s]: '], 's'));
 
     time = find(ismember(timeList, time));
     

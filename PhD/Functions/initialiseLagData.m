@@ -98,6 +98,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     
     loadData = true;
     while loadData
+        sampleInterval = [];
         
         if plane
             
@@ -107,8 +108,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 selection = input('Load Saved Plane Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
-                    loadData = false;
-                    valid = true;
+                    break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
                     [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/*.mat'], ...
                                                      'Select Plane Data');
@@ -117,7 +117,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         disp(['    Loading ''', fileName, '''...']);
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataPlane = load([filePath, fileName], 'LagData').LagData;
-                        sampleIntervalPlane = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
                         disp('        Success');
                         
                         valid = true;
@@ -144,8 +144,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 selection = input('Load Saved Surface Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
-                    loadData = false;
-                    valid = true;
+                    break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
                     [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/*.mat'], ...
                                                      'Select Surface Data');
@@ -154,7 +153,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         disp(['    Loading ''', fileName, '''...']);
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataSurface = load([filePath, fileName], 'LagData').LagData;
-                        sampleIntervalSurface = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
                         disp('        Success');
                         
                         valid = true;
@@ -181,8 +180,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 selection = input('Load Saved Volume Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
-                    loadData = false;
-                    valid = true;
+                    break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
                     [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/*.mat'], ...
                                                      'Select Volume Data');
@@ -191,7 +189,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         disp(['    Loading ''', fileName, '''...']);
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataVolume = load([filePath, fileName], 'LagData').LagData;
-                        sampleIntervalVolume = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
                         disp('        Success');
                         
                         valid = true;
@@ -209,7 +207,8 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             clear valid;
             
         end
-
+        
+        loadData = false;
     end
     clear loadData;
     
@@ -227,62 +226,28 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         valid = false;
     end
 
-    disp(' ');
-
     % Confirm Matching Sampling Intervals
     if valid
-
-        if plane && surface && volume
-
-            if sampleIntervalPlane ~= sampleIntervalSurface || sampleIntervalPlane ~= sampleIntervalVolume
-                disp('WARNING: Sample Intervals Do Not Match');
-                disp(' ')
-
-                valid = false;
-            else
-                sampleInterval = sampleIntervalPlane;
-            end
-
-        elseif plane && surface
-
-            if sampleIntervalPlane ~= sampleIntervalSurface
-                disp('WARNING: Sample Intervals Do Not Match');
-                disp(' ')
-                
-                valid = false;
-            else
-                sampleInterval = sampleIntervalPlane;
-            end
-
-        elseif plane && volume
-
-            if sampleIntervalPlane ~= sampleIntervalVolume
-                disp('WARNING: Sample Intervals Do Not Match');
-                disp(' ')
-                
-                valid = false;
-            else
-                sampleInterval = sampleIntervalPlane;
-            end
-
-        elseif surface && volume
-
-            if sampleIntervalSurface ~= sampleIntervalVolume
-                disp('WARNING: Sample Intervals Do Not Match');
-                disp(' ')
-                
-                valid = false;
-            else
-                sampleInterval = sampleIntervalSurface;
-            end
-
+        
+        if height(unique(sampleInterval)) ~= 1
+            valid = false;
+        else
+            sampleInterval = sampleInterval(1);
         end
-
+        
     end
 
+    % Return if Data Required Data Is Present and Valid
     if valid
         return;
+    elseif height(unique(sampleInterval)) ~= 1
+        disp(' ');
+        
+        disp('WARNING: Loaded Sample Intervals Do Not Match');
+        disp('         Collating New Data...');
     else
+        disp(' ');
+        
         disp('WARNING: Required Data Unavailable');
         disp('         Collating New Data...');
     end

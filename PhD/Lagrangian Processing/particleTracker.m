@@ -280,10 +280,10 @@ switch formatB
             impactData.(LagProps{i}) = vertcat(impactData.(LagProps{i}){(trackingTime + 1):end});
         end
         
-        volumeData.time = volumeData.time((trackingTime - 1):end);
+        volumeData.time = volumeData.time((trackingTime - 1):(end - 1));
 
         for i = 1:height(LagProps)
-            volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackingTime - 1):end);
+            volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackingTime - 1):(end - 1));
         end
 
     % Retain Time Instances < Tracking Time
@@ -442,35 +442,44 @@ switch formatB
         for i = 1:height(LagProps)
             impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
         end
+        
+        volumeData.time = volumeData.time(2:end);
+
+        for i = 1:height(LagProps)
+            volumeData.(LagProps{i})= volumeData.(LagProps{i})(2:end);
+        end
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+disp(' ');
 
 % Limit Tracking Count
 switch formatA
 
     case 'A'
-        disp([num2str(height(impactData.positionCartesian)), ' Valid Particles Recorded on Surface'])
+        disp('    ', [num2str(height(impactData.positionCartesian)), ' Valid Particles Recorded on Surface'])
     
     case 'B'
-        disp([num2str(height(impactData.positionCartesian)), ' Valid Particles Passed Through Plane of Interest'])
+        disp('    ', [num2str(height(impactData.positionCartesian)), ' Valid Particles Passed Through Plane of Interest'])
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 %% Local Functions

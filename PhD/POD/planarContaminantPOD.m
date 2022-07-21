@@ -274,7 +274,6 @@ wB.Children.Title.Interpreter = 'none';
 % Assemble Snapshot Matrix
 PODdata.snapshotMatrix = zeros(Nt,Ns);
 
-varPrime = PODdata.(PODvar).prime;
 for i = 1:Nt
     
     for j = 1:Ns

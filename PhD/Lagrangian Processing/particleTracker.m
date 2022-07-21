@@ -464,6 +464,10 @@ switch formatA
 
 end
 
+intermediateToc = toc;
+
+
+
 
 
 

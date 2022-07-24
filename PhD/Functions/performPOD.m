@@ -21,28 +21,30 @@
 
 %% Main Function
 
-function [fig, PODdata, Ns, Nt, modesEnergetic, modes80percent] = performPOD(fig, PODdata, PODvar, fieldType, location)
+function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, fieldType, location)
 
-    disp('    Performing POD Using the Snapshot Method...');
-    
     Ns = height(PODdata.positionGrid); % Number of Spatial Points
     Nt = height(PODdata.time); % Number of Time Instances
+
+    disp('    Assembling Snapshot Matrix...');
     
     % Initialise Progress Bar
     wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
     
     % Assemble Snapshot Matrix
-    if strcmp(fieldType, 'scalar')
-        PODdata.snapshotMatrix = zeros(Nt,Ns);
-        
-        for i = 1:Nt
-            PODdata.snapshotMatrix(i,:) = PODdata.(PODvar).prime{i};
-            
-            waitbar((i / Nt), wB);
-        end
+    switch fieldType
 
-    elseif strcmp(fieldType, 'vector')
+        case 'scalar'
+            snapshotMatrix = zeros(Nt,Ns);
+            
+            for i = 1:Nt
+                snapshotMatrix(i,:) = PODdata.(PODvar).prime{i};
+                
+                waitbar((i / Nt), wB);
+            end
+
+        case 'vector'
         uSnapshotMatrix = zeros(Nt,Ns);
         vSnapshotMatrix = uSnapshotMatrix;
         wSnapshotMatrix = uSnapshotMatrix;
@@ -55,32 +57,38 @@ function [fig, PODdata, Ns, Nt, modesEnergetic, modes80percent] = performPOD(fig
             waitbar((i / Nt), wB);
         end
 
-        PODdata.snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
-    else
-        error('Unexpected Field Type');
+        snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
+
+        otherwise
+            error('Unrecognised Field Type');
+    
     end
     
     delete(wB);
+
+    disp(' ');
+
+    disp('    Performing POD Using the Snapshot Method...');
     
     % Generate Correlation Matrix
-    PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
+    C = (snapshotMatrix * snapshotMatrix') / (Nt - 1);
     
     % Solve Eigenvalue Problem
-    [PODdata.A_mode, PODdata.lambda] = eig(PODdata.C, 'vector');
+    [A_mode, lambda] = eig(C, 'vector');
     
     % Sort Eigenvalues and Eigenvalues in Descending Order
-    [PODdata.lambda, index] = sort(PODdata.lambda, 'descend');
-    PODdata.A_mode = PODdata.A_mode(:,index); % Temporal Modes
+    [lambda, index] = sort(lambda, 'descend');
+    A_mode = A_mode(:,index); % Temporal Modes
     
     % Calculate Spatial Coefficients
-    PODdata.phi_coeff = PODdata.snapshotMatrix' * PODdata.A_mode;
+    phi_coeff = snapshotMatrix' * A_mode;
     
     % Normalisation to Match Direct Method
-    PODdata.phi_mode = normc(PODdata.phi_coeff); % Spatial Modes
-    PODdata.A_coeff = PODdata.snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
+    PODdata.phi_mode = normc(phi_coeff); % Spatial Modes
+    PODdata.A_coeff = snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
     
     % Identify Mode Energy Content
-    PODdata.modeEnergy = (PODdata.lambda / sum(PODdata.lambda)) * 100;
+    PODdata.modeEnergy = (lambda / sum(lambda)) * 100;
     modesEnergetic = height(find(PODdata.modeEnergy > 1));
     modes80percent = find(cumsum(PODdata.modeEnergy) > 80, 1);
     
@@ -92,7 +100,7 @@ function [fig, PODdata, Ns, Nt, modesEnergetic, modes80percent] = performPOD(fig
     % Figure Setup
     fig = fig + 1;
     
-    figName = [location, '_', PODvar, '_POD_Energy_Content'];
+    figName = [location, '_POD_', PODvar, '_Mode_Energy_Content'];
     
     set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
     set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
@@ -100,7 +108,7 @@ function [fig, PODdata, Ns, Nt, modesEnergetic, modes80percent] = performPOD(fig
     hold on;
     
     % Plot
-    plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
+    plot(PODdata.modeEnergy(1:min(Nt, ((ceil(modesEnergetic / 10) * 10) - 1))), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
     
     % Figure Formatting
     axis on;

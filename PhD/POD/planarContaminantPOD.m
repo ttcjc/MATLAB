@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -245,6 +245,10 @@ PODdata.(PODvar).inst = mapData.inst.(PODvar);
 
 clear mapData;
 
+disp(' ');
+
+disp('    Calculating Instantaneous Field Fluctuations...');
+
 % Initialise Progress Bar
 wB = waitbar(0, ['Calculating Instantaneous ''', PODvar, ''' Fluctuations'], 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
@@ -262,94 +266,16 @@ delete(wB);
 
 disp(' ');
 
-disp('    Performing Planar POD Using the Snapshot Method...');
-
-Ns = height(PODdata.positionGrid); % Number of Spatial Points
-Nt = height(PODdata.time); % Number of Time Instances
-
-% Initialise Progress Bar
-wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-
-% Assemble Snapshot Matrix
-PODdata.snapshotMatrix = zeros(Nt,Ns);
-
-for i = 1:Nt
-    
-    for j = 1:Ns
-        PODdata.snapshotMatrix(i,j) = PODdata.(PODvar).prime{i}(j);
-    end
-    
-    waitbar((i / Nt), wB);
-end
-
-delete(wB);
-
-% Generate Correlation Matrix
-PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
-
-% Solve Eigenvalue Problem
-[PODdata.A_mode, PODdata.lambda] = eig(PODdata.C, 'vector');
-
-% Sort Eigenvalues and Eigenvalues in Descending Order
-[PODdata.lambda, index] = sort(PODdata.lambda, 'descend');
-PODdata.A_mode = PODdata.A_mode(:,index); % Temporal Modes
-
-% Calculate Spatial Coefficients
-PODdata.phi_coeff = PODdata.snapshotMatrix' * PODdata.A_mode;
-
-% Normalisation to Match Direct Method
-PODdata.phi_mode = normc(PODdata.phi_coeff); % Spatial Modes
-PODdata.A_coeff = PODdata.snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
-
-% Identify Mode Energy Content
-PODdata.modeEnergy = (PODdata.lambda / sum(PODdata.lambda)) * 100;
-modesEnergetic = height(find(PODdata.modeEnergy > 1));
-modes80percent = find(cumsum(PODdata.modeEnergy) > 80, 1);
-
-disp(' ');
-
-disp(['    First ', num2str(modesEnergetic), ' Modes Each Contain Greater Than 1% of Total Energy']);
-disp(['    First ', num2str(modes80percent), ' Modes Contain Approximately 80% of Total Energy']);
-
-% Figure Setup
-fig = fig + 1;
-
+% Perform Planar Snapshot POD
 switch format
-    
+
     case 'A'
-        figName = ['Base_', PODvar, '_Planar_POD_Energy_Content'];
-        
+        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, 'scalar', 'Base');
+
     case 'B'
-        figName = [planePos, '_', PODvar, '_Planar_POD_Energy_Content'];
-        
+        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, 'scalar', planePos);
+
 end
-        
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-hold on;
-
-% Plot
-plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
-
-% Figure Formatting
-axis on;
-box on;
-grid off;
-xlim([0; (ceil(modesEnergetic / 10) * 10)]);
-ylim([0; (ceil(max(PODdata.modeEnergy)/10) * 10)]);
-tickData = (0:(((ceil(modesEnergetic / 10) * 10) - 0) / 5):(ceil(modesEnergetic / 10) * 10));
-xticks(tickData(2:(end - 1)));
-tickData = (0:(((ceil(max(PODdata.modeEnergy)/10) * 10) - 0) / 5):(ceil(max(PODdata.modeEnergy)/10) * 10));
-yticks(tickData(2:(end - 1)));
-xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
-ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
-set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-hold off;
-
-pause(2);
-exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
 
 executionTime = toc;
 
@@ -408,7 +334,7 @@ disp('------------------');
 
 disp(' ');
 
-if ~isempty(plotModes)
+if plotModes
     % Define Plot Limits
     switch format
 
@@ -451,10 +377,10 @@ if ~isempty(plotModes)
         switch format
 
             case 'A'
-                figName = ['Base_', PODvar, '_Planar_POD_M', num2str(i)];
+                figName = ['Base_POD_', PODvar, '_M', num2str(i)];
 
             case 'B'
-                figName = [planePos, '_', PODvar, '_Planar_POD_M', num2str(i)];
+                figName = [planePos, '_POD_', PODvar, '_M', num2str(i)];
 
         end
 
@@ -594,39 +520,13 @@ end
 disp(' ');
 
 % Perform Reconstruction
-disp('    Performing Field Reconstruction...');
-
-for i = nModes
-    % Initialise Progress Bar
-    wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
-    
-    % Identify Mode Contribution
-    mode = ['M', num2str(i)];
-    
-    reconData.(mode).modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
-    reconData.(mode).prime = cell(Nt,1);
-    
-    for j = 1:Nt
-        reconData.(mode).prime{j} = zeros(Ns,1);
-        
-        for k = 1:Ns
-            reconData.(mode).prime{j}(k) = reconData.(mode).modeMatrix(j,k);
-        end
-        
-        waitbar((j / Nt), wB);
-    end
-    
-    delete(wB);
-    
-    % Add Mode to Reconstruction
-    for j = 1:Nt
-        reconData.(PODvar).inst{j} = reconData.(PODvar).inst{j} + reconData.(mode).prime{j};
-    end
-    
-end
+reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar');
 
 if any(strcmp(PODvar, {'mass', 'massNorm'}))
+    disp(' ');
+
+    disp('    Calculating Reconstructed Centre of Mass...');
+
     % Initialise Progress Bar
     wB = waitbar(0, 'Calculating Reconstructed Centre of Mass', 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
@@ -834,15 +734,15 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
-                     'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat'], ...
+                     'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
-                     'dataID', 'reconData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat'], ...
+                     'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -853,16 +753,16 @@ while ~valid
     end
 
 end
-clear valid
+clear valid;
 
 
 %% Local Functions
 
-function modes = inputModes(nModes)
+function modes = inputModes(Nt)
 
     modes = str2num(input('    Input Desired Modes [Row Vector Form]: ', 's')); %#ok<ST2NM>
     
-    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes > nModes)
+    if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes > Nt)
         disp('        WARNING: Invalid Entry');
         modes = -1;
     end

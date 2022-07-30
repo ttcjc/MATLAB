@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -16,7 +16,8 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-massNormalisation = 3.944150754311134e-10; % Square-Back Base Time-Average
+% massNormalisation = 3.944150754311134e-10; % SB Base Time-Average
+massNormalisation = 4.100838315658425e-09; % ST 2L Time-Average
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures

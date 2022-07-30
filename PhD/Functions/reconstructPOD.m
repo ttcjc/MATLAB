@@ -21,18 +21,18 @@
 
 %% Main Function
 
-function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType)
+function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
     
-    disp('    Identifying Modal Contributions to Fluctuating Field...');
+    disp(['    Performing Field Reconstruction Using ' num2str(length(nModes)), ' Modes...']);
     
-    for i = nModes
-        % Initialise Progress Bar
-        wB = waitbar(0, ['Identifying Mode #', num2str(i), ' Contributions'], 'name', 'Progress');
-        wB.Children.Title.Interpreter = 'none';
-        
-        % Identify Mode Contribution
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Adding Modes to Reconstruction', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    
+    for i = nModes        
         mode = ['M', num2str(i)];
         
+        % Identify Mode Contribution        
         switch fieldType
 
             case 'scalar'
@@ -41,8 +41,6 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                 
                 for j = 1:Nt
                     reconData.(mode).prime{j} = modeMatrix(j,:)';
-                    
-                    waitbar((j / Nt), wB);
                 end
 
             case 'vector'
@@ -58,8 +56,6 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                     reconData.(mode).u.prime{j} = uModeMatrix(j,:)';
                     reconData.(mode).v.prime{j} = vModeMatrix(j,:)';
                     reconData.(mode).w.prime{j} = wModeMatrix(j,:)';
-                    
-                    waitbar((j / Nt), wB);
                 end
                 
                 modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix]; %#ok<NASGU>
@@ -69,18 +65,6 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
         
         end
         
-        delete(wB);
-    end
-
-    disp(' ');
-
-    disp('    Performing Field Reconstruction...');
-
-    for i = nModes
-        % Initialise Progress Bar
-        wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
-        wB.Children.Title.Interpreter = 'none';
-        
         % Add Mode to Reconstruction
         switch fieldType
 
@@ -88,8 +72,6 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                 
                 for j = 1:Nt
                     reconData.(PODvar).inst{j} = reconData.(PODvar).inst{j} + reconData.(mode).prime{j};
-
-                    waitbar((j / Nt), wB);
                 end
 
             case 'vector'
@@ -98,13 +80,17 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                     reconData.(PODvar{1}).inst{j} = reconData.(PODvar{1}).inst{j} + reconData.(mode).u.prime{j};
                     reconData.(PODvar{2}).inst{j} = reconData.(PODvar{2}).inst{j} + reconData.(mode).v.prime{j};
                     reconData.(PODvar{3}).inst{j} = reconData.(PODvar{3}).inst{j} + reconData.(mode).w.prime{j};
-
-                    waitbar((j / Nt), wB);
                 end
         
         end
-
-        delete(wB);
+        
+        if ~saveModes
+            reconData = rmfield(reconData, mode);
+        end
+        
+        waitbar((i / length(nModes)), wB);
     end
+    
+    delete(wB);
 
 end

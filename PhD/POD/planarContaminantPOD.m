@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -520,7 +520,7 @@ end
 disp(' ');
 
 % Perform Reconstruction
-reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar');
+reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', true);
 
 if any(strcmp(PODvar, {'mass', 'massNorm'}))
     disp(' ');

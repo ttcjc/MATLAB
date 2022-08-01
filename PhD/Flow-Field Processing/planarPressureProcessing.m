@@ -5,6 +5,9 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
 normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
@@ -74,7 +77,7 @@ switch format
 
     case 'B'
         [caseName, dataID, preData, sampleInterval, timePrecision, geometry, ...
-         xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(normalise, nProc);    
+         xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLocation, normalise, nProc);    
 
     case 'C'
         [caseName, preData, geometry, ...
@@ -219,44 +222,30 @@ switch format
     
     case {'A', 'C'}
         preData.CoPmean = zeros(1,3);
+        
         preData.CoPmean(1) = preData.position(1,1);
-        
-        for i = 1:height(preData.position)
-            preData.CoPmean(2) = preData.CoPmean(2) + (preData.CpMean(i) * preData.position(i,2));
-            preData.CoPmean(3) = preData.CoPmean(3) + (preData.CpMean(i) * preData.position(i,3));
-        end
-        
-        preData.CoPmean(2) = preData.CoPmean(2) / sum(preData.CpMean);
-        preData.CoPmean(3) = preData.CoPmean(3) / sum(preData.CpMean);
+        preData.CoPmean(2) = sum(preData.CpMean .* preData.position(:,2)) / sum(preData.CpMean);
+        preData.CoPmean(3) = sum(preData.CpMean .* preData.position(:,3)) / sum(preData.CpMean);
         
     case 'B'
         preData.CoPmean = zeros(1,3);
+        
         preData.CoPmean(1) = preData.position(1,1);
-        
-        for i = 1:height(preData.position)
-            preData.CoPmean(2) = preData.CoPmean(2) + (preData.CpMean(i) * preData.position(i,2));
-            preData.CoPmean(3) = preData.CoPmean(3) + (preData.CpMean(i) * preData.position(i,3));
-        end
-        
-        preData.CoPmean(2) = preData.CoPmean(2) / sum(preData.CpMean);
-        preData.CoPmean(3) = preData.CoPmean(3) / sum(preData.CpMean);
+        preData.CoPmean(2) = sum(preData.CpMean .* preData.position(:,2)) / sum(preData.CpMean);
+        preData.CoPmean(3) = sum(preData.CpMean .* preData.position(:,3)) / sum(preData.CpMean);
         
         preData.CoP = cell(height(preData.time),1);
         
         for i = 1:height(preData.time)
             preData.CoP{i} = zeros(1,3);
-            preData.CoP{i}(1) = preData.position(1,1);
-            
-            for j = 1:height(preData.position)
-                preData.CoP{i}(2) = preData.CoP{i}(2) + (preData.Cp{i}(j) * preData.position(j,2));
-                preData.CoP{i}(3) = preData.CoP{i}(3) + (preData.Cp{i}(j) * preData.position(j,3));
-            end
-            
-            preData.CoP{i}(2) = preData.CoP{i}(2) / sum(preData.Cp{i});
-            preData.CoP{i}(3) = preData.CoP{i}(3) / sum(preData.Cp{i});
-        end
         
+            preData.CoP{i}(1) = preData.position(1,1);
+            preData.CoP{i}(2) = sum(preData.Cp{i} .* preData.position(:,2)) / sum(preData.Cp{i});
+            preData.CoP{i}(3) = sum(preData.Cp{i} .* preData.position(:,3)) / sum(preData.Cp{i});
+        end
+
 end
+
 
 %% Data Presentation
 

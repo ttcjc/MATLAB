@@ -23,10 +23,10 @@
 
 function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
     
-    disp(['    Performing Field Reconstruction Using ' num2str(length(nModes)), ' Modes...']);
+    disp(['    Performing Field Reconstruction Using ' num2str(length(nModes)), ' Mode(s)...']);
     
     % Initialise Progress Bar
-    wB = waitbar(0, 'Adding Modes to Reconstruction', 'name', 'Progress');
+    wB = waitbar(0, 'Adding Mode(s) to Reconstruction', 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
     
     for i = nModes        

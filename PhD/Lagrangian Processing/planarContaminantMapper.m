@@ -16,8 +16,7 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-% massNormalisation = 3.944150754311134e-10; % SB Base Time-Average
-massNormalisation = 4.100838315658425e-09; % ST 2L Time-Average
+massNormalisation = 1;
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -321,75 +320,53 @@ parforWaitBar(wB, height(LagData.time));
 % Collate Particles of Interest
 index = cell(height(LagData.time),1);
 
-switch format
+d = LagData.d;
+positionCartesian = LagData.positionCartesian;
+parfor i = 1:height(LagData.time)
     
-    case {'A', 'B'}
-        d = LagData.d;
-        positionCartesian = LagData.positionCartesian;
-        parfor i = 1:height(LagData.time)
-            
-            if positionCartesian{i} ~= -1
-                index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
-                                ((d{i} * 1e6) <= dLims(2)) & ...
-                                (positionCartesian{i}(:,1) == xLimsData) & ...
-                                (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
-                                (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
-                                (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
-                                (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
-            end
-            
-            send(dQ, []);
-        end
-        clear d positionCartesian;
-        
+    if positionCartesian{i} ~= -1
+        index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
+                        ((d{i} * 1e6) <= dLims(2)) & ...
+                        (positionCartesian{i}(:,1) == xLimsData) & ...
+                        (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
+                        (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
+                        (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
+                        (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
+    end
+    
+    send(dQ, []);
 end
+clear d positionCartesian;
 
 delete(wB);
 
-contaminantData.time = LagData.time;
-LagData.time = []; % Free Memory
-
-contaminantData.timeExact = cell(height(contaminantData.time),1);
-
-for i = 1:height(LagProps)
-    contaminantData.(LagProps{i}) = contaminantData.timeExact;
-end
-
-for i = 1:height(contaminantData.time)
-    contaminantData.timeExact{i} = LagData.timeExact{i}(index{i});
-    LagData.timeExact{i} = []; % Free Memory
+% Remove Unnecessary Data
+for i = 1:height(LagData.time)
+    LagData.timeExact{i} = LagData.timeExact{i}(index{i});
     
     for j = 1:height(LagProps)
-        contaminantData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
-        LagData.(LagProps{j}){i} = []; % Free Memory
+        LagData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
     end
-    
-end
 
-clear LagData;
+end
 
 disp(' ');
 
 % Generate Instantaneous Contaminant Maps
 disp('    Generating Instantaneous Contaminant Maps...');
 
-switch format
-    
-    case {'A', 'B'}
-        % Adjust Uniform Cell Size to Fit Region of Interest
-        cellSizeX = cellSize;
-        cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
-        cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
-        
-        [y, z] = ndgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
-        
-        mapData.positionGrid = zeros(height(y(:)),3);
-        mapData.positionGrid(:,1) = xLimsData;
-        mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
-    
-end
+% Adjust Uniform Cell Size to Fit Region of Interest
+cellSizeX = cellSize;
+cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
+cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
 
-mapData.inst.time = contaminantData.time;
+[y, z] = ndgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
+
+mapData.positionGrid = zeros(height(y(:)),3);
+mapData.positionGrid(:,1) = xLimsData;
+mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
+
+mapData.inst.time = LagData.time;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Assigning Particles to Map Nodes', 'name', 'Progress');
@@ -400,10 +377,10 @@ afterEach(dQ, @parforWaitBar);
 parforWaitBar(wB, height(mapData.inst.time));
 
 % Assign Particles to Map Nodes
-index = cell(height(mapData.inst.time),1);
+index = cell(height(mapData.inst.time),1); % Array Position of Closest Mesh Node
 
 positionGrid = mapData.positionGrid;
-positionCartesian = contaminantData.positionCartesian;
+positionCartesian = LagData.positionCartesian;
 parfor i = 1:height(mapData.inst.time)
     
     if positionCartesian{i} ~= -1
@@ -416,9 +393,10 @@ clear positionGrid positionCartesian;
 
 delete(wB);
 
+% Offset Particles From Base for Better Visibility
 switch format
     
-    case {'A', 'B'}
+    case 'A'
         mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
         
 end
@@ -432,7 +410,7 @@ afterEach(dQ, @parforWaitBar);
 parforWaitBar(wB, height(mapData.inst.time));
 
 % Calculate Instantaneous Mapping Variables
-nParticles = cell(height(contaminantData.time),1); % Number of Particles in Cell
+nParticles = cell(height(LagData.time),1); % Number of Particles in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
 d20 = nParticles; % Surface Mean Diameter in Cell
 d30 = nParticles; % Volume Mean Diameter in Cell
@@ -441,9 +419,9 @@ mass = nParticles; % Total Mass in Cell
 massNorm = nParticles; % Normalised Mass in Cell
 
 positionGrid = mapData.positionGrid;
-positionCartesian = contaminantData.positionCartesian;
-nParticle = contaminantData.nParticle;
-d = contaminantData.d;
+positionCartesian = LagData.positionCartesian;
+nParticle = LagData.nParticle;
+d = LagData.d;
 parfor i = 1:height(mapData.inst.time)
     nParticles{i} = zeros(height(positionGrid),1);
     d10{i} = nParticles{i};
@@ -485,8 +463,6 @@ clear positionGrid positionCartesian nParticle d;
 
 delete(wB);
 
-clear contaminantData;
-
 mapData.inst.nParticles = nParticles;
 mapData.inst.d10 = d10;
 mapData.inst.d20 = d20;
@@ -499,41 +475,21 @@ clear nParticles d10 d20 d30 d32 mass massNorm;
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, height(mapData.inst.time));
 
 % Calculate Instantaneous Centre of Mass
-CoM = cell(height(mapData.inst.time),1);
+mapData.inst.CoM = cell(height(mapData.inst.time),1);
 
-switch format
+for i = 1:height(mapData.inst.time)
+    mapData.inst.CoM{i} = zeros(1,3);
     
-    case {'A', 'B'}
-        mass = mapData.inst.mass;
-        positionGrid = mapData.positionGrid;
-        parfor i = 1:height(mapData.inst.time)
-            CoM{i} = zeros(1,3);
-            CoM{i}(1) = positionGrid(1,1); %#ok<PFBNS>
-            
-            for j = 1:height(positionGrid)
-                CoM{i}(2) = CoM{i}(2) + (mass{i}(j) * positionGrid(j,2));
-                CoM{i}(3) = CoM{i}(3) + (mass{i}(j) * positionGrid(j,3));
-            end
-            
-            CoM{i}(2) = CoM{i}(2) / sum(mass{i});
-            CoM{i}(3) = CoM{i}(3) / sum(mass{i});
-            
-            send(dQ, []);
-        end
-        clear mass positionGrid;
-        
+    mapData.inst.CoM{i}(1) = mapData.positionGrid(1,1);
+    mapData.inst.CoM{i}(2) = sum(mapData.inst.mass{i} .* mapData.positionGrid(:,2)) / sum(mapData.inst.mass{i});
+    mapData.inst.CoM{i}(3) = sum(mapData.inst.mass{i} .* mapData.positionGrid(:,3)) / sum(mapData.inst.mass{i});
+    
+    waitbar((i / height(mapData.inst.time)), wB);
 end
 
 delete(wB);
-
-mapData.inst.CoM = CoM;
-clear CoM;
 
 disp(' ');
 
@@ -587,23 +543,10 @@ clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean;
 
 % Calculate Time-Averaged Centre of Mass
 mapData.mean.CoM = zeros(1,3);
-
-switch format
     
-    case {'A', 'B'}
-        mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-        
-        for i = 1:height(mapData.positionGrid)
-            mapData.mean.CoM(2) = mapData.mean.CoM(2) + ...
-                                  (mapData.mean.mass(i) * mapData.positionGrid(i,2));
-            mapData.mean.CoM(3) = mapData.mean.CoM(3) + ...
-                                  (mapData.mean.mass(i) * mapData.positionGrid(i,3));
-        end
-        
-        mapData.mean.CoM(2) = mapData.mean.CoM(2) / sum(mapData.mean.mass);
-        mapData.mean.CoM(3) = mapData.mean.CoM(3) / sum(mapData.mean.mass);
-        
-end
+mapData.mean.CoM(1) = mapData.positionGrid(1,1);
+mapData.mean.CoM(2) = sum(mapData.mean.mass .* mapData.positionGrid(:,2)) / sum(mapData.mean.mass);
+mapData.mean.CoM(3) = sum(mapData.mean.mass .* mapData.positionGrid(:,3)) / sum(mapData.mean.mass);
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;

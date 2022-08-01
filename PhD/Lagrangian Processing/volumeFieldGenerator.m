@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -256,71 +256,53 @@ parforWaitBar(wB, height(LagData.time));
 % Collate Particles of Interest
 index = cell(height(LagData.time),1);
 
-switch format
+d = LagData.d;
+positionCartesian = LagData.positionCartesian;
+parfor i = 1:height(LagData.time)
     
-    case {'A', 'B'}
-        d = LagData.d;
-        positionCartesian = LagData.positionCartesian;
-        parfor i = 1:height(LagData.time)
-            
-            if positionCartesian{i} ~= -1
-                index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
-                                ((d{i} * 1e6) <= dLims(2)) & ...
-                                (positionCartesian{i}(:,1) >= xLimsData (1)) & ...
-                                (positionCartesian{i}(:,1) <= xLimsData (2)) & ...
-                                (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
-                                (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
-                                (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
-                                (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
-            end
-            
-            send(dQ, []);
-        end
-        clear d positionCartesian;
-        
+    if positionCartesian{i} ~= -1
+        index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
+                        ((d{i} * 1e6) <= dLims(2)) & ...
+                        (positionCartesian{i}(:,1) >= xLimsData (1)) & ...
+                        (positionCartesian{i}(:,1) <= xLimsData (2)) & ...
+                        (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
+                        (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
+                        (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
+                        (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
+    end
+    
+    send(dQ, []);
 end
-
+clear d positionCartesian;
+        
 delete(wB);
 
-contaminantData.time = LagData.time;
-LagData.time = []; % Free Memory
-
-for i = 1:height(LagProps)
-    contaminantData.(LagProps{i}) = cell(height(contaminantData.time),1);
-end
-
-for i = 1:height(contaminantData.time)
+% Remove Unnecessary Data
+for i = 1:height(LagData.time)
     
     for j = 1:height(LagProps)
-        contaminantData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
-        LagData.(LagProps{j}){i} = []; % Free Memory
+        LagData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
     end
     
 end
-
-clear LagData;
 
 disp(' ');
 
 % Generate Instantaneous Volume Field
 disp('    Generating Instantaneous Volume Field...');
 
-switch format
-    
-    case {'A', 'B'}
-        % Adjust Uniform Cell Size to Fit Region of Interest
-        cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
-        cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
-        cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
-        
-        cellVolume = cellSizeX * cellSizeY * cellSizeZ;
-        
-        [volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                                            yLimsData(1):cellSizeY:yLimsData(2), ...
-                                                            zLimsData(1):cellSizeZ:zLimsData(2));
-end
+% Adjust Uniform Cell Size to Fit Region of Interest
+cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
+cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
+cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
 
-volumeData.inst.time = contaminantData.time;
+cellVolume = cellSizeX * cellSizeY * cellSizeZ;
+
+[volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
+                                                    yLimsData(1):cellSizeY:yLimsData(2), ...
+                                                    zLimsData(1):cellSizeZ:zLimsData(2));
+
+volumeData.inst.time = LagData.time;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Assigning Particles to Mesh Nodes', 'name', 'Progress');
@@ -333,8 +315,8 @@ parforWaitBar(wB, height(volumeData.inst.time));
 % Assign Particles to Volume Nodes
 index = cell(height(volumeData.inst.time),1); % Array Position of Closest Mesh Node
 
-totalParticles = cellfun(@height, contaminantData.positionCartesian);
-positionCartesian = contaminantData.positionCartesian;
+totalParticles = cellfun(@height, LagData.positionCartesian);
+positionCartesian = LagData.positionCartesian;
 x = volumeData.x;
 y = volumeData.y;
 z = volumeData.z;
@@ -375,10 +357,10 @@ d10 = nParticles; % Arithmetic Mean Diameter in Cell
 mass = nParticles; % Total Mass in Cell
 volFraction = nParticles; % Fraction of Cell Volume Occupied by Spray
 
-totalParticles = cellfun(@height, contaminantData.positionCartesian);
+totalParticles = cellfun(@height, LagData.positionCartesian);
 x = volumeData.x;
-nParticle = contaminantData.nParticle;
-d = contaminantData.d;
+nParticle = LagData.nParticle;
+d = LagData.d;
 parfor i = 1:height(volumeData.inst.time)
     nParticles{i} = zeros(size(x));
     d10{i} = nParticles{i};
@@ -423,8 +405,6 @@ end
 clear totalParticles x nParticle d;
 
 delete(wB);
-
-clear contaminantData;
 
 % volumeData.inst.nParticles = nParticles;
 volumeData.inst.d10 = d10;

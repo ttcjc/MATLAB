@@ -100,7 +100,15 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     % Figure Setup
     fig = fig + 1;
     
-    figName = [location, '_POD_', PODvar, '_Mode_Energy_Content'];
+    switch fieldType
+
+        case 'scalar'
+            figName = [location, '_POD_', PODvar, '_Mode_Energy_Content'];
+
+        case 'vector'
+            figName = [location, '_POD_', cell2mat(PODvar), '_Mode_Energy_Content'];
+
+    end
     
     set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
     set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...

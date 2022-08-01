@@ -5,6 +5,9 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
 normalise = true; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
@@ -74,8 +77,8 @@ switch format
          xDims, yDims, zDims, spacePrecision] = initialisePVdata('U', normalise);
 
     case 'B'
-        [caseName, dataID, velData, timePrecision, geometry, ...
-         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData('planar', normalise, nProc);    
+        [caseName, dataID, velData, sampleInterval, timePrecision, geometry, ...
+         xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, 'planar', normalise, nProc);    
 
     case 'C'
         [caseName, velData, geometry, ...

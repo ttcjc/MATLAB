@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -96,91 +96,8 @@ end
 
 disp(' ');
 
-disp('    Performing Planar POD Using the Snapshot Method...');
-
-Ns = height(PODdata.positionGrid); % Number of Spatial Points
-Nt = height(PODdata.time); % Number of Time Instances
-
-% Initialise Progress Bar
-wB = waitbar(0, 'Assembling Snapshot Matrix', 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-
-% Assemble Snapshot Matrix
-uSnapshotMatrix = zeros(Nt,Ns);
-vSnapshotMatrix = uSnapshotMatrix;
-wSnapshotMatrix = uSnapshotMatrix;
-
-for i = 1:Nt
-    
-    for j = 1:Ns
-        uSnapshotMatrix(i,j) = PODdata.u.prime{i}(j);
-        vSnapshotMatrix(i,j) = PODdata.v.prime{i}(j);
-        wSnapshotMatrix(i,j) = PODdata.w.prime{i}(j);
-    end
-    
-    waitbar((i / Nt), wB);
-end
-
-delete(wB);
-
-PODdata.snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
-clear uSnapshotMatrix vSnapshotMatrix wSnapshotMatrix;
-
-% Generate Correlation Matrix
-PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
-
-% Solve Eigenvalue Problem
-[PODdata.A_mode, PODdata.lambda] = eig(PODdata.C, 'vector');
-
-% Sort Eigenvalues and Eigenvalues in Descending Order
-[PODdata.lambda, index] = sort(PODdata.lambda, 'descend');
-PODdata.A_mode = PODdata.A_mode(:,index); % Temporal Modes
-
-% Calculate Spatial Coefficients
-PODdata.phi_coeff = PODdata.snapshotMatrix' * PODdata.A_mode;
-
-% Normalisation to Match Direct Method
-PODdata.phi_mode = normc(PODdata.phi_coeff); % Spatial Modes
-PODdata.A_coeff = PODdata.snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
-
-% Identify Mode Energy Content
-PODdata.modeEnergy = (PODdata.lambda / sum(PODdata.lambda)) * 100;
-modesEnergetic = height(find(PODdata.modeEnergy > 1));
-modes80percent = find(cumsum(PODdata.modeEnergy) > 80, 1);
-
-disp(' ');
-
-disp(['    First ', num2str(modesEnergetic), ' Modes Each Contain Greater Than 1% of Total Energy']);
-disp(['    First ', num2str(modes80percent), ' Modes Contain Approximately 80% of Total Energy']);
-
-% Figure Setup
-fig = fig + 1;
-figName = 'Base_Pressure_Planar_POD_Energy_Content';
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-hold on;
-
-% Plot
-plot(PODdata.modeEnergy(1:((ceil(modesEnergetic / 10) * 10) - 1)), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
-
-% Figure Formatting
-axis on;
-box on;
-grid off;
-xlim([0; (ceil(modesEnergetic / 10) * 10)]);
-ylim([0; (ceil(max(PODdata.modeEnergy)/10) * 10)]);
-tickData = (0:(((ceil(modesEnergetic / 10) * 10) - 0) / 5):(ceil(modesEnergetic / 10) * 10));
-xticks(tickData(2:(end - 1)));
-tickData = (0:(((ceil(max(PODdata.modeEnergy)/10) * 10) - 0) / 5):(ceil(max(PODdata.modeEnergy)/10) * 10));
-yticks(tickData(2:(end - 1)));
-xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
-ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
-set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-hold off;
-
-pause(2);
-exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+% Perform Planar Snapshot POD
+[fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, {'u', 'v', 'w'}, 'vector', planeName);
 
 executionTime = toc;
 
@@ -424,52 +341,8 @@ end
 
 disp(' ');
 
-% Perform Reconstruction
-disp('    Performing Field Reconstruction...');
-
-for i = nModes
-    % Initialise Progress Bar
-    wB = waitbar(0, ['Adding Mode #', num2str(i), ' to Reconstruction'], 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
-    
-    % Identify Mode Contribution
-    mode = ['M', num2str(i)];
-    
-    uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
-    vModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(((Ns + 1):(2 * Ns)),i)';
-    wModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((((2 * Ns) + 1):end),i)';
-    
-    reconData.(mode).u.prime = cell(Nt,1);
-    reconData.(mode).v.prime = reconData.(mode).u.prime;
-    reconData.(mode).w.prime = reconData.(mode).u.prime;
-    
-    for j = 1:Nt
-        reconData.(mode).u.prime{j} = zeros(Ns,1);
-        reconData.(mode).v.prime{j} = reconData.(mode).u.prime{j};
-        reconData.(mode).w.prime{j} = reconData.(mode).u.prime{j};
-        
-        for k = 1:Ns
-            reconData.(mode).u.prime{j}(k) = uModeMatrix(j,k);
-            reconData.(mode).v.prime{j}(k) = vModeMatrix(j,k);
-            reconData.(mode).w.prime{j}(k) = wModeMatrix(j,k);
-        end
-        
-         waitbar((j / Nt), wB);
-    end
-    
-    delete(wB);
-    
-    reconData.(mode).modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix];
-    clear uModeMatrix vModeMatrix wModeMatrix;
-    
-    % Add Mode to Reconstruction
-    for j = 1:Nt
-        reconData.u.inst{j} = reconData.u.inst{j} + reconData.(mode).u.prime{j};
-        reconData.v.inst{j} = reconData.v.inst{j} + reconData.(mode).v.prime{j};
-        reconData.w.inst{j} = reconData.w.inst{j} + reconData.(mode).w.prime{j};
-    end
-    
-end
+% Perform Field Reconstruction
+reconData = reconstructPOD(reconData, PODdata, {'u', 'v', 'w'}, nModes, Ns, Nt, 'vector', true);
 
 % Perform Blockage Correction
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
@@ -544,6 +417,8 @@ disp('----------------------------');
 disp(' ');
 
 if plotRecon
+    disp('    Presenting Reconstructed Field...');
+    
     % Specify Default Axes Limits
     orientation = PODdata.planeOrientation;
     
@@ -648,9 +523,9 @@ while ~valid
             mkdir([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID]);
         end
         
-        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '.mat']);        
-        save([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName ,'.mat'], ...
-             'dataID', 'reconData', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
+        disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '_', mat2str(nModes), '.mat']);        
+        save([saveLocation, '/Numerical/MATLAB/planarVelocityReconstruction/', caseName, '/', dataID, '/', planeName, '_', mat2str(nModes), '.mat'], ...
+             'dataID', 'reconData', 'nModes', 'sampleInterval', 'normalise', '-v7.3', '-noCompression');
         disp('        Success');
         
         valid = true;

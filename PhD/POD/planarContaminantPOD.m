@@ -519,7 +519,7 @@ end
 
 disp(' ');
 
-% Perform Reconstruction
+% Perform Field Reconstruction
 reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', true);
 
 if any(strcmp(PODvar, {'mass', 'massNorm'}))
@@ -534,27 +534,14 @@ if any(strcmp(PODvar, {'mass', 'massNorm'}))
     % Calculate Reconstructed CoM
     reconData.(PODvar).CoM = cell(Nt,1);
     
-    switch format
+    for i = 1:Nt
+        reconData.(PODvar).CoM{i} = zeros(1,3);
+    
+        reconData.(PODvar).CoM{i}(1) = reconData.positionGrid(1,1);
+        reconData.(PODvar).CoM{i}(2) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,2)) / sum(reconData.(PODvar).inst{i});
+        reconData.(PODvar).CoM{i}(3) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,3)) / sum(reconData.(PODvar).inst{i});
         
-        case {'A', 'B'}
-            
-            for i = 1:Nt
-                reconData.(PODvar).CoM{i} = zeros(1,3);
-                reconData.(PODvar).CoM{i}(1) = reconData.positionGrid(1,1);
-                
-                for j = 1:height(reconData.positionGrid)
-                    reconData.(PODvar).CoM{i}(2) = reconData.(PODvar).CoM{i}(2) + ...
-                                                   (reconData.(PODvar).inst{i}(j) * reconData.positionGrid(j,2));
-                    reconData.(PODvar).CoM{i}(3) = reconData.(PODvar).CoM{i}(3) + ...
-                                                   (reconData.(PODvar).inst{i}(j) * reconData.positionGrid(j,3));
-                end
-                
-                reconData.(PODvar).CoM{i}(2) = reconData.(PODvar).CoM{i}(2) / sum(reconData.(PODvar).inst{i});
-                reconData.(PODvar).CoM{i}(3) = reconData.(PODvar).CoM{i}(3) / sum(reconData.(PODvar).inst{i});
-                
-                waitbar((i / Nt), wB);
-            end
-            
+        waitbar((i / Nt), wB);
     end
     
     delete(wB);
@@ -617,6 +604,8 @@ disp('----------------------------');
 disp(' ');
 
 if plotRecon
+    disp('    Presenting Reconstructed Field...');
+
     % Define Plot Limits
     switch format
 
@@ -734,14 +723,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
                      'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_',mat2str(nModes), '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
                      'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         

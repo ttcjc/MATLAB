@@ -307,7 +307,12 @@ scalarData = preData.CpMean;
 figName = [caseName, '_Time_Averaged_Cp'];
 CoM = preData.CoPmean;
 figSubtitle = ' ';
-cLims = [-0.235; -0.023];
+
+if contains(caseName, 'Windsor')
+    cLims = [-0.235; -0.023];
+else
+    cLims = 'auto';
+end
 
 fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                         mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...

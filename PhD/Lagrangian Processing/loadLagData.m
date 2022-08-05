@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 

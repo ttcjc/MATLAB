@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -358,7 +358,7 @@ switch formatA
     case 'B'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsData = [0.31875; impactData.positionCartesian{end}(1,1)];
+            xLimsData = [0.31875; impactData.positionCartesian(1,1)];
             yLimsData = [-0.5945; 0.5945];
             zLimsData = [0; 0.489];
             
@@ -401,7 +401,34 @@ afterEach(dQ, @parforWaitBar);
 
 parforWaitBar(wB, height(volumeData.time));
 
-% Remove Invalid Particles From Volume Data
+% Identify Impinging Particles Ejected During Specified Time Instance
+switch formatB
+    
+    case 'C'
+        activePreTime = intersect([volumeData.origProcId{1}, volumeData.origId{1}], ...
+                                  [impactData.origProcId, impactData.origId], 'rows', 'stable');
+        activePostTime = intersect([volumeData.origProcId{2}, volumeData.origId{2}], ...
+                                  [impactData.origProcId, impactData.origId], 'rows', 'stable');
+                              
+        ejections = setdiff(activePostTime, activePreTime, 'rows', 'stable');
+        
+        index = find(ismember([impactData.origProcId, impactData.origId], ejections, 'rows'));
+        
+        impactData.timeExact = impactData.timeExact(index);
+                
+        for i = 1:height(LagProps)
+            impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+        end
+        
+        volumeData.time = volumeData.time(2:end);
+
+        for i = 1:height(LagProps)
+            volumeData.(LagProps{i})= volumeData.(LagProps{i})(2:end);
+        end
+        
+end
+
+% Remove Invalid Particles From Data
 index = cell(height(volumeData.time),1);
 
 particleIDimpact = [impactData.origProcId, impactData.origId];
@@ -411,7 +438,7 @@ parfor i = 1:height(volumeData.time)
     particleIDvolume = [origProcId{i}, origId{i}];
 
     [~, index{i}] = intersect(particleIDvolume, particleIDimpact, 'rows', 'stable');
-    
+
     send(dQ, []);
 end
 clear particleIDimpact particleIDvolume origProcId origId;
@@ -426,64 +453,109 @@ for i = 1:height(volumeData.time)
     
 end
 
-switch formatB
-
-    % Identify Impinging Particles Ejected During Specified Time Instance
-    case 'C'
-        activePreTime = [volumeData.origProcId{1}, volumeData.origId{1}];
-        activePostTime = [volumeData.origProcId{2}, volumeData.origId{2}];
-        
-        ejections = setdiff(activePostTime, activePreTime, 'rows', 'stable');
-        
-        index = find(ismember([impactData.origProcId, impactData.origId], ejections, 'rows'));
-
-        impactData.timeExact = impactData.timeExact(index);
-                
-        for i = 1:height(LagProps)
-            impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
-        end
-        
-        volumeData.time = volumeData.time(2:end);
-
-        for i = 1:height(LagProps)
-            volumeData.(LagProps{i})= volumeData.(LagProps{i})(2:end);
-        end
-
-end
-
 disp(' ');
 
 % Limit Tracking Count
 switch formatA
 
     case 'A'
-        disp('    ', [num2str(height(impactData.positionCartesian)), ' Valid Particles Recorded on Surface'])
+        disp(['    ', num2str(height(impactData.positionCartesian)), ' Valid Particles Recorded on Surface'])
     
     case 'B'
-        disp('    ', [num2str(height(impactData.positionCartesian)), ' Valid Particles Passed Through Plane of Interest'])
+        disp(['    ', num2str(height(impactData.positionCartesian)), ' Valid Particles Passed Through Plane of Interest'])
 
 end
 
 intermediateToc = toc;
 
+if height(impactData.timeExact) > 200
+    disp('    WARNING: Tracking a Large Number of Particles Will Be Computationally Expensive and Difficult to Visualise');
+    disp('             It Is Recommended to Track No More Than 200 Particles');
+end
 
+% Specify Sampling Frequency
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('    Limit Number of Particles to Track? [y/n]: ', 's');
 
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        count = height(impactData.timeExact);
 
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        count = inputCount(height(impactData.timeExact));
 
+        if count == -1
+            continue;
+        end
+        
+        valid = true;
+    else
+        disp('        WARNING: Invalid Entry');
+    end
 
+end
+clear valid;
 
+tic;
 
+% Select a Random Set of Particles to Track
+if count ~= height(impactData.timeExact)
+    index = sort(randperm(height(impactData.timeExact), count))';
+    
+    impactData.timeExact = impactData.timeExact(index);
 
+    for i = 1:height(LagProps)
+        impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+    end
+    
+end
 
+% Perform Tracking
+disp(['    Tracking ', num2str(count), ' Particles...']);
 
+% Initialise Progress Bar
+wB = waitbar(0, 'Calculating Particle Paths', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
 
+trackingData.ID = nan(count,2);
+trackingData.d =  nan(count,1);
+trackingData.path = cell(count,height(volumeData.time));
+trackingData.age = nan(count,height(volumeData.time));
 
+for i = 1:count
+    trackingData.ID(i,:) = [impactData.origProcId(i), impactData.origId(i)];
+    trackingData.d(i) = impactData.d(i);
+    
+    for j = 1:height(volumeData.time)
+        index = find(ismember([volumeData.origProcId{j}, volumeData.origId{j}], trackingData.ID(i,:), 'rows'));
+        
+        if ~isempty(index)
+            trackingData.path{i,j} = volumeData.positionCartesian{j}(index,:);
+            
+            if j == 1 || isnan(trackingData.age(i,(j - 1)))
+                trackingData.age(i,j) = deltaT;
+            else
+                trackingData.age(i,j) = trackingData.age(i,(j - 1)) + deltaT;
+            end
+            
+        end
+        
+    end
+    
+    waitbar((i / count), wB);
+end
 
+% Add Initial Injection Location
+% Add Final Impact Location
 
+delete(wB);
 
+% Make Pretty Pictures
 
-
-
+disp(' ');
+disp(' ');
 
 
 %% Local Functions
@@ -512,6 +584,18 @@ function D = inputD(type)
     if isnan(D) || length(D) > 1 || D < 1
         disp('        WARNING: Invalid Entry');
         D = -1;
+    end
+    
+end
+
+
+function count = inputCount(nParticles)
+    
+    count = str2double(input(['        Input Number of Particles to Track [1-', num2str(nParticles), ']: '], 's'));
+    
+    if isnan(count) || count <= 0 || count >= nParticles
+        disp('            WARNING: Invalid Entry');
+        count = -1;
     end
     
 end

@@ -5,7 +5,13 @@
 % Weiss, Julien: A Tutorial on the Proper Orthogonal Decomposition. In: 2019 AIAA Aviation Forum. 17–21
 % June 2019, Dallas, Texas, United States.
 % ----
-% Usage: PODdata = performPOD()
+% Usage: [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
+%                                                                            fieldType, location)
+%        'fig'       -> Figure Number
+%        'PODdata'   -> Structure Containing Position and Field Data
+%        'PODvar'    -> Field Variable Used to Perform POD Stored as String
+%        'fieldType' -> Desired Field Type Stored as String
+%        'location'  -> Data Location Identifier Stored as String
 
 
 %% Changelog
@@ -21,7 +27,8 @@
 
 %% Main Function
 
-function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, fieldType, location)
+function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
+                                                                             fieldType, location)
 
     Ns = height(PODdata.positionGrid); % Number of Spatial Points
     Nt = height(PODdata.time); % Number of Time Instances

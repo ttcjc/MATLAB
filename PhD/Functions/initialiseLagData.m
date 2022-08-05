@@ -338,7 +338,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 disp('            WARNING: Sampling Interval Must Fall Within Data Range');
             else
                 valid = true;
-            end                
+            end
             
         else
             disp('        WARNING: Invalid Entry');
@@ -397,7 +397,7 @@ function sampleInterval = inputFreq(origFreq)
     
     newFreq = str2double(input('        Input Frequency [Hz]: ', 's'));
     
-    if isnan(newFreq) || length(newFreq) > 1 || newFreq <= 0
+    if isnan(newFreq) || newFreq <= 0 || newFreq > origFreq
         disp('            WARNING: Invalid Entry');
         sampleInterval = -1;
     elseif mod(origFreq, newFreq) ~= 0

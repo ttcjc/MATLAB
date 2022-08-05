@@ -97,7 +97,8 @@ end
 disp(' ');
 
 % Perform Planar Snapshot POD
-[fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, {'u', 'v', 'w'}, 'vector', planeName);
+[fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, {'u', 'v', 'w'}, ...
+                                                                    'vector', planeName);
 
 executionTime = toc;
 

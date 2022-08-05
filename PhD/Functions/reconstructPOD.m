@@ -5,7 +5,14 @@
 % Weiss, Julien: A Tutorial on the Proper Orthogonal Decomposition. In: 2019 AIAA Aviation Forum. 17–21
 % June 2019, Dallas, Texas, United States.
 % ----
-% Usage: [] = reconstructPOD()
+% Usage: reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
+%        'reconData' -> Structure Containing Position and Field Data
+%        'PODdata'   -> Structure Containing Previously Processed POD Data
+%        'PODvar'    -> Field Variable Used to Perform POD Stored as String
+%        'Ns'        -> Number of Spatial Points
+%        'Nt'        -> Number of Temporal Points
+%        'fieldType' -> Desired Field Type Stored as String
+%        'saveModes' -> Save Individual Mode Contributions [True/False]
 
 
 %% Changelog

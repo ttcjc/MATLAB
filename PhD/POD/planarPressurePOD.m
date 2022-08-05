@@ -117,7 +117,8 @@ PODdata.positionGrid(:,1) = PODdata.positionGrid(:,1) + 1e-3;
 disp(' ');
 
 % Perform Planar Snapshot POD
-[fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, 'p', 'scalar', 'Base');
+[fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, 'p', ...
+                                                                    'scalar', 'Base');
 
 executionTime = toc;
 

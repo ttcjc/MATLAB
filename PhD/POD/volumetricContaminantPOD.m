@@ -212,10 +212,12 @@ disp(' ');
 switch format
 
     case 'A'
-        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, 'scalar', 'Near_Field');
+        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
+                                                                            'scalar', 'Near_Field');
 
     case 'B'
-        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, 'scalar', 'Far_Field');
+        [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
+                                                                            'scalar', 'Far_Field');
 
 end
 

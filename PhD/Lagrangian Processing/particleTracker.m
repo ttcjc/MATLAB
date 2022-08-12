@@ -5,17 +5,19 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+fig = 0; % Initialise Figure Tracking
+figHold = 0; % Enable Overwriting of Figures
+
 saveLocation = '/mnt/Processing/Data';
 % saveLocation = '~/Data';
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
 normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
+ejectionSite = [0.46575, -0.167, 0.006]; % Particle Injection Site Location
 
 disp('=====================');
 disp('Particle Tracker v3.0');
@@ -212,23 +214,23 @@ clear valid;
 %     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 % end
 
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Enable Interpolation of Particle Paths? [y/n]: ', 's');
-
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        interp = false;
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        interp = true;
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
+% valid = false;
+% while ~valid
+%     disp(' ');
+%     selection = input('Enable Interpolation of Particle Paths? [y/n]: ', 's');
+% 
+%     if selection == 'n' | selection == 'N' %#ok<OR2>
+%         interp = false;
+%         valid = true;
+%     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+%         interp = true;
+%         valid = true;
+%     else
+%         disp('    WARNING: Invalid Entry');
+%     end
+% 
+% end
+% clear valid;
 
 disp(' ');
 disp(' ');
@@ -512,6 +514,8 @@ if count ~= height(impactData.timeExact)
     
 end
 
+disp(' ');
+
 % Perform Tracking
 disp(['    Tracking ', num2str(count), ' Particles...']);
 
@@ -521,41 +525,167 @@ wB.Children.Title.Interpreter = 'none';
 
 trackingData.ID = nan(count,2);
 trackingData.d =  nan(count,1);
-trackingData.path = cell(count,height(volumeData.time));
-trackingData.age = nan(count,height(volumeData.time));
+trackingData.path = cell(count,1);
+trackingData.age = trackingData.path;
 
 for i = 1:count
     trackingData.ID(i,:) = [impactData.origProcId(i), impactData.origId(i)];
     trackingData.d(i) = impactData.d(i);
     
+    trackingData.path{i} = nan((height(volumeData.time) + 1),3);
+    trackingData.age{i} = nan((height(volumeData.time) + 1),1);
+    
     for j = 1:height(volumeData.time)
         index = find(ismember([volumeData.origProcId{j}, volumeData.origId{j}], trackingData.ID(i,:), 'rows'));
         
         if ~isempty(index)
-            trackingData.path{i,j} = volumeData.positionCartesian{j}(index,:);
+            trackingData.path{i}((j + 1),:) = volumeData.positionCartesian{j}(index,:);
             
-            if j == 1 || isnan(trackingData.age(i,(j - 1)))
-                trackingData.age(i,j) = deltaT;
+            if isnan(trackingData.age{i}(j))
+                trackingData.age{i}(j + 1) = deltaT;
             else
-                trackingData.age(i,j) = trackingData.age(i,(j - 1)) + deltaT;
+                trackingData.age{i}(j + 1) = trackingData.age{i}(j) + deltaT;
             end
             
         end
         
     end
     
+    index = find(isnan(trackingData.age{i}) == false, 1, 'first');
+    
+    trackingData.path{i}((index - 1),:) = ejectionSite;
+    trackingData.age{i}(index - 1) = 0;
+    
+    index = find(isnan(trackingData.age{i}) == false, 1, 'last');
+    
+    trackingData.path{i}((index + 1),:) = impactData.positionCartesian(i,:);
+    trackingData.age{i}(index + 1) = trackingData.age{i}(index) + deltaT;
+    
     waitbar((i / count), wB);
 end
 
-% Add Initial Injection Location
-% Add Final Impact Location
-
 delete(wB);
 
-% Make Pretty Pictures
+% % Interpolate Particle Trajectories
+% if interp
+%     % Initialise Progress Bar
+%     wB = waitbar(0, 'Interpolating Particle Trajectories', 'name', 'Progress');
+%     wB.Children.Title.Interpreter = 'none';
+%     
+%     for i = 1:count
+%         index = find(isnan(trackingData.age{i}) == false);
+%         
+%         trackingData.path{i} = trackingData.path{i}(index,:);
+%         trackingData.age{i} = trackingData.age{i}(index);
+%     
+%         trackingData.path{i} = interparc((2 * height(trackingData.path{i})), ...
+%                                          trackingData.path{i}(:,1), ...
+%                                          trackingData.path{i}(:,2), ...
+%                                          trackingData.path{i}(:,3), 'spline');
+%         
+%         waitbar((i / count), wB);
+%     end
+%     
+% end
+% 
+% delete(wB);
+
+evalc('delete(gcp(''nocreate''));');
+executionTime = intermediateToc + toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
+
+disp(' ');
+
+disp('  SUCCESS  ');
+disp('***********');
 
 disp(' ');
 disp(' ');
+
+
+%% Select Presentation Options
+
+disp('Presentation Options');
+disp('---------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Particle Paths? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotPaths = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotPaths = true;
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+if plotPaths
+    colourVar = {'Diameter', 'Age'};
+    
+    valid = false;
+    while ~valid
+        disp(' ');
+        [index, valid] = listdlg('listSize', [300, 300], ...
+                                 'selectionMode', 'single', ...
+                                 'name', 'Select Variable Used for Particle Colouration', ...
+                                 'listString', colourVar);
+
+        if ~valid
+            disp('WARNING: No Mapping Variable Selected');
+        end
+
+    end
+    clear valid;
+
+    colourVar = colourVar{index};
+    
+    if strcmp(colourVar, 'Diameter')
+        minColourVar = dLims(1);
+        maxColourVar = dLims(2);
+    elseif strcmp(colourVar, 'Age')
+        minColourVar = deltaT;
+        maxColourVar = max(cellfun(@max, trackingData.age));
+    end
+
+    disp(['Variable of Interest: ', colourVar]);
+end
+
+disp(' ');
+disp(' ');
+
+
+%% Present Volume Fields
+
+disp('Volume Field Presentation');
+disp('--------------------------');
+
+disp(' ');
+
+if plotPaths
+    figName = 'Test';
+    cMap = viridis(32);
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    figSubtitle = ' ';
+    xLimsPlot = xLimsData;
+    yLimsPlot = yLimsData;
+    zLimsPlot = zLimsData;
+    
+    fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, colourVar, ...
+                            minColourVar, maxColourVar, figTitle, figSubtitle, ...
+                            xLimsPlot, yLimsPlot, zLimsPlot);
+else
+    disp('    Skipping Volume Field Presentation');
+end
 
 
 %% Local Functions

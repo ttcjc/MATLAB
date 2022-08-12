@@ -154,6 +154,7 @@ while ~valid
     if ~valid
         disp('WARNING: No Mapping Variable Selected');
     end
+    
 end
 clear valid;
 

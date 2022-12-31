@@ -178,25 +178,40 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+            set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             lighting gouraud;
             colormap(cMap);
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
 
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
-            
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
+                        
+            if ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
+
+                for i = 1:height(parts)
+                    geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
+
+                    plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
+                          geometry.(parts{i}).boundaries.YZ(:,2), ...
+                          geometry.(parts{i}).boundaries.YZ(:,3), ...
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                end
+
+            end
             
             if streamlines
                 % Convert From 'ndgrid' to 'meshgrid' Format
@@ -208,20 +223,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                 
                 streams = streamslice(x, y, z, zeros(size(x)), v, w, xLimsData, [], [], ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k');
-            end
-            
-            if xLimsData < xDims(1) || xLimsData > xDims(2)
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
-                          geometry.(parts{i}).boundaries.YZ(:,2), ...
-                          geometry.(parts{i}).boundaries.YZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
             end
             
             % Figure Formatting
@@ -263,25 +265,41 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+            set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             lighting gouraud;
             colormap(cMap);
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
 
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
             
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
+            
+            if ~isempty(geometry) && yLimsData < yDims(1)
+
+                for i = 1:height(parts)
+                    geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
+
+                    plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
+                          geometry.(parts{i}).boundaries.XZ(:,2), ...
+                          geometry.(parts{i}).boundaries.XZ(:,3), ...
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                end
+
+            end
             
             if streamlines
                 % Convert From 'ndgrid' to 'meshgrid' Format
@@ -293,20 +311,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
 
                 streams = streamslice(x, y, z, u, zeros(size(x)), w, [], yLimsData, [], ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k');
-            end
-            
-            if yLimsData < yDims(1)
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
-                          geometry.(parts{i}).boundaries.XZ(:,2), ...
-                          geometry.(parts{i}).boundaries.XZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
             end
             
             % Figure Formatting
@@ -348,25 +353,41 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+            set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             lighting gouraud;
             colormap(cMap);
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
 
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
             
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
+
+             if ~isempty(geometry) && zLimsData > zDims(2)
+
+                for i = 1:height(parts)
+                    geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
+
+                    plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
+                          geometry.(parts{i}).boundaries.XY(:,2), ...
+                          geometry.(parts{i}).boundaries.XY(:,3), ...
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                end
+
+             end
             
             if streamlines
                 % Convert From 'ndgrid' to 'meshgrid' Format
@@ -378,20 +399,7 @@ function fig = planarVectorPlots(orientation, xLimsData, yLimsData, zLimsData, p
                 
                 streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], zLimsData, ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k');
-            end
-            
-            if zLimsData > zDims(2)
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
-                          geometry.(parts{i}).boundaries.XY(:,2), ...
-                          geometry.(parts{i}).boundaries.XY(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
             end
             
             % Figure Formatting

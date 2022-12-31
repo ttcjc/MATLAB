@@ -219,7 +219,7 @@ switch format
     case 'A'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsData = [0.31875; 1.38325];
+            xLimsData = [0.31875; 1.26625];
             yLimsData = [-0.3445; 0.3445];
             zLimsData = [0; 0.489];
         end
@@ -227,7 +227,8 @@ switch format
     case 'B'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsData = [0.31875; 3.61525];
+            xLimsData = [0.31875; 2.57125]; % 2L
+%             xLimsData = [0.31875; 3.61525]; % 3L
             yLimsData = [-0.5945; 0.5945];
             zLimsData = [0; 0.739];
         end
@@ -548,14 +549,19 @@ if plotInst || plotMean
     zInit = volumeData.z;
     POD = false;
     
-    if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
-        cMap = ([74, 24, 99] / 255);
-    elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
-        cMap = ([230, 0, 126] / 255);
-    elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
-        cMap = ([34, 196, 172] / 255);
+    if contains(caseName, 'Windsor')
+        cMap = viridis(3);
+        
+        if strcmp(caseName, 'Windsor_SB_wW_Upstream_SC')
+            cMap = cMap(1,:);
+        elseif strcmp(caseName, 'Windsor_ST_20D_wW_Upstream_SC')
+            cMap = cMap(2,:);
+        elseif strcmp(caseName, 'Windsor_RSST_16D_U50_wW_Upstream_SC')
+            cMap = cMap(3,:);
+        end
+        
     else
-        cMap = ([252, 194, 29] / 255);
+        cMap = viridis(1);
     end
 
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
@@ -568,7 +574,8 @@ if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
     fieldData = volumeData.mean.volFraction;
-    isoValue = 1e-8;
+    isoValue = 1e-6;
+%     isoValue = 1e-8;
     
     switch format
 
@@ -596,7 +603,7 @@ if plotInst
     
     figHold = fig;
     
-    isoValue = 1e-6;
+    isoValue = 2e-6;
     
     for i = 1:nFrames
         

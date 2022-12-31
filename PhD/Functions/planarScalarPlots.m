@@ -3,8 +3,9 @@
 % Plots Previously Processed Planar Scalar Fields
 % ----
 % Usage: fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-%                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+%                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
+%                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+%                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        '*LimsData'    -> Contour Plot Limits
 %        'positionData' -> Cartesian Positions of Data Points
@@ -14,6 +15,7 @@
 %        'figName'      -> Figure Name
 %        'cMap'         -> Colour Map
 %        'geometry'     -> STL(s) to Include in Plot
+%        'contourlines' -> 
 %        '*Dims'        -> Simple Bounding Box of Geometry
 %        'CoM'          -> Field Centre of Mass
 %        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
@@ -31,8 +33,9 @@
 %% Main Function
 
 function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                 mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                 CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise)
+                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                 xLimsPlot, yLimsPlot, zLimsPlot, normalise)
     
     cellSize = 0.5e-3; % [m or l]
     
@@ -77,7 +80,7 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                                           'linear', 'none');
     
             scalar = zeros(size(x));
-            scalar(:,2,:) = interp(y(:,2,:), z(:,2,:));
+            scalar(:,2,:) = interp(x(:,2,:), z(:,2,:));
             
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(x, z, mapPerim(:,1), mapPerim(:,3));
@@ -101,7 +104,7 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                                           'linear', 'none');
     
             scalar = zeros(size(x));
-            scalar(:,:,2) = interp(y(:,:,2), z(:,:,2));
+            scalar(:,:,2) = interp(x(:,:,2), y(:,:,2));
             
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(x, y, mapPerim(:,1), mapPerim(:,2));
@@ -120,27 +123,30 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             % Figure Setup
             fig = fig + 1;
             set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+            set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
                      'fontSize', 20, 'layer', 'top');
             lighting gouraud;
             colormap(cMap);
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
-            
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
+
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
             
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
-            if xLimsData < xDims(1) || xLimsData > xDims(2)
+            if ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
@@ -148,13 +154,24 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                     plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
                           geometry.(parts{i}).boundaries.YZ(:,2), ...
                           geometry.(parts{i}).boundaries.YZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            if ~isempty(contourlines)
+                % Convert From 'ndgrid' to 'meshgrid' Format
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                scalar = permute(scalar, [2,1,3]);
+                
+                contours = contourslice(x, y, z, scalar, xLimsData, [], [], contourlines);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
+           end
+            
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 125, 'w', 'filled');
+                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
             end
             
             % Figure Formatting
@@ -203,20 +220,23 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
-            
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
+
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
             
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
-            if yLimsData < yDims(1)
+            if ~isempty(geometry) && yLimsData < yDims(1)
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
@@ -224,13 +244,24 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                     plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
                           geometry.(parts{i}).boundaries.XZ(:,2), ...
                           geometry.(parts{i}).boundaries.XZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            if ~isempty(contourlines)
+                % Convert From 'ndgrid' to 'meshgrid' Format
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                scalar = permute(scalar, [2,1,3]);
+                
+                contours = contourslice(x, y, z, scalar, [], yLimsData, [], contourlines);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
+           end
+            
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 125, 'w', 'filled');
+                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
             end
             
             % Figure Formatting
@@ -279,20 +310,23 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             hold on;
             
             % Figure Plotting
-            parts = fieldnames(geometry);
-            
-            for i = 1:height(parts)
-                patch('faces', geometry.(parts{i}).faces, ...
-                      'vertices', geometry.(parts{i}).vertices, ...
-                      'faceColor', ([128, 128, 128] / 255), ...
-                      'edgeColor', ([128, 128, 128] / 255), ...
-                      'lineStyle', 'none');
+            if ~isempty(geometry)
+                parts = fieldnames(geometry);
+
+                for i = 1:height(parts)
+                    patch('faces', geometry.(parts{i}).faces, ...
+                          'vertices', geometry.(parts{i}).vertices, ...
+                          'faceColor', [0.5, 0.5, 0.5], ...
+                          'edgeColor', [0.5, 0.5, 0.5], ...
+                          'lineStyle', 'none');
+                end
+                
             end
             
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
-            if yLimsData > zDims(2)
+            if ~isempty(geometry) && zLimsData > zDims(2)
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
@@ -300,13 +334,24 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
                     plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
                           geometry.(parts{i}).boundaries.XY(:,2), ...
                           geometry.(parts{i}).boundaries.XY(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            if ~isempty(contourlines)
+                % Convert From 'ndgrid' to 'meshgrid' Format
+                x = permute(x, [2,1,3]);
+                y = permute(y, [2,1,3]);
+                z = permute(z, [2,1,3]);
+                scalar = permute(scalar, [2,1,3]);
+                
+                contours = contourslice(x, y, z, scalar, [], [], zLimsData, contourlines);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
+           end
+            
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 125, 'w', 'filled');
+                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
             end
             
             % Figure Formatting

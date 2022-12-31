@@ -122,19 +122,20 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
              'fontSize', 20, 'layer', 'top');
     hold on;
     
-    % Plot
-    plot(PODdata.modeEnergy(1:min(Nt, ((ceil(modesEnergetic / 10) * 10) - 1))), 'lineWidth', 1.5, 'marker', 'o', 'color', ([74, 24, 99] / 255));
+    % Plot  
+    bar(PODdata.modeEnergy, 0.75, ...
+        'lineWidth', 2, 'faceColor', ([68, 1, 84] / 255));
     
     % Figure Formatting
     axis on;
     box on;
     grid off;
-    xlim([0; (ceil(modesEnergetic / 10) * 10)]);
-    ylim([0; (ceil(max(PODdata.modeEnergy)/10) * 10)]);
-    tickData = (0:(((ceil(modesEnergetic / 10) * 10) - 0) / 5):(ceil(modesEnergetic / 10) * 10));
-    xticks(tickData(2:(end - 1)));
-    tickData = (0:(((ceil(max(PODdata.modeEnergy)/10) * 10) - 0) / 5):(ceil(max(PODdata.modeEnergy)/10) * 10));
-    yticks(tickData(2:(end - 1)));
+    xlim([0; 50]);
+    ylim([0; 20]);
+    tickData = (10:10:40);
+    xticks(tickData);
+    tickData = (4:4:16);
+    yticks(tickData);
     xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
     ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);

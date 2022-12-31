@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -165,9 +165,15 @@ if ~isempty(plotModes)
         
         case 'YZ'
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 4.65925]; % [m]
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
+%                 % Plot Numerical Data Range
+%                 xLimsPlot = [0.31875; 4.65925];
+%                 yLimsPlot = [-0.5945; 0.5945];
+%                 zLimsPlot = [0; 0.739];
+
+                % Plot Experimental Data Data
+                xLimsPlot = [0.31875; 4.65925];
+                yLimsPlot = [-0.399; 0.218];
+                zLimsPlot = [0.0105; 0.4985];
             end
             
         case {'XZ', 'XY'}
@@ -427,9 +433,15 @@ if plotRecon
         
         case 'YZ'
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 4.65925]; % [m]
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
+%                 % Plot Numerical Data Range
+%                 xLimsPlot = [0.31875; 4.65925];
+%                 yLimsPlot = [-0.5945; 0.5945];
+%                 zLimsPlot = [0; 0.739];
+
+                % Plot Experimental Data Data
+                xLimsPlot = [0.31875; 4.65925];
+                yLimsPlot = [-0.399; 0.218];
+                zLimsPlot = [0.0105; 0.4985];
             end
             
         case {'XZ', 'XY'}

@@ -16,7 +16,7 @@ nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-massNormalisation = 1;
+normalisationValue = 7.021451812671253e-09; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -445,7 +445,7 @@ parfor i = 1:height(mapData.inst.time)
     end
     
     mass{i} = 1000 * mass{i};
-    massNorm{i} = mass{i} / massNormalisation;
+    massNorm{i} = mass{i} / normalisationValue;
     d32{i} = (d30{i} ./ d20{i}) * 1e6;
     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
@@ -538,7 +538,7 @@ mapData.mean.d20 = d20Mean / height(mapData.inst.time);
 mapData.mean.d30 = d30Mean / height(mapData.inst.time);
 mapData.mean.d32 = d32Mean / height(mapData.inst.time);
 mapData.mean.mass = massMean / height(mapData.inst.time);
-mapData.mean.massNorm = mapData.mean.mass / massNormalisation;
+mapData.mean.massNorm = mapData.mean.mass / normalisationValue;
 clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean;
 
 % Calculate Time-Averaged Centre of Mass
@@ -666,9 +666,15 @@ if plotInst || plotMean
             orientation = 'YZ';
 
             if contains(caseName, ["Run_Test", "Windsor"])
+%                 % Plot Numerical Data Range
+%                 xLimsPlot = [0.31875; 4.65925];
+%                 yLimsPlot = [-0.5945; 0.5945];
+%                 zLimsPlot = [0; 0.739];
+                
+                % Plot Experimental Data Range
                 xLimsPlot = [0.31875; 4.65925];
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
+                yLimsPlot = [-0.399; 0.218];
+                zLimsPlot = [0.0105; 0.4985];
             end
 
     end
@@ -680,7 +686,7 @@ if plotInst || plotMean
     end
 
     positionData = mapData.positionGrid;
-    cMap = viridis(24);
+    cMap = flipud(viridis(32));
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
 end
 
@@ -701,6 +707,8 @@ if plotMean
                 
         end
         
+        contourlines = (0.2:0.2:0.8);
+        
         if any(strcmp(plotVars{i}, {'mass', 'massNorm'}))
             CoM = mapData.mean.CoM;
         else
@@ -720,8 +728,9 @@ if plotMean
         end
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
     disp(' ');
@@ -732,10 +741,12 @@ if plotInst
     for i = 1:height(plotVars)
         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
         
+        contourlines = [];
+        
         if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
             cLims = dLims;
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 20]; % Max Base Contamination
+            cLims = [0; 3.6];
         else
             cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
         end
@@ -770,8 +781,9 @@ if plotInst
         figSubtitle = [figTime, ' \it{s}'];
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
         end
         
     end
@@ -806,14 +818,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base']);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/base'], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/base']);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/', planePos], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/', planePos]);
                 end
                 
         end
@@ -821,15 +833,15 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/base/', dataID, '.mat'], ...
-                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/base/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/base/', dataID, '.mat'], ...
+                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/contaminantMap/', caseName, '/', planePos, '/', dataID, '.mat'], ...
-                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/', planePos, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseName, '/', planePos, '/', dataID, '.mat'], ...
+                     'dataID', 'mapData', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end

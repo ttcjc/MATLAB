@@ -205,55 +205,60 @@ end
 
 %% Perform Mode Comparison
 
-r = nan(nModes,1);
-rMode = r;
-
-for i = 1:nModes
-    A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
+switch format
     
-    for j = 1:nModes
-        A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,j), -1, 1);
-        rTemp = corr(A1, A2);
-        
-        if max(abs(rTemp), abs(r(i))) == abs(rTemp)
-            r(i) = rTemp;
-            rMode(i) = j;
+    case 'B'
+        r = nan(nModes,1);
+        rMode = r;
+
+        for i = 1:nModes
+            A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
+
+            for j = 1:nModes
+                A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,j), -1, 1);
+                rTemp = corr(A1, A2);
+
+                if max(abs(rTemp), abs(r(i))) == abs(rTemp)
+                    r(i) = rTemp;
+                    rMode(i) = j;
+                end
+
+            end
+            clear rTemp;
+
+        end
+
+        % Figure Setup
+        fig = fig + 1;
+        figName = 'POD_Mode_Temporal_Correlation';
+        set(figure(fig), 'outerPosition', [1945, 25, 850, 850], 'name', figName);
+        set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
+                 'fontSize', 20, 'layer', 'top');
+        tiledlayout((nModes / 2),2);
+
+        for i = 1:nModes
+            A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
+            A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,rMode(i)), -1, 1);
+
+            % Plot
+            nexttile;
+            hold on;
+            scatter(A1, A2, 10, ([74, 24, 99] / 255), 'filled');
+
+            % Figure Formatting
+            title(['r = ', num2str(r(i))]);
+            axis on;
+            box on;
+            grid off;
+            xlim([-1.2; 1.2]);
+            ylim([-1.2; 1.2]);
+            tickData = [];
+            xticks(tickData);
+            tickData = [];
+            yticks(tickData);
+            xlabel(['{\bf{', PODfields{1}, '}}_{{M', num2str(i), '}}'], 'fontName', 'LM Roman 12');
+            ylabel(['{\bf{', PODfields{2}, '}}_{{M', num2str(rMode(i)), '}}'], 'fontName', 'LM Roman 12');
+            hold off;
         end
         
-    end
-    clear rTemp;
-    
-end
-
-% Figure Setup
-fig = fig + 1;
-figName = 'POD_Mode_Temporal_Correlation';
-set(figure(fig), 'outerPosition', [1945, 25, 850, 850], 'name', figName);
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-tiledlayout((nModes / 2),2);
-
-for i = 1:nModes
-    A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
-    A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,rMode(i)), -1, 1);
-    
-    % Plot
-    nexttile;
-    hold on;
-    scatter(A1, A2, 10, ([74, 24, 99] / 255), 'filled');
-
-    % Figure Formatting
-    title(['r = ', num2str(r(i))]);
-    axis on;
-    box on;
-    grid off;
-    xlim([-1.2; 1.2]);
-    ylim([-1.2; 1.2]);
-    tickData = [];
-    xticks(tickData);
-    tickData = [];
-    yticks(tickData);
-    xlabel(['{\bf{', PODfields{1}, '}}_{{M', num2str(i), '}}'], 'fontName', 'LM Roman 12');
-    ylabel(['{\bf{', PODfields{2}, '}}_{{M', num2str(rMode(i)), '}}'], 'fontName', 'LM Roman 12');
-    hold off;
 end

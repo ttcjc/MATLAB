@@ -167,7 +167,7 @@ switch format
             rho = 1.269; % kg/m^3
             pRef = 0 * rho; % Pa
             
-            preData.CpMean = (preData.pMean - pRef) / (0.5 * rho * U^2);
+            preData.CpMean = ((preData.pMean * rho) - pRef) / (0.5 * rho * U^2);
         end
         
     case 'B'
@@ -177,13 +177,13 @@ switch format
             rho = 1.269; % kg/m^3
             pRef = 0 * rho; % Pa
             
-            preData.CpMean = (preData.pMean - pRef) / (0.5 * rho * U^2);
+            preData.CpMean = ((preData.pMean * rho) - pRef) / (0.5 * rho * U^2);
             preData.Cp = cell(height(preData.time),1);
             preData.CpPrime = preData.Cp;
             
             for i = 1:height(preData.time)
-                preData.Cp{i} = (preData.p{i} - pRef) / (0.5 * rho * U^2);
-                preData.CpPrime{i} = (preData.pPrime{i} - pRef) / (0.5 * rho * U^2);
+                preData.Cp{i} = ((preData.p{i} * rho) - pRef) / (0.5 * rho * U^2);
+                preData.CpPrime{i} = ((preData.pPrime{i} * rho) - pRef) / (0.5 * rho * U^2);
             end
             
         end
@@ -302,6 +302,7 @@ disp('Presenting Time-Averaged Pressure Data...');
 
 positionData = preData.position;
 cMap = viridis(24);
+contourlines = [];
 figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
 scalarData = preData.CpMean;
 figName = [caseName, '_Time_Averaged_Cp'];
@@ -309,14 +310,15 @@ CoM = preData.CoPmean;
 figSubtitle = ' ';
 
 if contains(caseName, 'Windsor')
-    cLims = [-0.235; -0.023];
+    cLims = [-0.235; -0.06];
 else
     cLims = 'auto';
 end
 
 fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                        mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                        CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                        mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                        xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                        xLimsPlot, yLimsPlot, zLimsPlot, normalise);
 
 disp(' ');
 
@@ -343,8 +345,9 @@ switch format
                 figSubtitle = [num2str(preData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
 
                 fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                        mapPerim, fig, figName, cMap, geometry, xDims, yDims, zDims, ...
-                                        CoM, figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                        mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                        xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                        xLimsPlot, yLimsPlot, zLimsPlot, normalise);
             end
             
         end

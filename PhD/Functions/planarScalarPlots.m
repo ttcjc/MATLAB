@@ -15,7 +15,7 @@
 %        'figName'      -> Figure Name
 %        'cMap'         -> Colour Map
 %        'geometry'     -> STL(s) to Include in Plot
-%        'contourlines' -> 
+%        'contourlines' -> Contour Lines at the Corresponding Values
 %        '*Dims'        -> Simple Bounding Box of Geometry
 %        'CoM'          -> Field Centre of Mass
 %        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
@@ -32,12 +32,12 @@
 
 %% Main Function
 
-function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                 xLimsPlot, yLimsPlot, zLimsPlot, normalise)
+function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                            mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                            xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo)
     
-    cellSize = 0.5e-3; % [m or l]
+    cellSize = 1e-3; % [m or l]
     
     % Format Data
     switch orientation
@@ -120,33 +120,38 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
     switch orientation
         
         case 'YZ'
-            % Figure Setup
-            fig = fig + 1;
-            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-                     'fontSize', 20, 'layer', 'top');
-            lighting gouraud;
-            colormap(cMap);
-            hold on;
-            
-            % Figure Plotting
-            if ~isempty(geometry)
-                parts = fieldnames(geometry);
 
-                for i = 1:height(parts)
-                    patch('faces', geometry.(parts{i}).faces, ...
-                          'vertices', geometry.(parts{i}).vertices, ...
-                          'faceColor', [0.5, 0.5, 0.5], ...
-                          'edgeColor', [0.5, 0.5, 0.5], ...
-                          'lineStyle', 'none');
-                end
+            % Figure Setup
+            if planeNo == 1
+                fig = fig + 1;
+                set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 20, 'layer', 'top');
+                lighting gouraud;
+                colormap(cMap);
+                hold on;
                 
+                % Geometry Plotting
+                if ~isempty(geometry)
+                    parts = fieldnames(geometry);
+    
+                    for i = 1:height(parts)
+                        patch('faces', geometry.(parts{i}).faces, ...
+                              'vertices', geometry.(parts{i}).vertices, ...
+                              'faceColor', [0.5, 0.5, 0.5], ...
+                              'edgeColor', [0.5, 0.5, 0.5], ...
+                              'lineStyle', 'none');
+                    end
+                    
+                end
+
             end
             
+            % Data Plotting
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-            if ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
+
+            if nPlanes == 1 && ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
@@ -175,39 +180,68 @@ function fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, p
             end
             
             % Figure Formatting
-            title(figTitle, 'color', ([254, 254, 254] / 255));
-            subtitle(figSubtitle);
-            lightangle(90, 45);
-            axis on;
-            box on;
-            caxis(cLims);
-            view([90, 0]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = [];
-            xticks(tickData);
-            tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-            yticks(tickData(2:(end - 1)));
-            tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-            zticks(tickData(2:(end - 1)));
-            xtickformat('%+.2f');
-            ytickformat('%+.2f');
-            ztickformat('%+.2f');
-            
-            if normalise
-                ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+            if planeNo == nPlanes
+
+                if nPlanes == 1
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(90, 45);
+                    axis on;
+                    box on;
+                    caxis(cLims);
+                    view([90, 0]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = [];
+                    xticks(tickData);
+                    tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
+                    yticks(tickData(2:(end - 1)));
+                    tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
+                    zticks(tickData(2:(end - 1)));
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
+                    
+                    if normalise
+                        ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                    else
+                        ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                    end
+                    
+                    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+                    hold off;
+                    
+                    pause(2);
+                    exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+                else
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(0, 45);
+                    axis on;
+                    box on;
+                    view([30, 30]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = [];
+                    xticks(tickData);
+                    tickData = [];
+                    yticks(tickData);
+                    tickData = [];
+                    zticks(tickData);
+                    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+                    hold off;
+                    
+                    pause(2);
+                    exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+                end
+
             else
-                ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                planeNo = planeNo + 1;
             end
-            
-            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-            hold off;
-            
-            pause(2);
-            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
             
         case 'XZ'
             % Figure Setup

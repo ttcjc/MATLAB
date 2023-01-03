@@ -1,12 +1,12 @@
-%% Lagrangian Volume Field Generator v3.0
+%% Lagrangian Volume Field Generator v3.1
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+% saveLocation = '/mnt/Processing/Data';
+saveLocation = '~/Data';
 
 normalise = true; % Normalisation of Dimensions
 
@@ -20,7 +20,7 @@ fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
 disp('===========================');
-disp('Volume Field Generator v3.0');
+disp('Volume Field Generator v3.1');
 disp('===========================');
 
 disp(' ');
@@ -35,6 +35,7 @@ disp(' ');
 % v2.0 - Rewritten to Follow Recent Lagrangian Processing Structure Changes
 % v2.1 - Added Time-Averaging Functionality
 % v3.0 - Rewrite, Accommodating New OpenFOAM Data Formats
+% v3.1 - Added Support for Multiple Mean Particle Diameter Definitions
 
 
 %% Initialise Case
@@ -292,6 +293,10 @@ disp(' ');
 % Generate Instantaneous Volume Field
 disp('    Generating Instantaneous Volume Field...');
 
+if normalise
+    cellSize = round((cellSize / 1.044), spacePrecision);
+end
+
 % Adjust Uniform Cell Size to Fit Region of Interest
 cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
 cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
@@ -351,12 +356,13 @@ parforWaitBar(wB, height(volumeData.inst.time));
 
 % Calculate Instantaneous Field Variables
 nParticles = cell(height(volumeData.inst.time),1); % Number of Particles in Cell
-d10 = nParticles; % Arithmetic Mean Diameter in Cell
-% d20 = nParticles; % Surface Mean Diameter in Cell
-% d30 = nParticles; % Volume Mean Diameter in Cell
-% d32 = nParticles; % Sauter Mean Diameter in Cell
-mass = nParticles; % Total Mass in Cell
 volFraction = nParticles; % Fraction of Cell Volume Occupied by Spray
+mass = nParticles; % Total Mass in Cell
+% d43 = nParticles; % De Brouckere Mean Diameter in Cell
+% d32 = nParticles; % Sauter Mean Diameter in Cell
+% d30 = nParticles; % Volume Mean Diameter in Cell
+% d20 = nParticles; % Surface Mean Diameter in Cell
+d10 = nParticles; % Arithmetic Mean Diameter in Cell
 
 totalParticles = cellfun(@height, LagData.positionCartesian);
 x = volumeData.x;
@@ -364,42 +370,51 @@ nParticle = LagData.nParticle;
 d = LagData.d;
 parfor i = 1:height(volumeData.inst.time)
     nParticles{i} = zeros(size(x));
-    d10{i} = nParticles{i};
-%     d20{i} = nParticles{i};
-%     d30{i} = nParticles{i};
-%     d32{i} = nParticles{i};
-    mass{i} = nParticles{i};
     volFraction{i} = nParticles{i};
+    mass{i} = nParticles{i};
+%     d43{i} = nParticles{i};
+%     d32{i} = nParticles{i};
+%     d30{i} = nParticles{i};
+%     d20{i} = nParticles{i};
+    d10{i} = nParticles{i};
     
     for j = 1:totalParticles(i)
         nParticles{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = nParticles{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
                                                                      nParticle{i}(j);
+
+        mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+                                                               (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
+
+%         d43{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d43{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * (d{i}(j)^4));
+
+%         d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * (d{i}(j)^3));
+
+%         d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * (d{i}(j)^2));
                                                                  
         d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
                                                               (nParticle{i}(j) * d{i}(j));
-                                                          
-%         d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-%                                                               (nParticle{i}(j) * (d{i}(j)^2));
-                                                          
-%         d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d30{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-%                                                               (nParticle{i}(j) * (d{i}(j)^3));
-                                                          
-        mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = mass{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-                                                               (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
     end
     
     volFraction{i} = mass{i} / cellVolume;
-%     mass{i} = 1000 * mass{i};
+    mass{i} = 1000 * mass{i};
+%     d43{i} = (d43{i} ./ d30{i}) * 1e6;
 %     d32{i} = (d30{i} ./ d20{i}) * 1e6;
 %     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
 %     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
     d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
     
     % Set Empty Cells Back to Zero
-    d10{i}(isnan(d10{i})) = 0;
-%     d20{i}(isnan(d20{i})) = 0;
-%     d30{i}(isnan(d30{i})) = 0;
+    nParticles{i}(isnan(nParticles{i})) = 0;
+    volFraction{i}(isnan(volFraction{i})) = 0;
+    mass{i}(isnan(mass{i})) = 0;
+%     d43{i}(isnan(d43{i})) = 0;
 %     d32{i}(isnan(d32{i})) = 0;
+%     d30{i}(isnan(d30{i})) = 0;
+%     d20{i}(isnan(d20{i})) = 0;
+%     d10{i}(isnan(d10{i})) = 0;
     
     send(dQ, []);
 end
@@ -407,14 +422,16 @@ clear totalParticles x nParticle d;
 
 delete(wB);
 
-% volumeData.inst.nParticles = nParticles;
-volumeData.inst.d10 = d10;
-% volumeData.inst.d20 = d20;
-% volumeData.inst.d30 = d30;
-% volumeData.inst.d32 = d32;
-% volumeData.inst.mass = mass;
+volumeData.inst.nParticles = nParticles;
 volumeData.inst.volFraction = volFraction;
-clear nParticles d10 d20 d30 d32 mass volFraction;
+volumeData.inst.mass = mass;
+% volumeData.inst.d43 = d43;
+% volumeData.inst.d32 = d32;
+% volumeData.inst.d30 = d30;
+% volumeData.inst.d20 = d20;
+volumeData.inst.d10 = d10;
+
+clear nParticles volFraction mass d43 d32 d30 d20 d10;
 
 disp(' ');
 
@@ -431,43 +448,48 @@ parforWaitBar(wB, height(volumeData.inst.time));
 
 % Calculate Time-Averaged Field Variables
 nParticlesMean = zeros(size(volumeData.x));
-d10Mean = nParticlesMean;
-% d20Mean = nParticlesMean;
-% d30Mean = nParticlesMean;
-% d32Mean = nParticlesMean;
-% massMean = nParticlesMean;
 volFractionMean = nParticlesMean;
+massMean = nParticlesMean;
+% d43Mean = nParticlesMean;
+% d32Mean = nParticlesMean;
+% d30Mean = nParticlesMean;
+% d20Mean = nParticlesMean;
+d10Mean = nParticlesMean;
 
-% nParticles = volumeData.inst.nParticles;
-d10 = volumeData.inst.d10;
-% d20 = volumeData.inst.d20;
-% d30 = volumeData.inst.d30;
-% d32 = volumeData.inst.d32;
-% mass = volumeData.inst.mass;
+nParticles = volumeData.inst.nParticles;
 volFraction = volumeData.inst.volFraction;
+mass = volumeData.inst.mass;
+% d43 = volumeData.inst.d43;
+% d32 = volumeData.inst.d32;
+% d30 = volumeData.inst.d30;
+% d20 = volumeData.inst.d20;
+d10 = volumeData.inst.d10;
 parfor i = 1:height(volumeData.inst.time)
-%     nParticlesMean = nParticlesMean + nParticles{i};
-    d10Mean = d10Mean + d10{i};
-%     d20Mean = d20Mean + d20{i};
-%     d30Mean = d30Mean + d30{i};
-%     d32Mean = d32Mean + d32{i};
-%     massMean = massMean + mass{i};
+    nParticlesMean = nParticlesMean + nParticles{i};
     volFractionMean = volFractionMean + volFraction{i};
+    massMean = massMean + mass{i};
+%     d43Mean = d43Mean + d43{i};
+%     d32Mean = d32Mean + d32{i};
+%     d30Mean = d30Mean + d30{i};
+%     d20Mean = d20Mean + d20{i};
+    d10Mean = d10Mean + d10{i};
     
     send(dQ, []);
 end
-clear nParticles d10 d20 d30 d32 mass volFraction;
+clear nParticles volFraction mass d43 d32 d30 d20 d10;
 
 delete(wB);
 
-% volumeData.mean.nParticles = nParticlesMean / height(volumeData.inst.time);
-volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
-% volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
-% volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
-% volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
-% volumeData.mean.mass = massMean / height(volumeData.inst.time);
+volumeData.mean.nParticles = nParticlesMean / height(volumeData.inst.time);
 volumeData.mean.volFraction = volFractionMean / height(volumeData.inst.time);
-clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean volFractionMean;
+volumeData.mean.mass = massMean / height(volumeData.inst.time);
+% volumeData.mean.d43 = d43Mean / height(volumeData.inst.time);
+% volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
+% volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
+% volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
+volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
+
+clear nParticlesMean volFractionMean massMean d43Mean d32Mean d30Mean d20Mean d10Mean;
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = toc;
@@ -574,8 +596,8 @@ if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
     fieldData = volumeData.mean.volFraction;
-    isoValue = 1e-6;
-%     isoValue = 1e-8;
+%     isoValue = 1e-6; % Inner Bounds
+    isoValue = 1e-8; % Outer Bounds
     
     switch format
 
@@ -666,22 +688,24 @@ while ~valid
         volumeData = rmfield(volumeData, {'x', 'y', 'z'});
         
         for i = 1:height(volumeData.inst.time)
-%             volumeData.inst.nParticles{i} = volumeData.inst.nParticles{i}(:);
-            volumeData.inst.d10{i} = volumeData.inst.d10{i}(:);
-%             volumeData.inst.d20{i} = volumeData.inst.d20{i}(:);
-%             volumeData.inst.d30{i} = volumeData.inst.d30{i}(:);
-%             volumeData.inst.d32{i} = volumeData.inst.d32{i}(:);
-%             volumeData.inst.mass{i} = volumeData.inst.mass{i}(:);
+            volumeData.inst.nParticles{i} = volumeData.inst.nParticles{i}(:);
             volumeData.inst.volFraction{i} = volumeData.inst.volFraction{i}(:);
+            volumeData.inst.mass{i} = volumeData.inst.mass{i}(:);
+%             volumeData.inst.d43{i} = volumeData.inst.d43{i}(:);
+%             volumeData.inst.d32{i} = volumeData.inst.d32{i}(:);
+%             volumeData.inst.d30{i} = volumeData.inst.d30{i}(:);
+%             volumeData.inst.d20{i} = volumeData.inst.d20{i}(:);
+            volumeData.inst.d10{i} = volumeData.inst.d10{i}(:);
         end
 
-%         volumeData.mean.nParticles = volumeData.mean.nParticles(:);
-        volumeData.mean.d10 = volumeData.mean.d10(:);
-%         volumeData.mean.d20 = volumeData.mean.d20(:);
-%         volumeData.mean.d30 = volumeData.mean.d30(:);
-%         volumeData.mean.d32 = volumeData.mean.d32(:);
-%         volumeData.mean.mass = volumeData.mean.mass(:);
+        volumeData.mean.nParticles = volumeData.mean.nParticles(:);
         volumeData.mean.volFraction = volumeData.mean.volFraction(:);
+        volumeData.mean.mass = volumeData.mean.mass(:);
+%         volumeData.mean.d43 = volumeData.mean.d43(:);
+%         volumeData.mean.d32 = volumeData.mean.d32(:);
+%         volumeData.mean.d30 = volumeData.mean.d30(:);
+%         volumeData.mean.d20 = volumeData.mean.d20(:);
+        volumeData.mean.d10 = volumeData.mean.d10(:);
         
         % Save Data
         switch format

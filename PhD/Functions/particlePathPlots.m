@@ -85,4 +85,3 @@ function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, col
     exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
     
 end
-

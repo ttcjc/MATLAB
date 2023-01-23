@@ -213,7 +213,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
             if (min(volumeSlice.(['s', num2str(i)]).xLims) < xLimsData(1)) || (max(volumeSlice.(['s', num2str(i)]).xLims) > xLimsData(2)) || ...
                (min(volumeSlice.(['s', num2str(i)]).yLims) < yLimsData(1)) || (max(volumeSlice.(['s', num2str(i)]).yLims) > yLimsData(2)) || ...
                (min(volumeSlice.(['s', num2str(i)]).zLims) < zLimsData(1)) || (max(volumeSlice.(['s', num2str(i)]).zLims) > zLimsData(2))
-                disp('        WARNING: Plane Lies Outside Probe Volume');
+                disp('        WARNING: Plane Lies Outside Volume');
                 disp(' ');
             else
                 valid = true;

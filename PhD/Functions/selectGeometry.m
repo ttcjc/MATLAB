@@ -91,6 +91,8 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeom
         geometry.(parts{i}).boundaries.XY(:,[1,2]) = geoPoints(index,[1,2]);
     end
     
+    disp('    Success');
+    
     % Define Rounding Precision and Normalise Dimensions
     xPre = max(width(extractAfter(num2str(xDims(1), 7), '.')), width(extractAfter(num2str(xDims(2), 7), '.')));
     yPre = max(width(extractAfter(num2str(yDims(1), 7), '.')), width(extractAfter(num2str(yDims(2), 7), '.')));
@@ -114,7 +116,8 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeom
                 geometry.(parts{i}).boundaries.XZ(:,[1,3]) = round((geometry.(parts{i}).boundaries.XZ(:,[1,3]) / 1.044), spacePrecision);
                 geometry.(parts{i}).boundaries.XY(:,[1,2]) = round((geometry.(parts{i}).boundaries.XY(:,[1,2]) / 1.044), spacePrecision);
             end
-
+            
+            disp('    Success');
         else
             normalise = false;
             disp('    WARNING: Dimension Normalisation for This Case Type Not Supported');

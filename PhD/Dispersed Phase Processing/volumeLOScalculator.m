@@ -5,17 +5,19 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-disp('==============================');
-disp('Depth of Field Calculator v1.0');
-disp('==============================');
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
+
+samplesPerCell = 32; % Number of Samples per Cell Used During LOS Interpolation
+
+disp('=============================');
+disp('Line of Sight Calculator v1.0');
+disp('=============================');
 
 disp(' ');
 disp(' ');
@@ -78,6 +80,7 @@ while ~valid
                 disp(['Loading ''', fileName, '''...']);
                 dataID = load([filePath, fileName], 'dataID').dataID;
                 volumeData = load([filePath, fileName], 'volumeData').volumeData;
+                cellSize = load([filePath, fileName], 'cellSize').cellSize;
                 sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                 dLims = load([filePath, fileName], 'dLims').dLims;
                 normalise = load([filePath, fileName], 'normalise').normalise;
@@ -95,6 +98,7 @@ while ~valid
                 disp(['Loading ''', fileName, '''...']);
                 dataID = load([filePath, fileName], 'dataID').dataID;
                 volumeData = load([filePath, fileName], 'volumeData').volumeData;
+                cellSize = load([filePath, fileName], 'cellSize').cellSize;
                 sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
                 dLims = load([filePath, fileName], 'dLims').dLims;
                 normalise = load([filePath, fileName], 'normalise').normalise;
@@ -127,14 +131,9 @@ disp(' ');
 disp(' ');
 
 
-%% Select Target Point
+%% Select Plane of Interest
 
-disp('Target Point Definition');
-disp('------------------------');
-
-disp(' ');
-
-% Restore Original Dimensions
+% Temporarily Restore Original Dimensions
 if normalise
 
     if contains(caseName, ["Run_Test", "Windsor"])
@@ -143,113 +142,80 @@ if normalise
 
 end
 
-% Identify Data Limits
-xLimsData = [min(volumeData.positionGrid(:,1)); max(volumeData.positionGrid(:,1))];
-yLimsData = [min(volumeData.positionGrid(:,2)); max(volumeData.positionGrid(:,2))];
-zLimsData = [min(volumeData.positionGrid(:,3)); max(volumeData.positionGrid(:,3))];
+% Select Plane of Interest
+LOSdata = identifyVolumeSlices(volumeData.positionGrid, spacePrecision, false);
 
-disp('Volume Boundaries:');
-disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+% Extract Planar Position Data
+index = find(volumeData.positionGrid(:,1) == LOSdata.position);
+LOSdata.positionGrid = volumeData.positionGrid(index,:);
 
-% Select Target Point
-LOSdata.targetPoint = zeros(1,3);
+disp(' ');
+disp(' ');
+
+
+%% Select Origin Point
+
+disp('Origin Point Definition');
+disp('------------------------');
+
+% Select Origin Point
+LOSdata.originPoint = zeros(1,3);
 
 valid = false;
 while ~valid
     disp(' ')
-
-    disp('Specify Target Point:')
+    disp('Specify Origin Point:')
     
-    LOSdata.targetPoint(1) = inputPos('X');
-    LOSdata.targetPoint(2) = inputPos('Y');
-    LOSdata.targetPoint(3) = inputPos('Z');
+    LOSdata.originPoint(1) = inputPos('X');
+    LOSdata.originPoint(2) = inputPos('Y');
+    LOSdata.originPoint(3) = inputPos('Z');
 
-    if (LOSdata.targetPoint(1) < xLimsData(1) || LOSdata.targetPoint(1) > xLimsData(2)) || ...
-       (LOSdata.targetPoint(2) < yLimsData(1) || LOSdata.targetPoint(2) > yLimsData(2)) || ...
-       (LOSdata.targetPoint(3) < zLimsData(1) || LOSdata.targetPoint(3) > zLimsData(2))
-        disp('        WARNING: Point Lies Outside Volume');
-        disp(' ');
-    else
-        valid = true;
+    if (LOSdata.originPoint(1) < min(volumeData.positionGrid(:,1)) || LOSdata.originPoint(1) > max(volumeData.positionGrid(:,1))) || ...
+       (LOSdata.originPoint(2) < min(volumeData.positionGrid(:,2)) || LOSdata.originPoint(2) > max(volumeData.positionGrid(:,1))) || ...
+       (LOSdata.originPoint(3) < min(volumeData.positionGrid(:,3)) || LOSdata.originPoint(3) > max(volumeData.positionGrid(:,1)))
+        disp('        WARNING: Origin Point Lies Outside Volume');
+        continue;
     end
-
-end
-
-disp(' ');
-
-% Shift Target Point To Nearest Volume Node
-[offset, index] = min(abs(LOSdata.targetPoint - volumeData.positionGrid));
-
-if any(offset ~= 0)
-    disp('Shifting Point To Nearest Volume Node:');
+    
+    switch LOSdata.orientation
         
-    LOSdata.targetPoint(1) = volumeData.positionGrid(index(1),1);
-    LOSdata.targetPoint(2) = volumeData.positionGrid(index(2),2);
-    LOSdata.targetPoint(3) = volumeData.positionGrid(index(3),3);
-    
-    disp(['    X: ', num2str(LOSdata.targetPoint(1), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Y: ', num2str(LOSdata.targetPoint(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Z: ', num2str(LOSdata.targetPoint(3), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-end
-
-disp(' ');
-disp(' ');
-
-
-%% Select Reference Plane
-
-disp('Reference Plane Definition');
-disp('---------------------------');
-
-% Select Reference Plane
-LOSdata.orientation = 'XY';
-
-valid = false;
-while ~valid
-    disp(' ')
-
-    disp('Specify Downstream Reference Plane:');
-    
-    LOSdata.position = inputPos('X');
-
-    if LOSdata.position <= LOSdata.targetPoint(1)
-        disp('        WARNING: Plane Lies Upstream of Target Point');
-    elseif LOSdata.position > xLimsData(2)
-        disp('        WARNING: Plane Lies Outside Volume');
-        disp(' ');
-    else
-        valid = true;
+        case 'YZ'
+            
+            if LOSdata.originPoint(1) < LOSdata.position
+                disp('        WARNING: Origin Point Must Lie in the Positive X-Direction of the Target Plane');
+                continue;
+            end
+            
+        case 'XZ'
+            
+            if LOSdata.originPoint(2) > LOSdata.position
+                disp('        WARNING: Origin Point Must Lie in the Negative Y-Direction of the Target Plane');
+                continue;
+            end
+            
+        case 'XY'
+            
+            if LOSdata.originPoint(3) > LOSdata.position
+                disp('        WARNING: Origin Point Must Lie in the Positive Z-Direction of the Target Plane');
+                continue;
+            end
+            
     end
-
+    
+    valid = true;    
 end
+clear valid;
 
-disp(' ');
-
-% Shift Reference Plane To Nearest Volume Slice
-[offset, index] = min(abs(LOSdata.position - volumeData.positionGrid(:,1)));
-
-if offset ~= 0
-    disp('Shifting Plane To Nearest Volume Slice');
-
-    LOSdata.position = volumeData.positionGrid(index,1);
-end
-
-% Re-Normalise Dimensions
+% Restore Normalised Dimensions
 if normalise
 
     if contains(caseName, ["Run_Test", "Windsor"])
         volumeData.positionGrid = round((volumeData.positionGrid / 1.044), spacePrecision);
-        LOSdata.targetPoint = round((LOSdata.targetPoint / 1.044), spacePrecision);
+        LOSdata.originPoint = round((LOSdata.originPoint / 1.044), spacePrecision);
         LOSdata.position = round((LOSdata.position / 1.044), spacePrecision);
     end
 
 end
-
-% Store Reference Plane
-index = find(volumeData.positionGrid(:,1) == LOSdata.position);
-LOSdata.positionGrid = volumeData.positionGrid(index,:);
 
 disp(' ');
 disp(' ');
@@ -265,121 +231,251 @@ disp(' ');
 disp('***********');
 disp('  RUNNING ');
 
-% tic;
+tic;
 
 disp(' ');
 
 disp('    Initialising...');
 
-% Reduce Volume to Required Limits
-index = find((volumeData.positionGrid(:,1) >= LOSdata.targetPoint(1)) & (volumeData.positionGrid(:,1) <= LOSdata.position));
-volumeData.positionGrid = volumeData.positionGrid(index,:);
+evalc('parpool(nProc);');
 
-fields = fieldnames(volumeData.mean);
+disp(' ');
 
-tic;
-for i = 1:height(fields)
-    volumeData.mean.(fields{i}) = volumeData.mean.(fields{i})(index,:);
+% Check if Plane of Interest Intersects Geometry
+removeIntersect = false;
 
-    for j = 1:height(volumeData.inst.time)
-        volumeData.inst.(fields{i}){j} = volumeData.inst.(fields{i}){j}(index,:);
+switch LOSdata.orientation
+    
+    case 'YZ'
+        
+        if LOSdata.position <= xDims(2)
+            removeIntersect = true;
+        end
+        
+    case 'XZ'
+        
+        if LOSdata.position >= yDims(1)
+            removeIntersect = true;
+        end
+        
+    case 'XY'
+        
+        if LOSdata.position <= zDims(2)
+            removeIntersect = true;
+        end
+        
+end
+
+if removeIntersect
+    disp('    Removing Erroneous Data From Volume Nodes Intersecting Geometry...');
+
+    % Remove Erroneous Data From Cells Intersecting Geometry
+    parts = fieldnames(geometry);
+    fields = fieldnames(volumeData.mean);
+    for i = 1:height(parts)
+        geoPoints = unique(geometry.(parts{i}).vertices, 'rows');
+        DT = delaunay(geoPoints);
+
+        index = ~isnan(tsearchn(geoPoints, DT, volumeData.positionGrid));
+
+        for j = 1:height(fields)
+            volumeData.mean.(fields{j})(index,:) = nan;
+
+            for k = 1:height(volumeData.inst.time)
+                volumeData.inst.(fields{j}){k}(index,:) = nan;
+            end
+
+        end
+
     end
+    clear parts fields;
 
+    disp(' ');
 end
-toc;
+
+disp('    Reshaping Position Data for Improved Interpolation Performance...');
+
+% Reshape Position Data for Improved Interpolation Performance
+gridShape = [height(unique(volumeData.positionGrid(:,1))), ...
+             height(unique(volumeData.positionGrid(:,2))), ...
+             height(unique(volumeData.positionGrid(:,3)))];
+
+x = reshape(volumeData.positionGrid(:,1), gridShape);
+y = reshape(volumeData.positionGrid(:,2), gridShape);
+z = reshape(volumeData.positionGrid(:,3), gridShape);
 
 disp(' ');
 
-% Calculate True Line of Sight
-disp('    Calculating True Line of Sight...');
+disp('    Calculating Instantaneous Line of Sight...');
 
-slices = unique(volumeData.positionGrid(:,1));
-LOSdata.LOSmatrix = zeros(height(LOSdata.positionGrid), width(LOSdata.positionGrid), height(slices));
-
-tic;
-for i = 1:height(LOSdata.LOSmatrix) % https://math.stackexchange.com/questions/576137/finding-a-point-on-a-3d-line
-    t = (slices - LOSdata.targetPoint(1)) / (LOSdata.positionGrid(i,1) - LOSdata.targetPoint(1));
-    LOSdata.LOSmatrix(i,:,:) = (LOSdata.targetPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.targetPoint))';
-end
-toc;
-
-disp(' ');
-
-% Shift Line of Sight to Pass Through Local Volume Nodes
-disp('    Shifting Line of Sight to Pass Through Local Volume Nodes...');
-
-LOSdata.LOSmatrixShifted = LOSdata.LOSmatrix;
-LOSdata.LOSindex = zeros(height(LOSdata.LOSmatrix),depth(LOSdata.LOSmatrix));
+LOSdata.inst.time = volumeData.inst.time;
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Shifting Line of Sight to Pass Through Local Volume Nodes', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Instantaneous Line of Sight', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
+dQ = parallel.pool.DataQueue;
+afterEach(dQ, @parforWaitBar);
 
-tic;
-for i = 1:depth(LOSdata.LOSmatrix)
-    slicePositionGrid = volumeData.positionGrid((volumeData.positionGrid(:,1) == slices(i)),:);
+parforWaitBar(wB, height(LOSdata.inst.time));
 
-    for j = 1:height(LOSdata.LOSmatrix)
-        [~, index] = min(abs(slicePositionGrid - LOSdata.LOSmatrix(j,:,i)));
-        LOSdata.LOSindex(j,i) = find((volumeData.positionGrid(:,1) == slicePositionGrid(index(1),1)) & ...
-                                      (volumeData.positionGrid(:,2) == slicePositionGrid(index(2),2)) & ...
-                                      (volumeData.positionGrid(:,3) == slicePositionGrid(index(3),3)));
+% Calculate Instantaneous Line of Sight
+massInLOS = cell(height(LOSdata.inst.time),1);
 
-        LOSdata.LOSmatrixShifted(j,:,i) = volumeData.positionGrid(LOSdata.LOSindex(j,i),:);
+mass = volumeData.inst.mass;
+cellVolume = cellSize.volume;
+positionGrid = LOSdata.positionGrid;
+orientation = LOSdata.orientation;
+cellSizeX = cellSize.x;
+cellSizeY = cellSize.y;
+cellSizeZ = cellSize.z;
+originPointX = LOSdata.originPoint(1);
+originPointY = LOSdata.originPoint(2);
+originPointZ = LOSdata.originPoint(3);
+position = LOSdata.position;
+parfor i = 1:height(LOSdata.inst.time)
+    sprayDensity = reshape((mass{i} / cellVolume), gridShape);
+    
+    interp = griddedInterpolant(x, y, z, sprayDensity, 'linear', 'none');
+    
+    massInLOS{i} = zeros(height(positionGrid),1);
+    
+    switch orientation
+        
+        case 'YZ'
+            dX = cellSizeX / samplesPerCell;
+            sampleX = (originPointX:-dX:position)';
+            
+            for j = 1:height(positionGrid)
+                t = (sampleX - originPointX) / (positionGrid(j,1) - originPointX);
+                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
+                
+                if sum(isnan(interpMass)) > samplesPerCell
+                    massInLOS{i}(j) = nan;
+                else
+                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
+                end
+                
+            end
+            
+        case 'XZ'
+            dY = cellSizeY / samplesPerCell;
+            sampleY = (originPointY:dY:position)';
+            
+            for j = 1:height(positionGrid)
+                t = (sampleY -originPointY) / (positionGrid(j,2) - originPointY);
+                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
+                
+                if sum(isnan(interpMass)) > samplesPerCell
+                    massInLOS{i}(j) = nan;
+                else
+                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
+                end
+                
+            end
+            
+        case 'XY'
+            dZ = cellSizeZ / samplesPerCell;
+            sampleZ = (originPointZ:-dZ:position)';
+            
+            for j = 1:height(positionGrid)
+                t = (sampleZ - originPointZ) / (positionGrid(j,3) - originPointZ);
+                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
+                
+                if sum(isnan(interpMass)) > samplesPerCell
+                    massInLOS{i}(j) = nan;
+                else
+                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
+                end
+                
+            end
+            
     end
-
-    waitbar((i / depth(LOSdata.LOSmatrix)), wB);
+    
+    send(dQ, []);
 end
-clear slicePositionGrid index;
-toc;
+clear mass cellVolume positionGrid orientation cellSizeX cellSizeY cellSizeZ originPointX originPointY originPointZ position;
 
 delete(wB);
 
-% Verify Line of Sight Shift
-testLine = randi(height(LOSdata.positionGrid),[10,1]);
-figure;
-hold on;
+LOSdata.inst.mass = massInLOS;
 
-for i = 1:10
-    plot3(squeeze(LOSdata.LOSmatrix(testLine(i),1,:)), squeeze(LOSdata.LOSmatrix(testLine(i),2,:)), squeeze(LOSdata.LOSmatrix(testLine(i),3,:)), 'r-o');
-    plot3(squeeze(LOSdata.LOSmatrixShifted(testLine(i),1,:)), squeeze(LOSdata.LOSmatrixShifted(testLine(i),2,:)), squeeze(LOSdata.LOSmatrixShifted(testLine(i),3,:)), 'b-x');
-end
-
-xLimsData = [min(volumeData.positionGrid(:,1)); max(volumeData.positionGrid(:,1))];
-yLimsData = [min(volumeData.positionGrid(:,2)); max(volumeData.positionGrid(:,2))];
-zLimsData = [min(volumeData.positionGrid(:,3)); max(volumeData.positionGrid(:,3))];
-xlim(xLimsData);
-ylim(yLimsData);
-zlim(zLimsData);
-view(30,30)
-hold off;
-
-% % Calculate Obstructing Mass Along Line of Site
-% disp('    Calculating Obstructing Mass Along Line of Site...');
-% 
-% LOSdata.inst.time = volumeData.inst.time;
-% LOSdata.inst.mass = cell(height(LOSdata.inst.time),1);
-% LOSdata.mean.mass = zeros(height(LOSdata.LOSmatrixShifted),1);
-% 
-% % Initialise Progress Bar
-% wB = waitbar(0, 'Shifting Line of Sight to Pass Through Local Volume Nodes', 'name', 'Progress');
-% wB.Children.Title.Interpreter = 'none';
-% 
-% tic;
-% for i = 1:height(LOSdata.LOSmatrixShifted)
-%     obstructingMass(i) = sum(volumeData.mean.mass(index(i,:)));
-% 
-%     waitbar((i / height(LOSdata.LOSmatrixShifted)), wB);
-% end
-% toc;
-% 
-% delete(wB);
-
-% executionTime = toc;
+clear massInLOS;
 
 disp(' ');
 
-% disp(['    Run Time: ', num2str(executionTime), 's']);
+disp('    Calculating Time-Averaged Line of Sight...');
+
+% Calculate Time-Averaged Line of Sight
+sprayDensity = reshape((volumeData.mean.mass / cellSize.volume), gridShape);
+
+interp = griddedInterpolant(x, y, z, sprayDensity, 'linear', 'none');
+
+LOSdata.mean.mass = zeros(height(LOSdata.positionGrid),1);
+
+switch LOSdata.orientation
+
+    case 'YZ'
+        dX = cellSize.x / samplesPerCell;
+        sampleX = (LOSdata.originPoint(1):-dX:LOSdata.position)';
+
+        for i = 1:height(LOSdata.positionGrid)
+            t = (sampleX - LOSdata.originPoint(1)) / (LOSdata.positionGrid(i,1) - LOSdata.originPoint(1));
+            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
+            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
+            
+            if sum(isnan(interpMass)) > samplesPerCell
+                LOSdata.mean.mass(i) = nan;
+            else
+                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+            end
+            
+        end
+
+    case 'XZ'
+        dY = cellSize.y / samplesPerCell;
+        sampleY = (LOSdata.originPoint(2):dY:LOSdata.position)';
+
+        for i = 1:height(LOSdata.positionGrid)
+            t = (sampleY - LOSdata.originPoint(2)) / (LOSdata.positionGrid(i,2) - LOSdata.originPoint(2));
+            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
+            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
+            
+            if sum(isnan(interpMass)) > samplesPerCell
+                LOSdata.mean.mass(i) = nan;
+            else
+                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+            end
+            
+        end
+
+    case 'XY'
+        dZ = cellSize.z / samplesPerCell;
+        sampleZ = (LOSdata.originPoint(3):-dZ:LOSdata.position)';
+
+        for i = 1:height(LOSdata.positionGrid)
+            t = (sampleZ - LOSdata.originPoint(3)) / (LOSdata.positionGrid(i,3) - LOSdata.originPoint(3));
+            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
+            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
+            
+            if sum(isnan(interpMass)) > samplesPerCell
+                LOSdata.mean.mass(i) = nan;
+            else
+                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+            end
+            
+            
+        end
+
+end
+
+executionTime = toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
 
 disp(' ');
 
@@ -390,43 +486,181 @@ disp(' ');
 disp(' ');
 
 
-%% Interpolation Test Code
+%% Select Presentation Options
 
-clc;
+disp('Presentation Options');
+disp('---------------------');
 
-clear interp cellSize sX i t samplePoints;
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Time-Averaged Map(s)? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMean = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMean = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotInst = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotInst = true;
+        nFrames = inputFrames(height(LOSdata.inst.time));
+        
+        if nFrames == -1
+            continue;
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Present Contaminant Maps
+
+disp('Map Presentation');
+disp('-----------------');
 
 disp(' ');
 
-%
+if plotInst || plotMean
+    
+    switch LOSdata.orientation
 
-tic;
+        case 'YZ'
+            xLimsData = LOSdata.position;
+            yLimsData = [min(LOSdata.positionGrid(:,2)); max(LOSdata.positionGrid(:,2))];
+            zLimsData = [min(LOSdata.positionGrid(:,3)); max(LOSdata.positionGrid(:,3))];
 
-interp = scatteredInterpolant(volumeData.positionGrid(:,1), ...
-                   volumeData.positionGrid(:,2), ...
-                   volumeData.positionGrid(:,3), ...
-                   volumeData.mean.mass, 'linear', 'none');
+        case 'XZ'
+            xLimsData = [min(LOSdata.positionGrid(:,1)); max(LOSdata.positionGrid(:,1))];
+            yLimsData = LOSdata.position;
+            zLimsData = [min(LOSdata.positionGrid(:,3)); max(LOSdata.positionGrid(:,3))];
 
-toc;
+        case 'XY'
+            xLimsData = [min(LOSdata.positionGrid(:,1)); max(LOSdata.positionGrid(:,1))];
+            yLimsData = [min(LOSdata.positionGrid(:,2)); max(LOSdata.positionGrid(:,2))];
 
-disp(' ');
+    end
+    
+    switch format
 
-%
+        case 'A'
 
-tic;
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.26625]; % 0.75 L
+                yLimsPlot = [-0.3445; 0.3445];
+                zLimsPlot = [0; 0.489];
+            end
 
-cellSize = 8e-3;
-dX = (LOSdata.targetPoint(1):(cellSize / 4):LOSdata.position)';
+        case 'B'
 
-mass = zeros(height(LOSdata.positionGrid),1);
+            if contains(caseName, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 2.57125]; % 2 L
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+            end
 
-for i = 1:height(LOSdata.positionGrid)
-        t = (dX - LOSdata.targetPoint(1)) / (LOSdata.positionGrid(i,1) - LOSdata.targetPoint(1));
-        samplePoints = (LOSdata.targetPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.targetPoint));
-        mass(i) = sum(interp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3)));
+    end
+
+    if normalise
+        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+    end
+    
+    orientation = LOSdata.orientation;
+    positionData = LOSdata.positionGrid;
+    mapPerim = [];
+    cMap = flipud(viridis(32));
+    contourlines = [];
+    CoM = LOSdata.originPoint;
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    nPlanes = 1;
+    planeNo = 1;
+    
 end
 
-toc;
+if plotMean
+    disp('    Presenting Time-Averaged Line of Sight Map...');
+    
+    scalarData = LOSdata.mean.mass;
+    figName = 'Time_Averaged_LOS_Map';
+    figSubtitle = ' ';
+%     cLims = [0; max(LOSdata.mean.mass)];
+    cLims = [0; 7.5e-3];
+    
+    [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                       mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                       xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                       xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+    
+    disp(' ');
+end
+
+if plotInst
+    disp('    Presenting Instantaneous Line of Sight Map...');
+    
+%     cLims = [0; max(cellfun(@max, LOSdata.inst.mass))];
+    cLims = [0; 7.5e-3];
+    
+    figHold = fig;
+    
+    for i = 1:nFrames
+        
+        if i ~= 1
+            clf(fig);
+            fig = figHold;
+        end
+        
+        scalarData = LOSdata.inst.mass{i};
+        figTime = num2str(LOSdata.inst.time(i), ['%.', num2str(timePrecision), 'f']);
+        figName = ['Instantaneous_LOS_Map_T_', erase(figTime, '.')];
+        figSubtitle = [figTime, ' \it{s}'];
+
+        [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                           mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                           xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+    end
+    
+    disp(' ');
+end
+
+if ~plotMean && ~plotInst
+    disp('    Skipping Map Presentation');
+    disp(' ');
+end
+
+disp(' ');
+
+
+%% Save Line of Sight Data
+
+
 
 
 %% Local Functions
@@ -440,4 +674,16 @@ function pos = inputPos(orientation)
         pos = -1;
     end
     
+end
+
+
+function nFrames = inputFrames(Nt)
+
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
+
 end

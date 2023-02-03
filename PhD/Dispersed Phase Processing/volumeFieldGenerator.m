@@ -5,16 +5,16 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
-normalise = true; % Normalisation of Dimensions
+normalise = false; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
-cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
+cellSize.target = 8e-3; % Target Spatial Resolution of Contaminant Map [m]
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -229,7 +229,6 @@ switch format
         
         if contains(caseName, ["Run_Test", "Windsor"])
             xLimsData = [0.31875; 2.57125]; % 2L
-%             xLimsData = [0.31875; 3.61525]; % 3L
             yLimsData = [-0.5945; 0.5945];
             zLimsData = [0; 0.739];
         end
@@ -294,19 +293,19 @@ disp(' ');
 disp('    Generating Instantaneous Volume Field...');
 
 if normalise
-    cellSize = round((cellSize / 1.044), spacePrecision);
+    cellSize.target = round((cellSize.target / 1.044), spacePrecision);
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
-cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
-cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
+cellSize.x = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
+cellSize.y = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
+cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
 
-cellVolume = cellSizeX * cellSizeY * cellSizeZ;
+cellSize.volume = cellSize.x * cellSize.y * cellSize.z;
 
-[volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                                                    yLimsData(1):cellSizeY:yLimsData(2), ...
-                                                    zLimsData(1):cellSizeZ:zLimsData(2));
+[volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):(cellSize.x):xLimsData(2), ...
+                                                    yLimsData(1):(cellSize.y):yLimsData(2), ...
+                                                    zLimsData(1):(cellSize.z):zLimsData(2));
 
 volumeData.inst.time = LagData.time;
 
@@ -368,6 +367,7 @@ totalParticles = cellfun(@height, LagData.positionCartesian);
 x = volumeData.x;
 nParticle = LagData.nParticle;
 d = LagData.d;
+cellVolume = cellSize.volume;
 parfor i = 1:height(volumeData.inst.time)
     nParticles{i} = zeros(size(x));
     volFraction{i} = nParticles{i};
@@ -414,11 +414,11 @@ parfor i = 1:height(volumeData.inst.time)
 %     d32{i}(isnan(d32{i})) = 0;
 %     d30{i}(isnan(d30{i})) = 0;
 %     d20{i}(isnan(d20{i})) = 0;
-%     d10{i}(isnan(d10{i})) = 0;
+    d10{i}(isnan(d10{i})) = 0;
     
     send(dQ, []);
 end
-clear totalParticles x nParticle d;
+clear totalParticles x nParticle d volume;
 
 delete(wB);
 
@@ -729,13 +729,13 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/nearField/', dataID, '.mat'], ...
-                     'dataID', 'volumeData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                     'dataID', 'volumeData', 'cellSize', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/volumeField/', caseName, '/farField/', dataID, '.mat'], ...
-                     'dataID', 'volumeData', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                     'dataID', 'volumeData', 'cellSize', 'sampleInterval', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end

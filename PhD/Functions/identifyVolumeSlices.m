@@ -12,9 +12,9 @@
 
 %% Main Function
 
-function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normalise, multiSlice)
+function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice)
 
-    disp('Volume Slice Identification');
+    disp('Plane of Interest Selection');
     disp('----------------------------');
     
     disp(' ');
@@ -25,17 +25,9 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
     zLimsData = [min(positionData(:,3)); max(positionData(:,3))];
     
     disp('Volume Boundaries:');
-
-    if normalise
-        disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [l] -> ', num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [l]']);
-        disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [l] -> ', num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [l]']);
-        disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [l] -> ', num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [l]']);
-    else
-        disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-        disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-        disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    end
-    
+    disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
 
     disp(' ');
 
@@ -44,6 +36,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
     disp('    Y (XZ-Plane)');
     disp('    Z (XY-Plane)');
     
+    % Specify Slice Count
     if multiSlice
         
         valid = false;
@@ -65,6 +58,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
     
     for i = 1:nSlices
         
+        % Define Slice Orientation
         valid = false;
         while ~valid
             disp(' ');
@@ -98,6 +92,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
         volumeSlice.(['s', num2str(i)]).yLims = volumeSlice.(['s', num2str(i)]).xLims;
         volumeSlice.(['s', num2str(i)]).zLims = volumeSlice.(['s', num2str(i)]).xLims;
 
+        % Define Slice Limits
         valid = false;
         while ~valid
             
@@ -230,8 +225,10 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
                 [offset, index] = min(abs(allPlanes - volumeSlice.(['s', num2str(i)]).xLims));
                 
                 if offset ~= 0
+                    disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting X: ', num2str(volumeSlice.(['s', num2str(i)]).xLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    disp(['        Shifting X: ', num2str(volumeSlice.(['s', num2str(i)]).xLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
                     volumeSlice.(['s', num2str(i)]).xLims = allPlanes(index);
                 end
                 
@@ -242,8 +239,10 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
                 [offset, index] = min(abs(allPlanes - volumeSlice.(['s', num2str(i)]).yLims));
                 
                 if offset ~= 0
+                    disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting Y: ', num2str(volumeSlice.(['s', num2str(i)]).yLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    disp(['        Shifting Y: ', num2str(volumeSlice.(['s', num2str(i)]).yLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
                     volumeSlice.(['s', num2str(i)]).yLims = allPlanes(index);
                 end
                 
@@ -254,8 +253,10 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
                 [offset, index] = min(abs(allPlanes - volumeSlice.(['s', num2str(i)]).zLims));
                 
                 if offset ~= 0
+                    disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting Z: ', num2str(volumeSlice.(['s', num2str(i)]).zLims), ' [m] -> ', num2str(allPlanes(index)), ' [m]']);
+                    disp(['        Shifting Z: ', num2str(volumeSlice.(['s', num2str(i)]).zLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
                     volumeSlice.(['s', num2str(i)]).zLims = allPlanes(index);
                 end
                 
@@ -273,8 +274,12 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, normal
         end
 
         volumeSlice = renameStructField(volumeSlice, ['s', num2str(i)], sliceName);
-        orderfields(volumeSlice.(sliceName), {'orientation', 'position', 'xLims', 'yLims', 'zLims'});
+        volumeSlice.(sliceName) = orderfields(volumeSlice.(sliceName), {'orientation', 'position', 'xLims', 'yLims', 'zLims'});
         
+    end
+    
+    if nSlices == 1
+        volumeSlice = volumeSlice.(sliceName);
     end
 
 end

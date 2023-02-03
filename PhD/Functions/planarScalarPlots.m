@@ -1,11 +1,11 @@
-%% Planar Scalar Field Plotter v1.0
+%% Planar Scalar Field Plotter v2.0
 % ----
 % Plots Previously Processed Planar Scalar Fields
 % ----
-% Usage: fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-%                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-%                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+% Usage: [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+%                                           mapPerim, fig, figName, cMap, geometry, contourlines, ...
+%                                           xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+%                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        '*LimsData'    -> Contour Plot Limits
 %        'positionData' -> Cartesian Positions of Data Points
@@ -23,11 +23,14 @@
 %        'cLims'        -> Colour Map Limits
 %        '*LimsPlot'    -> 3D Axes Limits
 %        'normalise'    -> Normalise Dimensions [True/False]
+%        'nPlanes'      -> Number of Planes in a Multi-Plane Figure
+%        'planeNo'      -> Current Plane Number
 
 
 %% Changelog
 
-% v1.0 - Initial Commit (Expanded Functionality of 'contaminantPlots.m')
+% v1.0 - Initial Commit (Expanded Functionality of 'contaminantPlots')
+% v2.0 - Shifted to Using 'griddedInterpolant' and Added Support for Multi-Plane Figures)
 
 
 %% Main Function
@@ -43,7 +46,20 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
     switch orientation
         
         case 'YZ'
-            % Generate Gridded Data
+            
+            % Reshape Data for Improved Interpolation Performance
+            gridShape = [height(unique(positionData(:,2))), ...
+                         height(unique(positionData(:,3)))];
+
+            y = reshape(positionData(:,2), gridShape);
+            z = reshape(positionData(:,3), gridShape);
+            
+            scalar = reshape(scalarData, gridShape);
+            
+            % Perform Interpolation
+            interp = griddedInterpolant(y, z, scalar, 'linear', 'none');
+            
+            % Generate 3D Surface
             cellSizeX = cellSize;
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
@@ -51,13 +67,12 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             [x, y, z] = ndgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
                                yLimsData(1):cellSizeY:yLimsData(2), ...
                                zLimsData(1):cellSizeZ:zLimsData(2));
-                             
-            interp = scatteredInterpolant(positionData(:,2), positionData(:,3), scalarData, ...
-                                          'linear', 'none');
-    
+            
+            % Map Scalar Data on to 3D Surface
             scalar = zeros(size(x));
             scalar(2,:,:) = interp(y(2,:,:), z(2,:,:));
             
+            % Remove Data Outside Desired Map Perimeter
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(y, z, mapPerim(:,2), mapPerim(:,3));
                 indexMap = double(or(indexIn, indexOn));
@@ -67,7 +82,20 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
         case 'XZ'
-            % Generate Gridded Data
+            
+            % Reshape Data for Improved Interpolation Performance
+            gridShape = [height(unique(positionData(:,1))), ...
+                         height(unique(positionData(:,3)))];
+
+            x = reshape(positionData(:,1), gridShape);
+            z = reshape(positionData(:,3), gridShape);
+            
+            scalar = reshape(scalarData, gridShape);
+            
+            % Perform Interpolation
+            interp = griddedInterpolant(x, z, scalar, 'linear', 'none');
+            
+            % Generate 3D Surface
             cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
             cellSizeY = cellSize;
             cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
@@ -75,13 +103,12 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
                                zLimsData(1):cellSizeZ:zLimsData(2));
-                             
-            interp = scatteredInterpolant(positionData(:,1), positionData(:,3), scalarData, ...
-                                          'linear', 'none');
     
+            % Map Scalar Data on to 3D Surface
             scalar = zeros(size(x));
             scalar(:,2,:) = interp(x(:,2,:), z(:,2,:));
             
+            % Remove Data Outside Desired Map Perimeter
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(x, z, mapPerim(:,1), mapPerim(:,3));
                 indexMap = double(or(indexIn, indexOn));
@@ -91,7 +118,20 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
         case 'XY'
-            % Generate Gridded Data
+
+            % Reshape Data for Improved Interpolation Performance
+            gridShape = [height(unique(positionData(:,1))), ...
+                         height(unique(positionData(:,2)))];
+
+            x = reshape(positionData(:,1), gridShape);
+            y = reshape(positionData(:,2), gridShape);
+            
+            scalar = reshape(scalarData, gridShape);
+            
+            % Perform Interpolation
+            interp = griddedInterpolant(x, y, scalar, 'linear', 'none');
+            
+            % Generate 3D Surface
             cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
             cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
             cellSizeZ = cellSize;
@@ -99,13 +139,12 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                yLimsData(1):cellSizeY:yLimsData(2), ...
                                (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
-                             
-            interp = scatteredInterpolant(positionData(:,1), positionData(:,2), scalarData, ...
-                                          'linear', 'none');
-    
+
+            % Map Scalar Data on to 3D Surface
             scalar = zeros(size(x));
             scalar(:,:,2) = interp(x(:,:,2), y(:,:,2));
             
+            % Remove Data Outside Desired Map Perimeter
             if ~isempty(mapPerim)
                 [indexIn, indexOn] = inpolygon(x, y, mapPerim(:,1), mapPerim(:,2));
                 indexMap = double(or(indexIn, indexOn));
@@ -165,6 +204,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -253,7 +293,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             colormap(cMap);
             hold on;
             
-            % Figure Plotting
+            % Geometry Plotting
             if ~isempty(geometry)
                 parts = fieldnames(geometry);
 
@@ -267,6 +307,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                 
             end
             
+            % Data Plotting
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
@@ -284,6 +325,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -343,7 +385,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             colormap(cMap);
             hold on;
             
-            % Figure Plotting
+            % Geometry Plotting
             if ~isempty(geometry)
                 parts = fieldnames(geometry);
 
@@ -357,6 +399,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                 
             end
             
+            % Data Plotting
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
              
@@ -374,6 +417,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);

@@ -12,11 +12,11 @@ normalise = true; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
+nProc = maxNumCompThreads - 4; % Number of Processors Used for Parallel Collation
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-normalisationValue = 7.021451812671253e-09; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
+normalisationValue = 1; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures

@@ -10,7 +10,8 @@ figHold = 0; % Enable Overwriting of Figures
 %% Load Data
 
 % load('/mnt/Processing/Data/Numerical/MATLAB/planarContaminantMap/Windsor_SB_wW_Upstream_SC/base/T20025_T50000_F400_D1_D120_Norm.mat');
-load('/mnt/Processing/Data/Numerical/MATLAB/planarContaminantMap/Windsor_SB_wW_Upstream_SC/X_020225/T20025_T50000_F400_D1_D120_Norm.mat');
+% load('/mnt/Processing/Data/Numerical/MATLAB/planarContaminantMap/Windsor_SB_wW_Upstream_SC/X_020225/T20025_T50000_F400_D1_D120_Norm.mat');
+load('~/Downloads/T20025_T50000_F400_D1_D120_Norm.mat');
 
 % Remove Excess Fields
 fields = fieldnames(mapData.mean);
@@ -50,19 +51,19 @@ plot(mapData.inst.time, massTotalAllMovMean, 'lineWidth', 2, 'color', ([230, 0, 
 axis on;
 box on;
 grid off;
-xlim([2; 5]);
-% ylim([]);
-xticks(2.5:0.5:4.5);
-% yticks([]);
+xlim([1.9; 5.1]);
+ylim('auto');
+xticks(2:0.5:5);
+yticks([]);
 xlabel({' ', '{\bf{Time (\it{s})}}'}, 'fontName', 'LM Roman 12');
-ylabel({'{\bf{Instantaneous Mass Flux (\it{kg})}}', ' '}, 'fontName', 'LM Roman 12');
+ylabel([]);
 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 
 pause(2);
 
 
-%% Calculate Uncertainty
+%% Initialise Uncertainty Calculation
 
 % Specify Start Time
 valid = false;
@@ -102,6 +103,8 @@ if mod(height(mapData.inst.time),2) ~= 0
     mapData.inst.mass(1) = [];
 end
 
+%% Uncertainty A
+
 % Calculate Divisors
 factors = factor(height(mapData.inst.time));
 divisors = [1, factors(1)];
@@ -121,22 +124,6 @@ for i = 1:height(divisors)
     massTotalSteadyMovMean{i} = movmean(massTotalSteady, divisors(i), 'endPoints', 'discard');
 end
 
-% Calculate 95% Confidence Intervals
-confidenceInterval = zeros(height(divisors),2);
-
-for i = 1:height(divisors)
-    subsetMean = mean(massTotalSteadyMovMean{i});
-    subsetSigma = std(massTotalSteadyMovMean{i});
-    subsetSize = 1; %height(massTotalSteadyMovMean{i});
-    
-    confidenceInterval(i,1) = subsetMean - (1.96 * (subsetSigma / sqrt(subsetSize)));
-    confidenceInterval(i,2) = subsetMean + (1.96 * (subsetSigma / sqrt(subsetSize)));
-end
-clear subsetMean subsetSigma subsetSize;
-
-
-%% Visualise Uncertainty
-
 sampleTime = divisors * (1 / 400);
 uncertaintyPlot = [];
 
@@ -149,26 +136,70 @@ clear subset;
 % Figure Setup
 fig = fig + 1;
 
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Uncertainty Convergence');
+set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Uncertainty Convergence A');
 set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
          'fontSize', 20, 'layer', 'top');
 hold on;
 
 % Plot  
-scatter(uncertaintyPlot(:,1), uncertaintyPlot(:,2), 5, ([74, 24, 99] / 255), 'filled');
-plot(sampleTime, confidenceInterval(:,1), 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
-plot(sampleTime, confidenceInterval(:,2), 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
+scatter(uncertaintyPlot(:,1), uncertaintyPlot(:,2), 10, ([74, 24, 99] / 255), 'filled');
 
 % Figure Formatting
 axis on;
 box on;
 grid off;
-xlim([0; 3]);
+xlim([-0.1; 2.6]);
 ylim('auto');
-xticks(0.5:0.5:2.5);
+xticks(0:0.5:2.5);
 yticks([]);
 xlabel({' ', '{\bf{Sample Length (\it{s})}}'}, 'fontName', 'LM Roman 12');
-ylabel({'{\bf{ Mean Mass Flux (\it{kg})}}', ' '}, 'fontName', 'LM Roman 12');
+ylabel([]);
+set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+hold off;
+
+pause(2);
+
+
+%% Uncertainty B
+
+% Calculate 95% Confidence Intervals
+subsetMean = nan(height(mapData.inst.time),1);
+subsetSigma = nan(height(mapData.inst.time),1);
+subsetCI = nan(height(mapData.inst.time),2);
+
+for i = 2:height(mapData.inst.time)
+    subsetMean(i) = mean(massTotalSteady(1:i));
+    subsetSigma(i) = std(massTotalSteady(1:i));
+
+    subsetCI(i,1) = subsetMean(i) - (1.96 * (subsetSigma(i) / sqrt(i)));
+    subsetCI(i,2) = subsetMean(i) + (1.96 * (subsetSigma(i) / sqrt(i)));
+end
+
+sampleTime = (1:height(mapData.inst.time))' * (1 / 400);
+
+% Figure Setup
+fig = fig + 1;
+
+set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Uncertainty Convergence B');
+set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
+         'fontSize', 20, 'layer', 'top');
+hold on;
+
+% Plot  
+plot(sampleTime, subsetCI(:,1), 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
+plot(sampleTime, subsetMean(:,1), 'lineWidth', 2, 'color', ([74, 24, 99] / 255));
+plot(sampleTime, subsetCI(:,2), 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
+
+% Figure Formatting
+axis on;
+box on;
+grid off;
+xlim([-0.1; 2.6]);
+ylim('auto');
+xticks(0:0.5:2.5);
+yticks([]);
+xlabel({' ', '{\bf{Sample Length (\it{s})}}'}, 'fontName', 'LM Roman 12');
+ylabel([]);
 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 

@@ -181,7 +181,7 @@ disp('------------');
 
 % Select Variable of Interest
 PODvar = fieldnames(mapData.mean);
-PODvar = PODvar(1:(end - 1));
+% PODvar = PODvar(1:(end - 1));
 
 valid = false;
 while ~valid
@@ -401,7 +401,7 @@ if plotModes
                 zLimsPlot = [0; 0.389];
             end
 
-        case {'B', 'C'}
+        case 'B'
             orientation = 'YZ';
 
             if contains(caseName, ["Run_Test", "Windsor"])
@@ -415,6 +415,13 @@ if plotModes
                 yLimsPlot = [-0.399; 0.218];
                 zLimsPlot = [0.0105; 0.4985];
             end
+            
+        case 'C'
+            orientation = 'YZ';
+            
+            xLimsPlot = [0.31875; 4.65925];
+            yLimsPlot = [-0.399; 0.218];
+            zLimsPlot = [0.0105; 0.4985];
             
     end
 
@@ -430,6 +437,8 @@ if plotModes
     CoM = [];
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
+    nPlanes = 1;
+    planeNo = 1;
 
     for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
@@ -454,7 +463,7 @@ if plotModes
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
     end
     
 else
@@ -597,7 +606,11 @@ end
 disp(' ');
 
 % Perform Field Reconstruction
-reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', true);
+if width(nModes) <= 5
+    reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', true);
+else
+    reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', false);
+end
 
 if any(strcmp(PODvar, {'mass', 'massNorm'}))
     disp(' ');
@@ -735,6 +748,8 @@ if plotRecon
     cMap = flipud(viridis(32));
     contourlines = [];
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    nPlanes = 1;
+    planeNo = 1;
     
     if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32'}))
         cLims = dLims;
@@ -779,7 +794,7 @@ if plotRecon
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
     end
     
 else

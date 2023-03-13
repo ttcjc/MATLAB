@@ -109,6 +109,9 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
     expSprayData.positionGrid(:,(2:3)) = content(:,(1:2)) / 1000;
     expSprayData.positionGrid(:,3) = expSprayData.positionGrid(:,3) + 0.1545;
     
+    % Sort Position Grid for Compatibility 
+    [expSprayData.positionGrid, index] = sortrows(expSprayData.positionGrid,3);
+    
     disp(' ');
     
     % Read Instantaneous Data
@@ -132,7 +135,7 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
         fclose(fileID);
 
         time(i) = i * (1 / samplingFrequency);
-        seedingDensity{i} = content(:,3);
+        seedingDensity{i} = content(index,3);
         
         send(dQ, []);
     end

@@ -207,7 +207,7 @@ switch format
         % Write Mesh
         disp('    Writing Mesh Data...');
 
-        fileID = fopen(['Output/Files/surfaceMesh_', caseType, '_', num2str(cellSize * 1e3), 'mm'], 'w');
+        fileID = fopen(['~/MATLAB/Output/Files/surfaceMesh_', caseType, '_', num2str(cellSize * 1e3), 'mm'], 'w');
         formatSpec = '                (%g %g %g)\n';
         
         for i = 1:height(meshPoints)
@@ -223,10 +223,9 @@ switch format
     case 'B'
         % Define Mesh Boundaries
         if contains(caseType, 'Run_Test') || (contains(caseType, 'Windsor') && contains(caseType, 'Upstream'))
-            xLims = [0.31875; 1.52725] - 1.325; % 1L
-%             xLims = [0.31875; 2.57125] - 1.325; % 2L
-            yLims = [-0.4445; 0.4445];
-            zLims = [0; 0.589];
+            xLims = [0.31875; 2.57125] - 1.325; % 2L
+            yLims = [-0.5445; 0.5445];
+            zLims = [cellSize; 0.589];
         end
         
         disp(' ');
@@ -267,7 +266,7 @@ switch format
         % Write Mesh
         disp('    Writing Mesh Data...');
         
-        fileID = fopen(['Output/Files/volumeMesh_', caseType, '_', num2str(cellSize * 1e3), 'mm'], 'w');
+        fileID = fopen(['~/MATLAB/Output/Files/volumeMesh_', caseType, '_', num2str(cellSize * 1e3), 'mm'], 'w');
         formatSpec = '                (%g %g %g)\n';
         
         for i = 1:height(meshPoints)

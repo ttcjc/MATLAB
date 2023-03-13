@@ -361,7 +361,7 @@ mass = nParticles; % Total Mass in Cell
 % d32 = nParticles; % Sauter Mean Diameter in Cell
 % d30 = nParticles; % Volume Mean Diameter in Cell
 % d20 = nParticles; % Surface Mean Diameter in Cell
-d10 = nParticles; % Arithmetic Mean Diameter in Cell
+% d10 = nParticles; % Arithmetic Mean Diameter in Cell
 
 totalParticles = cellfun(@height, LagData.positionCartesian);
 x = volumeData.x;
@@ -376,7 +376,7 @@ parfor i = 1:height(volumeData.inst.time)
 %     d32{i} = nParticles{i};
 %     d30{i} = nParticles{i};
 %     d20{i} = nParticles{i};
-    d10{i} = nParticles{i};
+%     d10{i} = nParticles{i};
     
     for j = 1:totalParticles(i)
         nParticles{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = nParticles{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
@@ -394,8 +394,8 @@ parfor i = 1:height(volumeData.inst.time)
 %         d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d20{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
 %                                                               (nParticle{i}(j) * (d{i}(j)^2));
                                                                  
-        d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
-                                                              (nParticle{i}(j) * d{i}(j));
+%         d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) = d10{i}(index{i}(j,1), index{i}(j,2), index{i}(j,3)) + ...
+%                                                               (nParticle{i}(j) * d{i}(j));
     end
     
     volFraction{i} = mass{i} / cellVolume;
@@ -404,7 +404,7 @@ parfor i = 1:height(volumeData.inst.time)
 %     d32{i} = (d30{i} ./ d20{i}) * 1e6;
 %     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
 %     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
-    d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
+%     d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
     
     % Set Empty Cells Back to Zero
     nParticles{i}(isnan(nParticles{i})) = 0;
@@ -414,7 +414,7 @@ parfor i = 1:height(volumeData.inst.time)
 %     d32{i}(isnan(d32{i})) = 0;
 %     d30{i}(isnan(d30{i})) = 0;
 %     d20{i}(isnan(d20{i})) = 0;
-    d10{i}(isnan(d10{i})) = 0;
+%     d10{i}(isnan(d10{i})) = 0;
     
     send(dQ, []);
 end
@@ -429,7 +429,7 @@ volumeData.inst.mass = mass;
 % volumeData.inst.d32 = d32;
 % volumeData.inst.d30 = d30;
 % volumeData.inst.d20 = d20;
-volumeData.inst.d10 = d10;
+% volumeData.inst.d10 = d10;
 
 clear nParticles volFraction mass d43 d32 d30 d20 d10;
 
@@ -454,7 +454,7 @@ massMean = nParticlesMean;
 % d32Mean = nParticlesMean;
 % d30Mean = nParticlesMean;
 % d20Mean = nParticlesMean;
-d10Mean = nParticlesMean;
+% d10Mean = nParticlesMean;
 
 nParticles = volumeData.inst.nParticles;
 volFraction = volumeData.inst.volFraction;
@@ -463,7 +463,7 @@ mass = volumeData.inst.mass;
 % d32 = volumeData.inst.d32;
 % d30 = volumeData.inst.d30;
 % d20 = volumeData.inst.d20;
-d10 = volumeData.inst.d10;
+% d10 = volumeData.inst.d10;
 parfor i = 1:height(volumeData.inst.time)
     nParticlesMean = nParticlesMean + nParticles{i};
     volFractionMean = volFractionMean + volFraction{i};
@@ -472,7 +472,7 @@ parfor i = 1:height(volumeData.inst.time)
 %     d32Mean = d32Mean + d32{i};
 %     d30Mean = d30Mean + d30{i};
 %     d20Mean = d20Mean + d20{i};
-    d10Mean = d10Mean + d10{i};
+%     d10Mean = d10Mean + d10{i};
     
     send(dQ, []);
 end
@@ -487,7 +487,7 @@ volumeData.mean.mass = massMean / height(volumeData.inst.time);
 % volumeData.mean.d32 = d32Mean / height(volumeData.inst.time);
 % volumeData.mean.d30 = d30Mean / height(volumeData.inst.time);
 % volumeData.mean.d20 = d20Mean / height(volumeData.inst.time);
-volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
+% volumeData.mean.d10 = d10Mean / height(volumeData.inst.time);
 
 clear nParticlesMean volFractionMean massMean d43Mean d32Mean d30Mean d20Mean d10Mean;
 
@@ -695,7 +695,7 @@ while ~valid
 %             volumeData.inst.d32{i} = volumeData.inst.d32{i}(:);
 %             volumeData.inst.d30{i} = volumeData.inst.d30{i}(:);
 %             volumeData.inst.d20{i} = volumeData.inst.d20{i}(:);
-            volumeData.inst.d10{i} = volumeData.inst.d10{i}(:);
+%             volumeData.inst.d10{i} = volumeData.inst.d10{i}(:);
         end
 
         volumeData.mean.nParticles = volumeData.mean.nParticles(:);
@@ -705,7 +705,7 @@ while ~valid
 %         volumeData.mean.d32 = volumeData.mean.d32(:);
 %         volumeData.mean.d30 = volumeData.mean.d30(:);
 %         volumeData.mean.d20 = volumeData.mean.d20(:);
-        volumeData.mean.d10 = volumeData.mean.d10(:);
+%         volumeData.mean.d10 = volumeData.mean.d10(:);
         
         % Save Data
         switch format

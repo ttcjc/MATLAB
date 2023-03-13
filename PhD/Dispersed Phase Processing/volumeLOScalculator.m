@@ -471,6 +471,8 @@ switch LOSdata.orientation
 
 end
 
+evalc('delete(gcp(''nocreate''));');
+
 executionTime = toc;
 
 disp(' ');
@@ -579,9 +581,12 @@ if plotInst || plotMean
         case 'B'
 
             if contains(caseName, ["Run_Test", "Windsor"])
+%                 xLimsPlot = [0.31875; 2.57125]; % 2 L
+%                 yLimsPlot = [-0.5945; 0.5945];
+%                 zLimsPlot = [0; 0.739];
                 xLimsPlot = [0.31875; 2.57125]; % 2 L
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
+                yLimsPlot = [-0.4945; 0.4945];
+                zLimsPlot = [0; 0.639];
             end
 
     end
@@ -611,7 +616,7 @@ if plotMean
     figName = 'Time_Averaged_LOS_Map';
     figSubtitle = ' ';
 %     cLims = [0; max(LOSdata.mean.mass)];
-    cLims = [0; 7.5e-3];
+    cLims = [0; 5e-3];
     
     [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                        mapPerim, fig, figName, cMap, geometry, contourlines, ...
@@ -625,7 +630,7 @@ if plotInst
     disp('    Presenting Instantaneous Line of Sight Map...');
     
 %     cLims = [0; max(cellfun(@max, LOSdata.inst.mass))];
-    cLims = [0; 7.5e-3];
+    cLims = [0; 5e-3];
     
     figHold = fig;
     

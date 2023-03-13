@@ -1,5 +1,6 @@
 ## Ignore Directories
 Output/
+Testing/
 
 ## Ignore Files
 *.asv

@@ -30,7 +30,7 @@
 
 function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
     
-    disp(['    Performing Field Reconstruction Using ' num2str(length(nModes)), ' Mode(s)...']);
+    disp(['    Performing Field Reconstruction Using ' num2str(width(nModes)), ' Mode(s)...']);
     
     % Initialise Progress Bar
     wB = waitbar(0, 'Adding Mode(s) to Reconstruction', 'name', 'Progress');

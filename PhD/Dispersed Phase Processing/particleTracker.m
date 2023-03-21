@@ -566,29 +566,29 @@ end
 
 delete(wB);
 
-% % Interpolate Particle Trajectories
-% if interp
-%     % Initialise Progress Bar
-%     wB = waitbar(0, 'Interpolating Particle Trajectories', 'name', 'Progress');
-%     wB.Children.Title.Interpreter = 'none';
-%     
-%     for i = 1:count
-%         index = find(isnan(trackingData.age{i}) == false);
-%         
-%         trackingData.path{i} = trackingData.path{i}(index,:);
-%         trackingData.age{i} = trackingData.age{i}(index);
-%     
-%         trackingData.path{i} = interparc((2 * height(trackingData.path{i})), ...
-%                                          trackingData.path{i}(:,1), ...
-%                                          trackingData.path{i}(:,2), ...
-%                                          trackingData.path{i}(:,3), 'spline');
-%         
-%         waitbar((i / count), wB);
-%     end
-%     
-% end
-% 
-% delete(wB);
+% Interpolate Particle Trajectories
+if interp
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Interpolating Particle Trajectories', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    
+    for i = 1:count
+        index = find(isnan(trackingData.age{i}) == false);
+        
+        trackingData.path{i} = trackingData.path{i}(index,:);
+        trackingData.age{i} = trackingData.age{i}(index);
+    
+        trackingData.path{i} = interparc((2 * height(trackingData.path{i})), ...
+                                         trackingData.path{i}(:,1), ...
+                                         trackingData.path{i}(:,2), ...
+                                         trackingData.path{i}(:,3), 'spline');
+        
+        waitbar((i / count), wB);
+    end
+    
+end
+
+delete(wB);
 
 evalc('delete(gcp(''nocreate''));');
 executionTime = intermediateToc + toc;

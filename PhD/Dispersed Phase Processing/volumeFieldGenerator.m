@@ -625,7 +625,7 @@ if plotInst
     
     figHold = fig;
     
-    isoValue = 2e-6;
+    isoValue = 1e-6;
     
     for i = 1:nFrames
         

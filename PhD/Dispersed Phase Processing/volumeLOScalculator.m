@@ -581,12 +581,12 @@ if plotInst || plotMean
         case 'B'
 
             if contains(caseName, ["Run_Test", "Windsor"])
-%                 xLimsPlot = [0.31875; 2.57125]; % 2 L
-%                 yLimsPlot = [-0.5945; 0.5945];
-%                 zLimsPlot = [0; 0.739];
                 xLimsPlot = [0.31875; 2.57125]; % 2 L
-                yLimsPlot = [-0.4945; 0.4945];
-                zLimsPlot = [0; 0.639];
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.739];
+%                 xLimsPlot = [0.31875; 2.57125]; % 2 L
+%                 yLimsPlot = [-0.4945; 0.4945];
+%                 zLimsPlot = [0; 0.639];
             end
 
     end
@@ -627,7 +627,7 @@ if plotMean
 end
 
 if plotInst
-    disp('    Presenting Instantaneous Line of Sight Map...');
+    disp('    Presenting Instantaneous Line of Sight Map(s)...');
     
 %     cLims = [0; max(cellfun(@max, LOSdata.inst.mass))];
     cLims = [0; 5e-3];
@@ -656,7 +656,7 @@ if plotInst
 end
 
 if ~plotMean && ~plotInst
-    disp('    Skipping Map Presentation');
+    disp('    Skipping Line of Sight Presentation');
     disp(' ');
 end
 

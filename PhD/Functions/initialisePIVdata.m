@@ -12,7 +12,7 @@
 
 %% Main Function
 
-function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(saveLocation, nProc) %#ok<INUSD>
+function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialisePIVdata(saveLocation, nProc) %#ok<INUSD>
 
     % Load Previously Collated Data (If Desired/Possible)
     disp('PIV Data Load');
@@ -31,6 +31,7 @@ function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(
             if contains(filePath, '/PIV/')
                 disp(['    Loading ''', fileName, '''...']);
                 PIVdata = load([filePath, fileName], 'PIVdata').PIVdata;
+                format = load([filePath, fileName], 'format').format;
                 samplingFrequency = load([filePath, fileName], 'samplingFrequency').samplingFrequency;
                 disp('        Success');
 
@@ -58,7 +59,7 @@ function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(
     disp('PIV Data Acquisition');
     disp('------------------------------------');
     
-    caseFolder = uigetdir('~/Data/Experimental/', 'Select Case');
+    caseFolder = uigetdir('~/Data/', 'Select Case');
     
     namePos = max(strfind(caseFolder, '/')) + 1;
     caseName = caseFolder(namePos:end);
@@ -117,7 +118,7 @@ function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(
             content = content{1};
             fclose(fileID);
         
-            % Adjust Co-Ordinate System and Convert to Metres
+            % Rotate Co-Ordinate System and Convert to Metres
             PIVdata.positionGrid = zeros(height(content),3);
 
             PIVdata.positionGrid(:,1) = -content(:,1) / 1000;
@@ -164,14 +165,15 @@ function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(
                 fclose(fileID);
         
                 time(i) = i * (1 / samplingFrequency);
-                u{i} = content(index,4);
-                v{i} = content(index,5);
-                w{i} = content(index,6);
+                u{i} = -content(index,4);
+                v{i} = -content(index,6);
+                w{i} = content(index,5);
                 corrCoeff{i} = content(index,7);
                 isValid{i} = content(index,8);
                 
                 send(dQ, []);
             end
+            clear i;
             
             delete(wB);
             
@@ -197,31 +199,34 @@ function [caseFolder, caseName, PIVdata, samplingFrequency] = initialisePIVdata(
     disp('  SUCCESS  ');
     disp('***********');
     
-%     % Save Data
-%     valid = false;
-%     while ~valid
-%         disp(' ');
-%         selection = input('Save Data for Future Use? [y/n]: ', 's');
-% 
-%         if selection == 'n' | selection == 'N' %#ok<OR2>
-%             valid = true;
-%         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-%             
-%             if ~exist([saveLocation, '/Experimental/MATLAB/PIV'], 'dir')
-%                 mkdir([saveLocation, '/Experimental/MATLAB/PIV']);
-%             end
-%             
-%             disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseName, '.mat']);
-%             save([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseName, '.mat'], ...
-%                  'PIVdata', 'samplingFrequency', '-v7.3', '-noCompression');
-%             disp('        Success');
-%             
-%             valid = true;
-%         else
-%             disp('    WARNING: Invalid Entry');
-%         end
-%         
-%     end
-%     clear valid;
+    % Save Data
+    valid = false;
+    while ~valid
+        disp(' ');
+        selection = input('Save Data for Future Use? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            
+            saveDir = [saveLocation, '/Experimental/MATLAB/', ...
+                       caseFolder((strfind(caseFolder, '/Data/') + 6):(end - length(caseName)))]; 
+            
+            if ~exist(saveDir, 'dir')
+                mkdir(saveDir);
+            end
+            
+            disp(['    Saving to: ', saveDir, caseName, '.mat']);
+            save([saveDir, caseName, '.mat'], ...
+                 'PIVdata', 'format', 'samplingFrequency', '-v7.3', '-noCompression');
+            disp('        Success');
+            
+            valid = true;
+        else
+            disp('    WARNING: Invalid Entry');
+        end
+        
+    end
+    clear valid;
     
 end

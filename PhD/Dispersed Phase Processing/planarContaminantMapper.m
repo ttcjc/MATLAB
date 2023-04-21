@@ -8,7 +8,7 @@ evalc('delete(gcp(''nocreate''));');
 saveLocation = '/mnt/Processing/Data';
 % saveLocation = '~/Data';
 
-normalise = true; % Normalisation of Dimensions
+normalise = false; % Normalisation of Dimensions
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
@@ -16,7 +16,7 @@ nProc = maxNumCompThreads - 4; % Number of Processors Used for Parallel Collatio
 
 cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
 
-normalisationValue = 1; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
+normalisationValue = 6.415242022284566e-09; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -668,8 +668,8 @@ if plotInst || plotMean
             if contains(caseName, ["Run_Test", "Windsor"])
 %                 % Plot Numerical Data Range
 %                 xLimsPlot = [0.31875; 4.65925];
-%                 yLimsPlot = [-0.5945; 0.5945];
-%                 zLimsPlot = [0; 0.739];
+%                 yLimsPlot = [-0.4945; 0.4945];
+%                 zLimsPlot = [0; 0.639];
                 
                 % Plot Experimental Data Range
                 xLimsPlot = [0.31875; 4.65925];
@@ -688,6 +688,8 @@ if plotInst || plotMean
     positionData = mapData.positionGrid;
     cMap = flipud(viridis(32));
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    nPlanes = 1;
+    planeNo = 1;
 end
 
 if plotMean
@@ -708,9 +710,11 @@ if plotMean
         end
         
         contourlines = (0.2:0.2:0.8);
+%         contourlines = [];
         
         if any(strcmp(plotVars{i}, {'mass', 'massNorm'}))
-            CoM = mapData.mean.CoM;
+%             CoM = mapData.mean.CoM;
+            CoM = [];
         else
             CoM = [];
         end
@@ -724,13 +728,14 @@ if plotMean
             cLims = [0; 1]; % Max Base Contamination
 %             cLims = [0; 20]; % Max Planar Contamination
         else
-            cLims = [0; max(scalarData)];
+%             cLims = [0; max(scalarData)];
+            cLims = [0; 14e-9];
         end
         
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
     end
     
     disp(' ');
@@ -748,7 +753,8 @@ if plotInst
         elseif strcmp(plotVars{i}, 'massNorm')
             cLims = [0; 3.6];
         else
-            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
+%             cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
+            cLims = [0; 24e-9];
         end
         
         figHold = fig;
@@ -773,7 +779,8 @@ if plotInst
             end
             
         if contains(plotVars{i}, ["mass", "massNorm"])
-            CoM = mapData.inst.CoM{j};
+%             CoM = mapData.inst.CoM{j};
+            CoM = [];
         else
             CoM = [];
         end
@@ -783,7 +790,7 @@ if plotInst
         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
         end
         
     end

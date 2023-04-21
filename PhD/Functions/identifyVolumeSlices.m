@@ -278,7 +278,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
         
     end
     
-    if nSlices == 1
+    if ~multiSlice
         volumeSlice = volumeSlice.(sliceName);
     end
 

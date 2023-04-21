@@ -216,7 +216,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
            end
             
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
+                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
             end
             
             % Figure Formatting
@@ -337,7 +337,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
            end
             
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
+                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
             end
             
             % Figure Formatting
@@ -429,7 +429,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
            end
             
             if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 200, 'w', 'x', 'lineWidth', 2);
+                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
             end
             
             % Figure Formatting

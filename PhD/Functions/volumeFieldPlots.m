@@ -80,7 +80,7 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     % Figure Setup
     fig = fig + 1;
     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
              'fontSize', 20, 'layer', 'top');
     lighting gouraud;
     hold on;
@@ -134,5 +134,6 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     
     pause(2);
     exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+    savefig(gcf, ['~/MATLAB/Output/Figures/', figName, '.fig']);
 
 end

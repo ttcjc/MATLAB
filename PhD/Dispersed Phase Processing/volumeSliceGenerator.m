@@ -5,8 +5,8 @@ close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-% saveLocation = '/mnt/Processing/Data';
-saveLocation = '~/Data';
+saveLocation = '/mnt/Processing/Data';
+% saveLocation = '~/Data';
 
 multiSlice = true; % Allow Selection of Multiple Slices
 
@@ -137,7 +137,7 @@ if normalise
 end
 
 % Identify Desired Slice(s)
-volumeSlice = identifyVolumeSlices(volumeData.positionGrid, spacePrecision, normalise, multiSlice);
+volumeSlice = identifyVolumeSlices(volumeData.positionGrid, spacePrecision, multiSlice);
 
 slices = fieldnames(volumeSlice);
 
@@ -189,6 +189,15 @@ for i = 1:height(slices)
     % Collate Slice Data
     volumeSlice.(slices{i}).positionGrid = volumeData.positionGrid(index,:);
     volumeSlice.(slices{i}).inst.time = volumeData.inst.time;
+    
+    volumeSlice.(slices{i}).inst.nParticles = cell(height(volumeSlice.(slices{i}).inst.time),1);
+    volumeSlice.(slices{i}).inst.volFraction = volumeSlice.(slices{i}).inst.nParticles;
+    volumeSlice.(slices{i}).inst.mass = volumeSlice.(slices{i}).inst.nParticles;
+%     volumeSlice.(slices{i}).inst.d43 = volumeSlice.(slices{i}).inst.nParticles;
+%     volumeSlice.(slices{i}).inst.d32 = volumeSlice.(slices{i}).inst.nParticles;
+%     volumeSlice.(slices{i}).inst.d30 = volumeSlice.(slices{i}).inst.nParticles;
+%     volumeSlice.(slices{i}).inst.d20 = volumeSlice.(slices{i}).inst.nParticles;
+%     volumeSlice.(slices{i}).inst.d10 = volumeSlice.(slices{i}).inst.nParticles;
     
     for j = 1:height(volumeSlice.(slices{i}).inst.time)
         volumeSlice.(slices{i}).inst.nParticles{j} = volumeData.inst.nParticles{j}(index);
@@ -285,6 +294,8 @@ if plotInst || plotMean
         end
         clear valid;
     
+    else
+        multiPlane = false;
     end
     
     % Select Variable(s) of Interest
@@ -334,7 +345,7 @@ if plotInst || plotMean
         case 'A'
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.26625];
+                xLimsPlot = [0.31875; 1.26625]; % 0.75 L
                 yLimsPlot = [-0.3445; 0.3445];
                 zLimsPlot = [0; 0.489];
             end
@@ -342,9 +353,12 @@ if plotInst || plotMean
         case 'B'
             
             if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 2.73575]; % 2L + Overhang
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
+%                 xLimsPlot = [0.31875; 2.57125]; % 2 L
+%                 yLimsPlot = [-0.5945; 0.5945];
+%                 zLimsPlot = [0; 0.739];
+                xLimsPlot = [0.31875; 2.57125]; % 2 L
+                yLimsPlot = [-0.4945; 0.4945];
+                zLimsPlot = [0; 0.639];
             end
 
     end
@@ -360,7 +374,7 @@ end
 if plotMean
 
     for i = 1:height(plotVars)
-        disp(['    Presenting Time-Averaged ''', plotVars{i}, ''' Data...']);
+        disp(['    Presenting Time-Averaged ''', plotVars{i}, ''' Map(s)...']);
 
         planeNo = 1;
         cLims = [0;0];
@@ -397,8 +411,59 @@ if plotMean
 
 end
 
+if plotInst
+
+    for i = 1:height(plotVars)
+        disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Map(s)...']);
+
+        for j = 1:nFrames
+
+            figHold = fig;
+            
+            if j ~= 1
+                clf(fig);
+                fig = figHold;
+            end
+
+            planeNo = 1;
+            cLims = [0;0];
+
+            if multiPlane
+                figName = ['Instantaneous_', strjoin(slices, '_'), '_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', num2str(j)];
+                nPlanes = height(slices);
+            else
+                nPlanes = 1;
+            end
+
+            for k = 1:height(slices)
+                orientation = volumeSlice.(slices{k}).orientation;
+                positionData = volumeSlice.(slices{k}).positionGrid;
+                xLimsData = volumeSlice.(slices{k}).xLims;
+                yLimsData = volumeSlice.(slices{k}).yLims;
+                zLimsData = volumeSlice.(slices{k}).zLims;
+                scalarData = volumeSlice.(slices{k}).inst.(plotVars{i}){j};
+
+                if ~multiPlane
+                    figName = ['Instantaneous_', slices{k}, '_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', num2str(j)];
+                    cLims = [0; max(scalarData)];
+                else
+                    cLims = [0; max(max(cLims), max(scalarData))];
+                end
+
+                [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                                   mapPerim, fig, figName, cMap, geometry, contourlines, ...
+                                                   xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                                   xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+            end
+            
+        end
+
+    end
+
+end
+
 if ~plotMean && ~plotInst
-    disp('    Skipping Volume Field Presentation');
+    disp('    Skipping Volume Slice Presentation');
 
     disp(' ');
 end
@@ -407,76 +472,20 @@ disp(' ');
 
 
 
+%% Save Volume Slice Data
 
 
 
 
+%% Local Functions
 
+function nFrames = inputFrames(Nt)
 
+    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    
+    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+        disp('        WARNING: Invalid Entry');
+        nFrames = -1;
+    end
 
-
-
-
-
-
-
-
-
-% if plotInst
-%     
-%     for i = 1:height(plotVars)
-%         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
-%         
-%         contourlines = [];
-%         
-%         if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
-%             cLims = dLims;
-%         elseif strcmp(plotVars{i}, 'massNorm')
-%             cLims = [0; 3.6];
-%         else
-%             cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
-%         end
-%         
-%         figHold = fig;
-%         
-%         for j = 1:nFrames
-%             
-%             if j ~= 1
-%                 clf(fig);
-%                 fig = figHold;
-%             end
-%             
-%             scalarData = mapData.inst.(plotVars{i}){j};
-%             figTime = num2str(mapData.inst.time(j), ['%.', num2str(timePrecision), 'f']);
-%             
-%             switch format
-%                 
-%                 case 'A'
-%                     figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-%                 
-%                 case 'B'
-%                     figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-%             end
-%             
-%         if contains(plotVars{i}, ["mass", "massNorm"])
-%             CoM = mapData.inst.CoM{j};
-%         else
-%             CoM = [];
-%         end
-%             
-%         figSubtitle = [figTime, ' \it{s}'];
-%         
-%         fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                 mapPerim, fig, figName, cMap, geometry, contourlines, ...
-%                                 xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-%                                 xLimsPlot, yLimsPlot, zLimsPlot, normalise);
-%         end
-%         
-%     end
-%     
-%     disp(' ');
-% end
-
-
-%% Save Map Data
-
+end

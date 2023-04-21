@@ -8,7 +8,7 @@ evalc('delete(gcp(''nocreate''));');
 saveLocation = '/mnt/Processing/Data';
 % saveLocation = '~/Data';
 
-normalise = true; % Normalisation of Dimensions
+normalise = false; % Normalisation of Dimensions
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
 
@@ -386,9 +386,10 @@ if plotMean
 
     scalarData = mapData.mean.seedingDensity;
     figName = [caseName, '_Experimental_Contamination_Time_Average'];
-    contourlines = (0.2:0.2:0.8);
+%     contourlines = (0.2:0.2:0.8);
+    contourlines = [];
     figSubtitle = ' ';
-    cLims = [0; 1];
+    cLims = [0; 0.032];
 
     fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
                             mapPerim, fig, figName, cMap, geometry, contourlines, ...
@@ -419,7 +420,7 @@ if plotInst
     disp('    Presenting Instantaneous Contamination...');
     
     contourlines = [];
-    cLims = [0; 2.2];
+    cLims = [0; 0.1];
 %     cLims = [0; max(cellfun(@max, mapData.inst.seedingDensity))];
 
     figHold = fig;

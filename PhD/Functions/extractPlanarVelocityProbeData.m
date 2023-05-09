@@ -68,7 +68,6 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
                 valid = true;
             end
         end
-        clear valid;
         
     else
         nPlanes = 1;
@@ -103,7 +102,6 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
             end
 
         end
-        clear valid;
         
         planeData.(['p', num2str(i)]).xLims = zeros(2,1);
         planeData.(['p', num2str(i)]).yLims = planeData.(['p', num2str(i)]).xLims;
@@ -240,7 +238,6 @@ function planeData = extractPlanarVelocityProbeData(caseName, volumeData, multiP
             end
             
         end
-        clear valid;
         
     end
     

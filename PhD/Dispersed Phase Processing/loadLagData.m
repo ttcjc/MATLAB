@@ -1,19 +1,28 @@
-%% Lagrangian Data Load v1.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallelisation
+
+fig = 0; % Initialise Figure Tracking
+figHold = 0; % Enable Overwriting of Figures
+
+
+%% Lagrangian Data Load v1.1
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
 disp('=========================');
-disp('Lagrangian Data Load v1.0');
+disp('Lagrangian Data Load v1.1');
 disp('=========================');
 
 disp(' ');
@@ -23,6 +32,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Formatting Updates
 
 
 %% Select Data
@@ -67,7 +77,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 valid = false;
 while ~valid
@@ -85,7 +94,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 valid = false;
 while ~valid
@@ -103,7 +111,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 disp(' ');
 disp(' ');

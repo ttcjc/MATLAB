@@ -1,18 +1,20 @@
-%% Particle Path Plotter v2.0
+%% Particle Path Plotter v2.1
 % ----
 % Plots Previously Processed Particle Paths
 % ----
-% Usage: fig = particlePathPlots();
+% Usage: fig = plotParticlePaths();
 
 
 %% Changelog
 
 % v1.0 - Initial Commit
+% v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
+% v2.1 - Rename and Minor Formatting Updates
 
 
 %% Main Function
 
-function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, colourVar, ...
+function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
                                  minColourVar, maxColourVar, figTitle, figSubtitle, ...
                                  xLimsPlot, yLimsPlot, zLimsPlot)
     
@@ -24,15 +26,17 @@ function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, col
         trackingData.age{i} = trackingData.age{i}(index);
     end
     
-    % Figure Setup
+    % Initialise Figure
     fig = fig + 1;
-    set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
+%     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
+                     'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
+    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
              'fontSize', 20, 'layer', 'top');
     lighting gouraud;
     hold on;
     
-    % Figure Plotting
+    % Plot Geometry
     if ~isempty(geometry)
         parts = fieldnames(geometry);
 
@@ -46,6 +50,7 @@ function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, col
 
     end
     
+    % Plot Particle Tracks
     for i = 1:height(trackingData.ID)
         
         if strcmp(colourVar, 'Diameter')
@@ -58,11 +63,11 @@ function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, col
         
         plot3(trackingData.path{i}(:,1), trackingData.path{i}(:,2), trackingData.path{i}(:,3), ...
               'color', cMap(cIndex,:), 'lineWidth', 1.5);
-        scatter3(trackingData.path{i}(end,1), trackingData.path{i}(end,2), trackingData.path{i}(end,3), ...
-                 30, cMap(cIndex,:), 'filled');
+%         scatter3(trackingData.path{i}(end,1), trackingData.path{i}(end,2), trackingData.path{i}(end,3), ...
+%                  30, cMap(cIndex,:), 'filled');
     end
     
-    % Figure Formatting
+    % Format Figure
     title(figTitle, 'color', ([254, 254, 254] / 255));
     subtitle(figSubtitle);
     lightangle(0, 45);
@@ -78,10 +83,14 @@ function fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, col
     yticks(tickData);
     tickData = [];
     zticks(tickData);
-    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+%     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
     
+    % Save Figure
     pause(2);
-    exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+    
+    exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+%     print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
+    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
     
 end

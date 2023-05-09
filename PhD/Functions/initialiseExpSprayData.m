@@ -49,7 +49,6 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
         end
 
     end
-    clear valid;
 
     disp(' ');
     disp(' ');
@@ -127,7 +126,7 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
     
     time = zeros(height(dataFiles),1);
     seedingDensity = cell(height(dataFiles),1);
-    
+
     parfor i = 1:height(dataFiles)
         fileID = fopen([caseFolder, '/', dataFiles(i).name]);
         content = textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', ' ', 'CollectOutput', true);
@@ -140,11 +139,11 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
         send(dQ, []);
     end
     
-    delete(wB);
-    
     expSprayData.time = time;
     expSprayData.seedingDensity = seedingDensity;
     clear time seedingDensity;
+    
+    delete(wB);
 
     evalc('delete(gcp(''nocreate''));');
     executionTime = toc;
@@ -183,6 +182,5 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
         end
         
     end
-    clear valid;
     
 end

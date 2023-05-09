@@ -1,4 +1,4 @@
-%% Geometry Selection Tool v1.0
+%% Geometry Selection Tool v1.1
 % ----
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
@@ -9,6 +9,7 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Formatting Updates
 
 
 %% Supported Geometries

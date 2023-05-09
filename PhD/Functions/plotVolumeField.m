@@ -1,10 +1,10 @@
-%% Volume Field Plotter v2.0
+%% Volume Field Plotter v2.2
 % ----
 % Plots Previously Processed Volume Fields
 % ----
-% Usage: fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
-%                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-%                               xLimsPlot, yLimsPlot, zLimsPlot);
+% Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+%                              fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
+%                              xLimsPlot, yLimsPlot, zLimsPlot);
 %        '*LimsData'   -> Contour Plot Limits
 %        '*Init'       -> Initial 3D Arrays of Cartesian Positions
 %        'POD'         -> POD Mode Presentation [True/False]
@@ -24,13 +24,14 @@
 % v1.0 - Initial Commit
 % v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 % v2.1 - Cleaned-up POD Functionality
+% v2.2 - Rename and Minor Formatting Updates
 
 
 %% Main Function
 
-function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
-                                fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot)
+function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
+                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
+                               xLimsPlot, yLimsPlot, zLimsPlot)
     
     % Generate Refined Grid
     cellSize = 4e-3;
@@ -54,38 +55,29 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     % Smooth Data
     if POD
         
-        if iscell(fieldData) && height(fieldData) == 2
-            
-            for i = 1:height(fieldData)
-                fieldData{i} = permute(fieldData{i}, [2,1,3]);
-                fieldData{i} = interp3(xInit, yInit, zInit, fieldData{i}, x, y, z);
-                fieldData{i} = smooth3(fieldData{i}, 'gaussian');
-            end
-            
-        else
-            error('Presentation of POD Modes Necessitates ''fieldData'' Be in the Form of a {2,1} Cell Array');
+        for i = 1:height(fieldData)
+            fieldData{i} = permute(fieldData{i}, [2,1,3]);
+            fieldData{i} = interp3(xInit, yInit, zInit, fieldData{i}, x, y, z);
+            fieldData{i} = smooth3(fieldData{i}, 'box', 3);
         end
         
     else
-        
-        if ~iscell(fieldData)
-            fieldData = permute(fieldData, [2,1,3]);
-            fieldData = interp3(xInit, yInit, zInit, fieldData, x, y, z);
-            fieldData = smooth3(fieldData, 'gaussian');
-        else
-            error('''fieldData'' Must Be a 3D Array of Type ''double''');
-        end
+        fieldData = permute(fieldData, [2,1,3]);
+        fieldData = interp3(xInit, yInit, zInit, fieldData, x, y, z);
+        fieldData = smooth3(fieldData, 'box', 3);
     end
     
-    % Figure Setup
+    % Initialise Figure
     fig = fig + 1;
-    set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+%     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
+                     'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
     set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
              'fontSize', 20, 'layer', 'top');
     lighting gouraud;
     hold on;
     
-    % Figure Plotting
+    % Plot Geometry
     if ~isempty(geometry)
         parts = fieldnames(geometry);
 
@@ -99,21 +91,23 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
 
     end
 
+    % Plot Iso-Surface
     if POD
         iso = isosurface(x, y, z, fieldData{1}, isoValue);
-        iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
-        iso.VertexNormals = isonormals(x, y, z, fieldData{1}, iso);
+        p = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+        isonormals(fieldData{1}, p);
         
         iso = isosurface(x, y, z, fieldData{2}, isoValue);
-        iso = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
+        p = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
+        isonormals(fieldData{2}, p);
         iso.VertexNormals = isonormals(x, y, z, fieldData{2}, iso);
     else
         iso = isosurface(x, y, z, fieldData, isoValue);
-        iso = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
-        iso.VertexNormals = isonormals(x, y, z, fieldData, iso);
+        p = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+        isonormals(fieldData, p);
     end
     
-    % Figure Formatting
+    % Format Figure
     title(figTitle, 'color', ([254, 254, 254] / 255));
     subtitle(figSubtitle);
     lightangle(0, 45);
@@ -129,11 +123,14 @@ function fig = volumeFieldPlots(xLimsData, yLimsData, zLimsData, xInit, yInit, z
     yticks(tickData);
     tickData = [];
     zticks(tickData);
-    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+%     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
     
+    % Save Figure
     pause(2);
-    exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
-    savefig(gcf, ['~/MATLAB/Output/Figures/', figName, '.fig']);
+    
+    exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+%     print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
+    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
 
 end

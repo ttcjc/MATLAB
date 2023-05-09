@@ -1,11 +1,11 @@
-%% Lagrangian Data Initialisation v1.0
+%% Lagrangian Data Initialisation v1.1
 % ----
 % Initialisation of OpenFOAM v7 Lagrangian Data for Further Processing
 % ----
 % Usage: [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-%         LagDataVolume, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
-%                                                            plane, surface, volume, ...
-%                                                            timeDirs, deltaT, timePrecision, nProc);
+%         LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
+%                                                                    plane, surface, volume, ...
+%                                                                    timeDirs, deltaT, timePrecision, nProc);
 %        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'    -> Case Path, Stored as s String
 %        'caseName'      -> Case Name, Stored as a String
@@ -22,14 +22,15 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Added Support for 'Snapshot' Data Collation
 
 
 %% Main Function
 
 function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-          LagDataVolume, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
-                                                             plane, surface, volume, ...
-                                                             timeDirs, deltaT, timePrecision, nProc)
+          LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
+                                                                     plane, surface, volume, ...
+                                                                     timeDirs, deltaT, timePrecision, nProc)
 
     % Confirm Lagrangian Data Availability
     i = 1;
@@ -42,7 +43,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
-    clear i;
 
     if ~isempty(timeDirs)
         disp('Lagrangian Data Identified in the Following Time Directories:');
@@ -84,7 +84,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     end
     
     % Initialise Lagrangian Properties
-    LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'};
+    LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'; 'Uslip'};
     LagDataPlane = [];
     LagDataSurface = [];
     LagDataVolume = [];
@@ -99,7 +99,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     loadData = true;
     while loadData
         sampleInterval = [];
-        
+
         if plane
             
             valid = false;
@@ -118,6 +118,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataPlane = load([filePath, fileName], 'LagData').LagData;
                         sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
+                        formatPlane = load([filePath, fileName], 'format').format;
                         disp('        Success');
                         
                         valid = true;
@@ -132,7 +133,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
-            clear valid;
             
         end
         
@@ -154,6 +154,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataSurface = load([filePath, fileName], 'LagData').LagData;
                         sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
+                        formatSurface = load([filePath, fileName], 'format').format;
                         disp('        Success');
                         
                         valid = true;
@@ -168,7 +169,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
-            clear valid;
             
         end
         
@@ -204,7 +204,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
-            clear valid;
             
         end
         
@@ -214,6 +213,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     
     % Confirm Required Data Exists
     valid = true;
+
     if plane && isempty(LagDataPlane)
         valid = false;
     end
@@ -237,6 +237,11 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         
     end
 
+    % Confirm Matching Formats
+    if valid && plane && surface
+        valid = strcmp(formatPlane, formatSurface);
+    end
+
     % Return if Data Required Data Is Present and Valid
     if valid
         return;
@@ -244,6 +249,11 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         disp(' ');
         
         disp('WARNING: Loaded Sample Intervals Do Not Match');
+        disp('         Collating New Data...');
+    elseif plane && surface 
+        disp(' ');
+        
+        disp('WARNING: Loaded Plane and Surface Datasets Have Different Formats');
         disp('         Collating New Data...');
     else
         disp(' ');
@@ -268,6 +278,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     disp('    origProcId');
     disp('    positionCartesian');
     disp('    U');
+    disp('    Uslip');
     
     % Select Times of Interest
     valid = false;
@@ -306,7 +317,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
                 
             end
-            clear i;
 
             valid = true;
         else
@@ -314,7 +324,6 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
-    clear valid;
     
     % Specify Sampling Frequency
     valid = false;
@@ -345,7 +354,33 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
-    clear valid;
+
+    % Specify Data Collation Format
+    if plane || surface
+        disp(' ');
+        
+        disp('Possible Data Collation Formats:');
+        disp('    A: Cumulative');
+        disp('    B: Snapshot');
+        
+        valid = false;
+        while ~valid
+            disp(' ');
+            selection = input('Select Data Collation Format [A/B]: ', 's');
+            
+            if selection == 'a' | selection == 'A' %#ok<OR2>
+                format = 'cumulative';
+                valid = true;
+            elseif selection == 'b' | selection == 'B' %#ok<OR2>
+                format = 'snapshot';
+                valid = true;
+            else
+                disp('    WARNING: Invalid Entry');
+            end
+        
+        end
+
+    end
     
     % Define Data ID
     startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
@@ -359,23 +394,28 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         disp(' ');
         
         LagDataPlane = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                        sampleInterval, timeDirs);
+                                        timeDirs, sampleInterval, format);
     end
     
     if surface
         disp(' ');
         
         LagDataSurface = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                            sampleInterval, timeDirs);
+                                            timeDirs, sampleInterval, format);
     end
     
     if volume
         disp(' ');
         
         LagDataVolume = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
-                                          sampleInterval, timeDirs, nProc);
+                                          timeDirs, sampleInterval, nProc);
     end
     
+    % Update Data ID
+    if plane || surface
+        dataID = [dataID, '_', format];
+    end
+
 end
 
 

@@ -5,11 +5,11 @@
 % Usage: [dataID, probeData, sampleInterval] = readProbeData(caseFolder, timeDirs, timePrecision ...
 %                                                            probeType, nProc);
 %        'saveLocation'  -> Start of File Path, Stored as a String
-%        'caseFolder'    -> Case Path Stored as String
+%        'caseFolder'    -> Case Path, Stored as a String
 %        'caseName'      -> Case Name, Stored as a String
 %        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
 %        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
-%        'probeType'     -> Desired Probe Type Stored as String
+%        'probeType'     -> Desired Probe Type, Stored as a String
 %        'nProc'         -> Number of Processors Used for Parallel Collation
 
 
@@ -92,7 +92,6 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
         end
 
     end
-    clear valid;
     
     % Specify Sampling Frequency
     valid = false;
@@ -123,7 +122,6 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
         end
 
     end
-    clear valid;
     
     % Define Data ID
     startInst = erase(num2str(str2double(timeDirs(1).name), ['%.', num2str(timePrecision), 'f']), '.');
@@ -140,7 +138,6 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
         probeData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
-    clear j;
 
     % Identify Probe Points
     switch probeType
@@ -187,15 +184,15 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
                 
                 send(dQ, []);
             end
+            clear time;
 
             probeData.p = p;
-
             clear p;
 
         case 'probesVelocity'
             u = cell(height(probeData.time),1);
-            v = u;
-            w = u;
+            v = cell(height(probeData.time),1);
+            w = cell(height(probeData.time),1);
 
             time = probeData.time;
             parfor i = 1:height(probeData.time)
@@ -203,11 +200,11 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
                 
                 send(dQ, []);
             end
+            clear time;
 
             probeData.u = u;
             probeData.v = v;
             probeData.w = w;
-
             clear u v w;
 
     end
@@ -314,7 +311,6 @@ function [dataID, probeData, sampleInterval] = readProbeData(saveLocation, caseF
         end
 
     end
-    clear valid;
 
 end
 

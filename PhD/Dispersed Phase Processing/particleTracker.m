@@ -1,26 +1,30 @@
-%% Lagrangian Particle Tracker v3.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallelisation
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-normalise = true; % Normalisation of Dimensions
+%% Lagrangian Particle Tracker v3.1
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
-
 ejectionSite = [0.46575, -0.167, 0.006]; % Particle Injection Site Location
+normalise = false; % Normalisation of Dimensions
 
 disp('=====================');
-disp('Particle Tracker v3.0');
+disp('Particle Tracker v3.1');
 disp('=====================');
 
 disp(' ');
@@ -34,6 +38,7 @@ disp(' ');
 % v1.2 - Updated to Support Changes to 'timeDirectories.m'
 % v2.0 - Rewritten to Support Tracking of Specific Times Instances
 % v3.0 - Rewrite, Accommodating New OpenFOAM Data Formats
+% v3.1 - 
 
 
 %% Initialise Case
@@ -119,10 +124,6 @@ switch formatA
         disp(['Plane of Interest: ', planePos]);
 end
 
-% if normalise
-%     dataID = [dataID, '_Norm'];
-% end
-
 disp(' ');
 disp(' ');
 
@@ -144,19 +145,19 @@ while ~valid
     selection = input('Select Tracking Method [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
-        formatB = 'C';
-        trackingTime = inputTime('Ejection', impactData.time, impactData.d);
+        formatB = 'A';
+        [trackTime, trackTimeIndex] = inputTime('Ejection', impactData.time, impactData.d);
         
-        if trackingTime == -1
+        if trackTimeIndex == -1
             continue;
         end
 
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
-        formatB = 'D';
-        trackingTime = inputTime('Impact', impactData.time, impactData.d);
+        formatB = 'B';
+        [trackTime, trackTimeIndex] = inputTime('Impact', impactData.time, impactData.d);
 
-        if trackingTime == -1
+        if trackTimeIndex == -1
             continue;
         end
 
@@ -208,29 +209,23 @@ while ~valid
 end
 clear valid;
 
-% if normalise
-%     dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
-% else
-%     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-% end
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Enable Interpolation of Particle Paths? [y/n]: ', 's');
 
-% valid = false;
-% while ~valid
-%     disp(' ');
-%     selection = input('Enable Interpolation of Particle Paths? [y/n]: ', 's');
-% 
-%     if selection == 'n' | selection == 'N' %#ok<OR2>
-%         interp = false;
-%         valid = true;
-%     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-%         interp = true;
-%         valid = true;
-%     else
-%         disp('    WARNING: Invalid Entry');
-%     end
-% 
-% end
-% clear valid;
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        interp = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        interp = true;
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
 
 disp(' ');
 disp(' ');
@@ -262,6 +257,7 @@ while i <= height(volumeData.time)
         for j = 1:height(LagProps)
             volumeData.(LagProps{j}){i} = -1;
         end
+        clear j;
         
     else
         i = i + 1;
@@ -274,34 +270,38 @@ clear i;
 switch formatB
 
     % Retain Time Instances > Tracking Time
-    case 'C'
-        impactData.time = impactData.time((trackingTime + 1):end);
-        impactData.timeExact = vertcat(impactData.timeExact{(trackingTime + 1):end});
+    case 'A'
+        impactData.time = impactData.time((trackTimeIndex + 1):end);
+        impactData.timeExact = vertcat(impactData.timeExact{(trackTimeIndex + 1):end});
         
         for i = 1:height(LagProps)
-            impactData.(LagProps{i}) = vertcat(impactData.(LagProps{i}){(trackingTime + 1):end});
+            impactData.(LagProps{i}) = vertcat(impactData.(LagProps{i}){(trackTimeIndex + 1):end});
         end
+        clear i;
         
-        volumeData.time = volumeData.time((trackingTime - 1):(end - 1));
+        volumeData.time = volumeData.time((trackTimeIndex - 1):(end - 1));
 
         for i = 1:height(LagProps)
-            volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackingTime - 1):(end - 1));
+            volumeData.(LagProps{i})= volumeData.(LagProps{i})((trackTimeIndex - 1):(end - 1));
         end
+        clear i;
 
     % Retain Time Instances < Tracking Time
-    case 'D'
-        impactData.time = impactData.time(trackingTime);
-        impactData.timeExact = impactData.timeExact{trackingTime};
+    case 'B'
+        impactData.time = impactData.time(trackTimeIndex);
+        impactData.timeExact = impactData.timeExact{trackTimeIndex};
         
         for i = 1:height(LagProps)
-            impactData.(LagProps{i}) = impactData.(LagProps{i}){trackingTime};
+            impactData.(LagProps{i}) = impactData.(LagProps{i}){trackTimeIndex};
         end
+        clear i;
 
-        volumeData.time = volumeData.time(1:(trackingTime - 1));
+        volumeData.time = volumeData.time(1:(trackTimeIndex - 1));
 
         for i = 1:height(LagProps)
-            volumeData.(LagProps{i}) = volumeData.(LagProps{i})(1:(trackingTime - 1));
+            volumeData.(LagProps{i}) = volumeData.(LagProps{i})(1:(trackTimeIndex - 1));
         end
+        clear i;
 
 end
 
@@ -315,6 +315,7 @@ if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(
         end
 
     end
+    clear i;
     
     impactData.positionCartesian(:,1) = impactData.positionCartesian(:,1) + 1.325;
 end
@@ -332,6 +333,7 @@ if normalise
             end
             
         end
+        clear i;
         
         impactData.positionCartesian = round((impactData.positionCartesian / 1.044), ...
                                              spacePrecision);
@@ -345,7 +347,7 @@ switch formatA
     case 'A'
         
         if contains(caseName, ["Run_Test", "Windsor"])
-            xLimsData = [0.31875; 1.38325];
+            xLimsData = [0.31875; 1.26625];
             yLimsData = [-0.3445; 0.3445];
             zLimsData = [0; 0.489];
             
@@ -362,7 +364,7 @@ switch formatA
         if contains(caseName, ["Run_Test", "Windsor"])
             xLimsData = [0.31875; impactData.positionCartesian(1,1)];
             yLimsData = [-0.5945; 0.5945];
-            zLimsData = [0; 0.489];
+            zLimsData = [0; 0.739];
             
             if normalise
                 xLimsData(1) = round((xLimsData(1) / 1.044), spacePrecision);
@@ -394,6 +396,7 @@ impactData.timeExact = impactData.timeExact(index);
 for i = 1:height(LagProps)
     impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
 end
+clear i;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Removing Invalid Particles From Volume Data', 'name', 'Progress');
@@ -406,7 +409,7 @@ parforWaitBar(wB, height(volumeData.time));
 % Identify Impinging Particles Ejected During Specified Time Instance
 switch formatB
     
-    case 'C'
+    case 'A'
         activePreTime = intersect([volumeData.origProcId{1}, volumeData.origId{1}], ...
                                   [impactData.origProcId, impactData.origId], 'rows', 'stable');
         activePostTime = intersect([volumeData.origProcId{2}, volumeData.origId{2}], ...
@@ -421,12 +424,14 @@ switch formatB
         for i = 1:height(LagProps)
             impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
         end
+        clear i;
         
         volumeData.time = volumeData.time(2:end);
 
         for i = 1:height(LagProps)
             volumeData.(LagProps{i})= volumeData.(LagProps{i})(2:end);
         end
+        clear i;
         
 end
 
@@ -443,7 +448,7 @@ parfor i = 1:height(volumeData.time)
 
     send(dQ, []);
 end
-clear particleIDimpact particleIDvolume origProcId origId;
+clear i particleIDimpact particleIDvolume origProcId origId;
 
 delete(wB);
 
@@ -452,8 +457,10 @@ for i = 1:height(volumeData.time)
     for j = 1:height(LagProps)
         volumeData.(LagProps{j}){i} = volumeData.(LagProps{j}){i}(index{i},:);
     end
+    clear j;
     
 end
+clear i;
 
 disp(' ');
 
@@ -475,7 +482,7 @@ if height(impactData.timeExact) > 200
     disp('             It Is Recommended to Track No More Than 200 Particles');
 end
 
-% Specify Sampling Frequency
+% Specify Particle Count
 valid = false;
 while ~valid
     disp(' ');
@@ -511,6 +518,7 @@ if count ~= height(impactData.timeExact)
     for i = 1:height(LagProps)
         impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
     end
+    clear i;
     
 end
 
@@ -550,19 +558,33 @@ for i = 1:count
         end
         
     end
+    clear j;
     
+    % Shift Initial Position to Ejection Site
     index = find(isnan(trackingData.age{i}) == false, 1, 'first');
     
     trackingData.path{i}((index - 1),:) = ejectionSite;
     trackingData.age{i}(index - 1) = 0;
     
+    % Shift Final Position to Impact Site
     index = find(isnan(trackingData.age{i}) == false, 1, 'last');
-    
-    trackingData.path{i}((index + 1),:) = impactData.positionCartesian(i,:);
+
+    switch formatA
+
+        case 'A'
+            trackingData.path{i}((index + 1),1) = xDims(2) + 1e-6;
+            trackingData.path{i}((index + 1),(2:3)) = impactData.positionCartesian(i,(2:3));
+
+        case 'B'
+            trackingData.path{i}((index + 1),:) = impactData.positionCartesian(i,:);
+
+    end
+
     trackingData.age{i}(index + 1) = trackingData.age{i}(index) + deltaT;
     
     waitbar((i / count), wB);
 end
+clear i;
 
 delete(wB);
 
@@ -585,6 +607,7 @@ if interp
         
         waitbar((i / count), wB);
     end
+    clear i;
     
 end
 
@@ -664,15 +687,47 @@ disp(' ');
 disp(' ');
 
 
-%% Present Volume Fields
+%% Present Particle Paths
 
-disp('Volume Field Presentation');
-disp('--------------------------');
+disp('Particle Path Presentation');
+disp('---------------------------');
 
 disp(' ');
 
 if plotPaths
-    figName = 'Test';
+
+    switch formatA
+
+        case 'A'
+
+            switch formatB
+
+                case 'A'
+                    figName = ['Rear_End_Soiling_Time_Eject_T', erase(num2str(trackTime), '.'), ...
+                               '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+                case 'B'
+                    figName = ['Rear_End_Soiling_Time_Impact_T', erase(num2str(trackTime), '.'), ...
+                               '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+            end
+
+        case 'B'
+
+            switch formatB
+
+                case 'A'
+                    figName = ['Downstream_Spray_Time_Eject_T', erase(num2str(trackTime), '.'), ...
+                               '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+                case 'B'
+                    figName = ['Downstream_Spray_Time_Impact_T', erase(num2str(trackTime), '.'), ...
+                               '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+
+            end
+
+    end
+
     cMap = viridis(32);
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     figSubtitle = ' ';
@@ -680,7 +735,7 @@ if plotPaths
     yLimsPlot = yLimsData;
     zLimsPlot = zLimsData;
     
-    fig = particlePathPlots(trackingData, fig, figName, geometry, cMap, colourVar, ...
+    fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
                             minColourVar, maxColourVar, figTitle, figSubtitle, ...
                             xLimsPlot, yLimsPlot, zLimsPlot);
 else
@@ -690,18 +745,18 @@ end
 
 %% Local Functions
 
-function time = inputTime(type, timeList, dList)
+function [time, index] = inputTime(type, timeList, dList)
 
     time = str2double(input(['    Input Desired ', type, ' Time [s]: '], 's'));
 
-    time = find(ismember(timeList, time));
+    index = find(ismember(timeList, time));
     
     if isempty(time)
         disp('        WARNING: Invalid Entry');
-        time = -1;
-    elseif isempty(dList{time})
+        index = -1;
+    elseif isempty(dList{index})
         disp(['        WARNING: No ', type, 's Recorded During Specified Time Instance']);
-        time = -1;
+        index = -1;
     end
     
 end

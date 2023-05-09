@@ -1,27 +1,35 @@
-%% Surface Lagrangian Data Reader v1.0
+%% Surface Lagrangian Data Reader v2.0
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Surface Lagrangian Data Output
 % ----
 % Usage: LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-%                                     sampleInterval, timeDirs);
+%                                     timeDirs, sampleInterval, format);
 %        'saveLocation'   -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
-%        'sampleInterval' -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
+%        'sampleInterval' -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
+%        'format'         -> Data Collation Format, Stored as a String
 
 
 %% Changelog
 
 % v1.0 - Initial Commit
+% v2.0 - Added Support for ‘Snapshot’ Data Collation
+
+
+%% Suported Data Collation Formats
+
+% Collate All Particle Impacts Between T(n-1) And T(n): 'cumulative'
+% Collate Particle Impacts in a Small Window either Side of T(n): 'snapshot'
 
 
 %% Main Function
 
 function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                      sampleInterval, timeDirs)
+                                      timeDirs, sampleInterval, format)
     
     % Collate Planar Lagrangian Data
     disp('============');
@@ -35,12 +43,12 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
     
     disp(' ');
 
-    dataFile = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
-    
     tic;
     
-    disp(['    Loading ''', dataFile.name, '''...']);
+    dataFile = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
 
+    disp(['    Loading ''', dataFile.name, '''...']);
+    
     % Read Data File
     content = readmatrix([caseFolder, '/LagrangianSurfaceContamination/', dataFile.name], 'fileType', 'text', 'trailingDelimitersRule', 'ignore');
 
@@ -52,7 +60,6 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
         LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
-    clear j;
 
     % Initialise Particle Properties
     LagData.timeExact = cell(height(LagData.time),1);
@@ -67,30 +74,57 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
     wB.Children.Title.Interpreter = 'none';
 
     % Collate Data
-    timeZero = LagData.time(1) - (LagData.time(2) - LagData.time(1));
-    for i = 1:height(LagData.time)
+    switch format
 
-        if i == 1
-            index = find((content(:,1) > timeZero) & ...
-                         (content(:,1) <= LagData.time(1)));
-        else
-            index = find((content(:,1) > LagData.time(i - 1)) & ...
-                         (content(:,1) <= LagData.time(i)));
-        end
+        case 'cumulative'
+            
+            timeZero = LagData.time(1) - (LagData.time(2) - LagData.time(1));
+            for i = 1:height(LagData.time)
+                
+                if i == 1
+                    index = find((content(:,1) > timeZero) & ...
+                                 (content(:,1) <= LagData.time(1)));
+                else
+                    index = find((content(:,1) > LagData.time(i - 1)) & ...
+                                 (content(:,1) <= LagData.time(i)));
+                end
+                
+                if ~isempty(index)
+                    LagData.timeExact{i} = content(index,1);
+                    LagData.origId{i} = content(index,2);
+                    LagData.origProcId{i} = content(index,3);
+                    LagData.d{i} = content(index,4);
+                    LagData.nParticle{i} = content(index,5);
+                    LagData.positionCartesian{i} = content(index,[6,7,8]);
+                    LagData.U{i} = content(index,[9,10,11]);
+                    LagData.Uslip{i} = content(index,[12,13,14]);
+                end
+                
+                waitbar((i / height(LagData.time)), wB);
+            end
 
-        if ~isempty(index)
-            LagData.timeExact{i} = content(index,1);
-            LagData.origId{i} = content(index,2);
-            LagData.origProcId{i} = content(index,3);
-            LagData.d{i} = content(index,4);
-            LagData.nParticle{i} = content(index,5);
-            LagData.positionCartesian{i} = content(index,[6,7,8]);
-            LagData.U{i} = content(index,[9,10,11]);
-        end
+        case 'snapshot'
+            
+            temporalSmoothing = 5e-5;
+            for i = 1:height(LagData.time)
+                index = find((content(:,1) >= (LagData.time(i) - temporalSmoothing)) & ...
+                             (content(:,1) <= (LagData.time(i) + temporalSmoothing)));
+                
+                if ~isempty(index)
+                    LagData.timeExact{i} = content(index,1);
+                    LagData.origId{i} = content(index,2);
+                    LagData.origProcId{i} = content(index,3);
+                    LagData.d{i} = content(index,4);
+                    LagData.nParticle{i} = content(index,5);
+                    LagData.positionCartesian{i} = content(index,[6,7,8]);
+                    LagData.U{i} = content(index,[9,10,11]);
+                    LagData.Uslip{i} = content(index,[12,13,14]);
+                end
+        
+                waitbar((i / height(LagData.time)), wB);
+            end
 
-        waitbar((i / height(LagData.time)), wB);
     end
-    clear timeZero;
 
     delete(wB);
     
@@ -142,18 +176,27 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
             if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface'], 'dir')
                 mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface']);
             end
+
+            switch format
+
+                case 'cumulative'
+                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '_cumulative.mat']);
+                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '_cumulative.mat'], ...
+                    'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
+
+                case 'snapshot'
+                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '_snapshot.mat']);
+                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '_snapshot.mat'], ...
+                    'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
+
+            end
             
-            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat']);
-            save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/', dataID, '.mat'], ...
-                 'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
-            
             valid = true;
         else
             disp('    WARNING: Invalid Entry');
         end
         
     end
-    clear valid;
     
 end

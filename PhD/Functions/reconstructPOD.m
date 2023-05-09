@@ -1,4 +1,4 @@
-%% Snapshot POD Field Reconstruction Tool v1.0
+%% Snapshot POD Field Reconstruction Tool v1.1
 % ----
 % Reconstructs Field Using POD Data Produced Using 'performPOD'
 %
@@ -18,6 +18,7 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Formatting Updates
 
 
 %% Supported Field Types
@@ -64,11 +65,6 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                     reconData.(mode).v.prime{j} = vModeMatrix(j,:)';
                     reconData.(mode).w.prime{j} = wModeMatrix(j,:)';
                 end
-                
-                modeMatrix = [uModeMatrix, vModeMatrix, wModeMatrix]; %#ok<NASGU>
-            
-            otherwise
-                error('Unrecognised Field Type');
         
         end
         

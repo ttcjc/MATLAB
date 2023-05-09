@@ -1,22 +1,30 @@
-%% Lagrangian Line of Sight Calculator v1.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallelisation
+
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
+%% Lagrangian Line of Sight Calculator v1.0
 
-samplesPerCell = 32; % Number of Samples per Cell Used During LOS Interpolation
+dL = 1.25e-4; % Small Distance Used During LoS Numerical Integration
+
+% samplesPerCell = 32; % Number of Samples per Cell Used During LoS Interpolation
 
 disp('=============================');
-disp('Line of Sight Calculator v1.0');
+disp('Line of Sight Calculator v1.1');
 disp('=============================');
 
 disp(' ');
@@ -26,6 +34,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - 
 
 
 %% Select Region of Interest
@@ -55,7 +64,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 disp(' ');
 disp(' ');
@@ -112,7 +120,6 @@ while ~valid
             
     end
 end
-clear valid;
 
 namePos = strfind(filePath, '/');
 caseName = filePath((namePos(end - 2) + 1):(namePos(end - 1) - 1));
@@ -143,11 +150,11 @@ if normalise
 end
 
 % Select Plane of Interest
-LOSdata = identifyVolumeSlices(volumeData.positionGrid, spacePrecision, false);
+LoSdata = identifyVolumeSlices(volumeData.positionGrid, spacePrecision, false);
 
 % Extract Planar Position Data
-index = find(volumeData.positionGrid(:,1) == LOSdata.position);
-LOSdata.positionGrid = volumeData.positionGrid(index,:);
+index = find(volumeData.positionGrid(:,1) == LoSdata.planeLocation);
+LoSdata.positionGrid = volumeData.positionGrid(index,:);
 
 disp(' ');
 disp(' ');
@@ -159,43 +166,43 @@ disp('Origin Point Definition');
 disp('------------------------');
 
 % Select Origin Point
-LOSdata.originPoint = zeros(1,3);
+LoSdata.originPoint = zeros(1,3);
 
 valid = false;
 while ~valid
     disp(' ')
     disp('Specify Origin Point:')
     
-    LOSdata.originPoint(1) = inputPos('X');
-    LOSdata.originPoint(2) = inputPos('Y');
-    LOSdata.originPoint(3) = inputPos('Z');
+    LoSdata.originPoint(1) = inputPos('X');
+    LoSdata.originPoint(2) = inputPos('Y');
+    LoSdata.originPoint(3) = inputPos('Z');
 
-    if (LOSdata.originPoint(1) < min(volumeData.positionGrid(:,1)) || LOSdata.originPoint(1) > max(volumeData.positionGrid(:,1))) || ...
-       (LOSdata.originPoint(2) < min(volumeData.positionGrid(:,2)) || LOSdata.originPoint(2) > max(volumeData.positionGrid(:,1))) || ...
-       (LOSdata.originPoint(3) < min(volumeData.positionGrid(:,3)) || LOSdata.originPoint(3) > max(volumeData.positionGrid(:,1)))
+    if (LoSdata.originPoint(1) < min(volumeData.positionGrid(:,1)) || LoSdata.originPoint(1) > max(volumeData.positionGrid(:,1))) || ...
+       (LoSdata.originPoint(2) < min(volumeData.positionGrid(:,2)) || LoSdata.originPoint(2) > max(volumeData.positionGrid(:,1))) || ...
+       (LoSdata.originPoint(3) < min(volumeData.positionGrid(:,3)) || LoSdata.originPoint(3) > max(volumeData.positionGrid(:,1)))
         disp('        WARNING: Origin Point Lies Outside Volume');
         continue;
     end
     
-    switch LOSdata.orientation
+    switch LoSdata.orientation
         
         case 'YZ'
             
-            if LOSdata.originPoint(1) < LOSdata.position
+            if LoSdata.originPoint(1) < LoSdata.planeLocation
                 disp('        WARNING: Origin Point Must Lie in the Positive X-Direction of the Target Plane');
                 continue;
             end
             
         case 'XZ'
             
-            if LOSdata.originPoint(2) > LOSdata.position
+            if LoSdata.originPoint(2) > LoSdata.planeLocation
                 disp('        WARNING: Origin Point Must Lie in the Negative Y-Direction of the Target Plane');
                 continue;
             end
             
         case 'XY'
             
-            if LOSdata.originPoint(3) > LOSdata.position
+            if LoSdata.originPoint(3) > LoSdata.planeLocation
                 disp('        WARNING: Origin Point Must Lie in the Positive Z-Direction of the Target Plane');
                 continue;
             end
@@ -204,15 +211,14 @@ while ~valid
     
     valid = true;    
 end
-clear valid;
 
 % Restore Normalised Dimensions
 if normalise
 
     if contains(caseName, ["Run_Test", "Windsor"])
         volumeData.positionGrid = round((volumeData.positionGrid / 1.044), spacePrecision);
-        LOSdata.originPoint = round((LOSdata.originPoint / 1.044), spacePrecision);
-        LOSdata.position = round((LOSdata.position / 1.044), spacePrecision);
+        LoSdata.originPoint = round((LoSdata.originPoint / 1.044), spacePrecision);
+        LoSdata.planeLocation = round((LoSdata.planeLocation / 1.044), spacePrecision);
     end
 
 end
@@ -244,23 +250,23 @@ disp(' ');
 % Check if Plane of Interest Intersects Geometry
 removeIntersect = false;
 
-switch LOSdata.orientation
+switch LoSdata.orientation
     
     case 'YZ'
         
-        if LOSdata.position <= xDims(2)
+        if LoSdata.planeLocation <= xDims(2)
             removeIntersect = true;
         end
         
     case 'XZ'
         
-        if LOSdata.position >= yDims(1)
+        if LoSdata.planeLocation >= yDims(1)
             removeIntersect = true;
         end
         
     case 'XY'
         
-        if LOSdata.position <= zDims(2)
+        if LoSdata.planeLocation <= zDims(2)
             removeIntersect = true;
         end
         
@@ -288,7 +294,6 @@ if removeIntersect
         end
 
     end
-    clear parts fields;
 
     disp(' ');
 end
@@ -308,7 +313,7 @@ disp(' ');
 
 disp('    Calculating Instantaneous Line of Sight...');
 
-LOSdata.inst.time = volumeData.inst.time;
+LoSdata.inst.time = volumeData.inst.time;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Line of Sight', 'name', 'Progress');
@@ -316,158 +321,204 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(LOSdata.inst.time));
+parforWaitBar(wB, height(LoSdata.inst.time));
 
 % Calculate Instantaneous Line of Sight
-massInLOS = cell(height(LOSdata.inst.time),1);
-
+massLoS = cell(height(LoSdata.inst.time),1);
+nParticlesLoS = massLoS;
+dLoS = massLoS;
 mass = volumeData.inst.mass;
+nParticles = volumeData.inst.nParticles;
+d = volumeData.inst.d10;
 cellVolume = cellSize.volume;
-positionGrid = LOSdata.positionGrid;
-orientation = LOSdata.orientation;
-cellSizeX = cellSize.x;
-cellSizeY = cellSize.y;
-cellSizeZ = cellSize.z;
-originPointX = LOSdata.originPoint(1);
-originPointY = LOSdata.originPoint(2);
-originPointZ = LOSdata.originPoint(3);
-position = LOSdata.position;
-parfor i = 1:height(LOSdata.inst.time)
-    sprayDensity = reshape((mass{i} / cellVolume), gridShape);
+positionGrid = LoSdata.positionGrid;
+% orientation = LoSdata.orientation;
+% cellSizeX = cellSize.x;
+% cellSizeY = cellSize.y;
+% cellSizeZ = cellSize.z;
+cellSizeTarget = cellSize.target;
+% originPointX = LoSdata.originPoint(1);
+% originPointY = LoSdata.originPoint(2);
+% originPointZ = LoSdata.originPoint(3);
+originPoint = LoSdata.originPoint;
+% planeLocation = LoSdata.planeLocation;
+parfor i = 1:height(LoSdata.inst.time)
+    massDensity = reshape((mass{i} / cellVolume), gridShape);
+    nParticleDensity = reshape((nParticles{i} / cellVolume), gridShape);
+    dDensity = reshape((d{i} / cellVolume), gridShape);
+
+    massInterp = griddedInterpolant(x, y, z, massDensity, 'linear', 'none');
+    nParticlesInterp = griddedInterpolant(x, y, z, nParticlesDensity, 'linear', 'none');
+    dInterp = griddedInterpolant(x, y, z, dDensity, 'linear', 'none');
     
-    interp = griddedInterpolant(x, y, z, sprayDensity, 'linear', 'none');
+    massLoS{i} = zeros(height(positionGrid),1);
+    nParticlesLoS{i} = massLoS{i};
+    dLoS{i} = massLoS{i};
     
-    massInLOS{i} = zeros(height(positionGrid),1);
+%     switch orientation
+%         
+%         case 'YZ'
+%             
+%             dX = cellSizeX / samplesPerCell;
+%             sampleX = (originPointX:-dX:planeLocation)';
+%             for j = 1:height(positionGrid)
+%                 t = (sampleX - originPointX) / (positionGrid(j,1) - originPointX);
+%                 sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+%                 interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
+%                 
+%                 if sum(isnan(interpMass)) > samplesPerCell
+%                     massInLoS{i}(j) = NaN;
+%                 else
+%                     massInLoS{i}(j) = sum(interpMass, 'omitNaN');
+%                 end
+%                 
+%             end
+%         
+%         case 'XZ'
+% 
+%             dY = cellSizeY / samplesPerCell;
+%             sampleY = (originPointY:dY:planeLocation)';
+%             for j = 1:height(positionGrid)
+%                 t = (sampleY -originPointY) / (positionGrid(j,2) - originPointY);
+%                 sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+%                 interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
+%                 
+%                 if sum(isnan(interpMass)) > samplesPerCell
+%                     massInLoS{i}(j) = NaN;
+%                 else
+%                     massInLoS{i}(j) = sum(interpMass, 'omitNaN');
+%                 end
+%                 
+%             end
+%             
+%         case 'XY'
+% 
+%             dZ = cellSizeZ / samplesPerCell;
+%             sampleZ = (originPointZ:-dZ:planeLocation)';
+%             for j = 1:height(positionGrid)
+%                 t = (sampleZ - originPointZ) / (positionGrid(j,3) - originPointZ);
+%                 sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
+%                 interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
+%                 
+%                 if sum(isnan(interpMass)) > samplesPerCell
+%                     massInLoS{i}(j) = NaN;
+%                 else
+%                     massInLoS{i}(j) = sum(interpMass, 'omitNaN');
+%                 end
+%                 
+%             end
+%     end
     
-    switch orientation
+    for j = 1:height(positionGrid)
+        dirVec = originPoint - positionGrid(j,:);
+        distFull = sqrt(dirVec(1)^2 + dirVec(2)^2 + dirVec(3)^2);
+
+        dist = (0:dL:distFull)';
+        samplePoints = positionGrid(j,:) + (dist * (dirVec / distFull));
+
+        massOnLine = massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3)) * dL;
+        nParticlesOnLine = nParticlesInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3)) * dL;
+        dOnLine = dInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3)) * dL;
         
-        case 'YZ'
-            dX = cellSizeX / samplesPerCell;
-            sampleX = (originPointX:-dX:position)';
-            
-            for j = 1:height(positionGrid)
-                t = (sampleX - originPointX) / (positionGrid(j,1) - originPointX);
-                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
-                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
-                
-                if sum(isnan(interpMass)) > samplesPerCell
-                    massInLOS{i}(j) = nan;
-                else
-                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
-                end
-                
-            end
-            
-        case 'XZ'
-            dY = cellSizeY / samplesPerCell;
-            sampleY = (originPointY:dY:position)';
-            
-            for j = 1:height(positionGrid)
-                t = (sampleY -originPointY) / (positionGrid(j,2) - originPointY);
-                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
-                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
-                
-                if sum(isnan(interpMass)) > samplesPerCell
-                    massInLOS{i}(j) = nan;
-                else
-                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
-                end
-                
-            end
-            
-        case 'XY'
-            dZ = cellSizeZ / samplesPerCell;
-            sampleZ = (originPointZ:-dZ:position)';
-            
-            for j = 1:height(positionGrid)
-                t = (sampleZ - originPointZ) / (positionGrid(j,3) - originPointZ);
-                sampleXYZ = ([originPointX, originPointY, originPointZ] + t*(positionGrid(j,:) - [originPointX, originPointY, originPointZ]));
-                interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
-                
-                if sum(isnan(interpMass)) > samplesPerCell
-                    massInLOS{i}(j) = nan;
-                else
-                    massInLOS{i}(j) = sum(interpMass, 'omitNaN');
-                end
-                
-            end
-            
+        if sum(isnan(massOnLine)) > ceil(2 * (cellSizeTarget / dL))
+            massLoS{i}(j) = NaN;
+            nParticleLoS{i}(j) = NaN;
+            dLoS{i}(j) = NaN;
+        else
+            massLoS{i}(j) = sum(massOnLine, 'omitNaN');
+            nParticlesLoS{i}(j) = sum(nParticlesOnLine, 'omitNaN');
+            dLoS{i}(j) = sum(dOnLine, 'omitNaN');
+        end
+
     end
     
     send(dQ, []);
 end
-clear mass cellVolume positionGrid orientation cellSizeX cellSizeY cellSizeZ originPointX originPointY originPointZ position;
+LoSdata.inst.mass = massLoS;
+% clear massLoS mass cellVolume positionGrid orientation cellSizeX cellSizeY cellSizeZ originPointX originPointY originPointZ planeLocation;
+clear massLoS nParticlesLoS dLoS mass nParticles d cellVolume positionGrid cellSizeTarget originPoint;
 
 delete(wB);
-
-LOSdata.inst.mass = massInLOS;
-
-clear massInLOS;
 
 disp(' ');
 
 disp('    Calculating Time-Averaged Line of Sight...');
 
 % Calculate Time-Averaged Line of Sight
-sprayDensity = reshape((volumeData.mean.mass / cellSize.volume), gridShape);
+massDensity = reshape((volumeData.mean.mass / cellSize.volume), gridShape);
+massInterp = griddedInterpolant(x, y, z, massDensity, 'linear', 'none');
 
-interp = griddedInterpolant(x, y, z, sprayDensity, 'linear', 'none');
+LoSdata.mean.mass = zeros(height(LoSdata.positionGrid),1);
 
-LOSdata.mean.mass = zeros(height(LOSdata.positionGrid),1);
+% switch LoSdata.orientation
+% 
+%     case 'YZ'
+% 
+%         dX = cellSize.x / samplesPerCell;
+%         sampleX = (LoSdata.originPoint(1):-dX:LoSdata.planeLocation)';
+%         for i = 1:height(LoSdata.positionGrid)
+%             t = (sampleX - LoSdata.originPoint(1)) / (LoSdata.positionGrid(i,1) - LoSdata.originPoint(1));
+%             sampleXYZ = (LoSdata.originPoint + t*(LoSdata.positionGrid(i,:) - LoSdata.originPoint));
+%             interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
+%             
+%             if sum(isnan(interpMass)) > samplesPerCell
+%                 LoSdata.mean.mass(i) = NaN;
+%             else
+%                 LoSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+%             end
+%             
+%         end
+% 
+%     case 'XZ'
+% 
+%         dY = cellSize.y / samplesPerCell;
+%         sampleY = (LoSdata.originPoint(2):dY:LoSdata.planeLocation)';
+%         for i = 1:height(LoSdata.positionGrid)
+%             t = (sampleY - LoSdata.originPoint(2)) / (LoSdata.positionGrid(i,2) - LoSdata.originPoint(2));
+%             sampleXYZ = (LoSdata.originPoint + t*(LoSdata.positionGrid(i,:) - LoSdata.originPoint));
+%             interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
+%             
+%             if sum(isnan(interpMass)) > samplesPerCell
+%                 LoSdata.mean.mass(i) = NaN;
+%             else
+%                 LoSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+%             end
+%             
+%         end
+% 
+%     case 'XY'
+% 
+%         dZ = cellSize.z / samplesPerCell;
+%         sampleZ = (LoSdata.originPoint(3):-dZ:LoSdata.planeLocation)';
+%         for i = 1:height(LoSdata.positionGrid)
+%             t = (sampleZ - LoSdata.originPoint(3)) / (LoSdata.positionGrid(i,3) - LoSdata.originPoint(3));
+%             sampleXYZ = (LoSdata.originPoint + t*(LoSdata.positionGrid(i,:) - LoSdata.originPoint));
+%             interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
+%             
+%             if sum(isnan(interpMass)) > samplesPerCell
+%                 LoSdata.mean.mass(i) = NaN;
+%             else
+%                 LoSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
+%             end
+%         
+%         end
+% 
+% end
 
-switch LOSdata.orientation
+for i = 1:height(LoSdata.positionGrid)
+    dirVec = LoSdata.originPoint - LoSdata.positionGrid(i,:);
+    distFull = sqrt(dirVec(1)^2 + dirVec(2)^2 + dirVec(3)^2);
 
-    case 'YZ'
-        dX = cellSize.x / samplesPerCell;
-        sampleX = (LOSdata.originPoint(1):-dX:LOSdata.position)';
+    dist = (0:dL:distFull)';
+    samplePoints = LoSdata.positionGrid(i,:) + (dist * (dirVec / distFull));
 
-        for i = 1:height(LOSdata.positionGrid)
-            t = (sampleX - LOSdata.originPoint(1)) / (LOSdata.positionGrid(i,1) - LOSdata.originPoint(1));
-            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
-            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dX;
-            
-            if sum(isnan(interpMass)) > samplesPerCell
-                LOSdata.mean.mass(i) = nan;
-            else
-                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
-            end
-            
-        end
-
-    case 'XZ'
-        dY = cellSize.y / samplesPerCell;
-        sampleY = (LOSdata.originPoint(2):dY:LOSdata.position)';
-
-        for i = 1:height(LOSdata.positionGrid)
-            t = (sampleY - LOSdata.originPoint(2)) / (LOSdata.positionGrid(i,2) - LOSdata.originPoint(2));
-            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
-            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dY;
-            
-            if sum(isnan(interpMass)) > samplesPerCell
-                LOSdata.mean.mass(i) = nan;
-            else
-                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
-            end
-            
-        end
-
-    case 'XY'
-        dZ = cellSize.z / samplesPerCell;
-        sampleZ = (LOSdata.originPoint(3):-dZ:LOSdata.position)';
-
-        for i = 1:height(LOSdata.positionGrid)
-            t = (sampleZ - LOSdata.originPoint(3)) / (LOSdata.positionGrid(i,3) - LOSdata.originPoint(3));
-            sampleXYZ = (LOSdata.originPoint + t*(LOSdata.positionGrid(i,:) - LOSdata.originPoint));
-            interpMass = interp(sampleXYZ(:,1), sampleXYZ(:,2), sampleXYZ(:,3)) * dZ;
-            
-            if sum(isnan(interpMass)) > samplesPerCell
-                LOSdata.mean.mass(i) = nan;
-            else
-                LOSdata.mean.mass(i) = sum(interpMass, 'omitNaN');
-            end
-            
-            
-        end
+    massOnLine = massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3)) * dL;
+    
+    if sum(isnan(massOnLine)) > ceil(2 * (cellSize.target / dL))
+        LoSdata.mean.mass(i) = NaN;
+    else
+        LoSdata.mean.mass(i) = sum(massOnLine, 'omitNaN');
+    end
 
 end
 
@@ -511,7 +562,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 valid = false;
 while ~valid
@@ -523,7 +573,7 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
-        nFrames = inputFrames(height(LOSdata.inst.time));
+        nFrames = inputFrames(height(LoSdata.inst.time));
         
         if nFrames == -1
             continue;
@@ -535,7 +585,6 @@ while ~valid
     end
 
 end
-clear valid;
 
 disp(' ');
 disp(' ');
@@ -550,21 +599,22 @@ disp(' ');
 
 if plotInst || plotMean
     
-    switch LOSdata.orientation
+    switch LoSdata.orientation
 
         case 'YZ'
-            xLimsData = LOSdata.position;
-            yLimsData = [min(LOSdata.positionGrid(:,2)); max(LOSdata.positionGrid(:,2))];
-            zLimsData = [min(LOSdata.positionGrid(:,3)); max(LOSdata.positionGrid(:,3))];
+            xLimsData = LoSdata.planeLocation;
+            yLimsData = [min(LoSdata.positionGrid(:,2)); max(LoSdata.positionGrid(:,2))];
+            zLimsData = [min(LoSdata.positionGrid(:,3)); max(LoSdata.positionGrid(:,3))];
 
         case 'XZ'
-            xLimsData = [min(LOSdata.positionGrid(:,1)); max(LOSdata.positionGrid(:,1))];
-            yLimsData = LOSdata.position;
-            zLimsData = [min(LOSdata.positionGrid(:,3)); max(LOSdata.positionGrid(:,3))];
+            xLimsData = [min(LoSdata.positionGrid(:,1)); max(LoSdata.positionGrid(:,1))];
+            yLimsData = LoSdata.planeLocation;
+            zLimsData = [min(LoSdata.positionGrid(:,3)); max(LoSdata.positionGrid(:,3))];
 
         case 'XY'
-            xLimsData = [min(LOSdata.positionGrid(:,1)); max(LOSdata.positionGrid(:,1))];
-            yLimsData = [min(LOSdata.positionGrid(:,2)); max(LOSdata.positionGrid(:,2))];
+            xLimsData = [min(LoSdata.positionGrid(:,1)); max(LoSdata.positionGrid(:,1))];
+            yLimsData = [min(LoSdata.positionGrid(:,2)); max(LoSdata.positionGrid(:,2))];
+            zLimsData = LoSdata.planeLocation;
 
     end
     
@@ -584,9 +634,6 @@ if plotInst || plotMean
                 xLimsPlot = [0.31875; 2.57125]; % 2 L
                 yLimsPlot = [-0.5945; 0.5945];
                 zLimsPlot = [0; 0.739];
-%                 xLimsPlot = [0.31875; 2.57125]; % 2 L
-%                 yLimsPlot = [-0.4945; 0.4945];
-%                 zLimsPlot = [0; 0.639];
             end
 
     end
@@ -597,12 +644,12 @@ if plotInst || plotMean
         zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
     end
     
-    orientation = LOSdata.orientation;
-    positionData = LOSdata.positionGrid;
+    orientation = LoSdata.orientation;
+    positionData = LoSdata.positionGrid;
     mapPerim = [];
     cMap = flipud(viridis(32));
     contourlines = [];
-    CoM = LOSdata.originPoint;
+    CoM = LoSdata.originPoint;
     figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     nPlanes = 1;
     planeNo = 1;
@@ -612,16 +659,16 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Line of Sight Map...');
     
-    scalarData = LOSdata.mean.mass;
-    figName = 'Time_Averaged_LOS_Map';
+    scalarData = LoSdata.mean.mass;
+    figName = 'Time_Averaged_LoS_Map';
     figSubtitle = ' ';
-%     cLims = [0; max(LOSdata.mean.mass)];
-    cLims = [0; 5e-3];
+    cLims = [0; max(LoSdata.mean.mass)];
+%     cLims = [0; 5e-3];
     
-    [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                       mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                       xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                       xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+    [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                           mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     
     disp(' ');
 end
@@ -629,8 +676,8 @@ end
 if plotInst
     disp('    Presenting Instantaneous Line of Sight Map(s)...');
     
-%     cLims = [0; max(cellfun(@max, LOSdata.inst.mass))];
-    cLims = [0; 5e-3];
+    cLims = [0; max(cellfun(@max, LoSdata.inst.mass))];
+%     cLims = [0; 5e-3];
     
     figHold = fig;
     
@@ -641,15 +688,15 @@ if plotInst
             fig = figHold;
         end
         
-        scalarData = LOSdata.inst.mass{i};
-        figTime = num2str(LOSdata.inst.time(i), ['%.', num2str(timePrecision), 'f']);
-        figName = ['Instantaneous_LOS_Map_T_', erase(figTime, '.')];
+        scalarData = LoSdata.inst.mass{i};
+        figTime = num2str(LoSdata.inst.time(i), ['%.', num2str(timePrecision), 'f']);
+        figName = ['Instantaneous_LoS_Map_T_', erase(figTime, '.')];
         figSubtitle = [figTime, ' \it{s}'];
 
-        [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                           mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                           xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
     
     disp(' ');

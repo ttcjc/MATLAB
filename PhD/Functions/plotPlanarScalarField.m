@@ -1,44 +1,45 @@
-%% Planar Scalar Field Plotter v2.0
+%% Planar Scalar Field Plotter v2.1
 % ----
 % Plots Previously Processed Planar Scalar Fields
 % ----
-% Usage: [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                           mapPerim, fig, figName, cMap, geometry, contourlines, ...
-%                                           xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-%                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+% Usage: [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+%                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+%                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+%                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        '*LimsData'    -> Contour Plot Limits
 %        'positionData' -> Cartesian Positions of Data Points
 %        'scalarData'   -> Field Value @ 'positionData' Points
 %        'mapPerim'     -> Map Perimeter Used When Plotting a Plane of Arbitrary Shape
+%        'nPlanes'      -> Number of Planes in a Multi-Plane Figure
+%        'planeNo'      -> Current Plane Number
 %        'fig'          -> Figure Number
 %        'figName'      -> Figure Name
 %        'cMap'         -> Colour Map
 %        'geometry'     -> STL(s) to Include in Plot
 %        'contourlines' -> Contour Lines at the Corresponding Values
 %        '*Dims'        -> Simple Bounding Box of Geometry
-%        'CoM'          -> Field Centre of Mass
+%        'refPoint'     -> Reference Point (CoM, CoP etc.)
 %        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
 %        'figSubtitle'  -> Figure Title
 %        'cLims'        -> Colour Map Limits
 %        '*LimsPlot'    -> 3D Axes Limits
 %        'normalise'    -> Normalise Dimensions [True/False]
-%        'nPlanes'      -> Number of Planes in a Multi-Plane Figure
-%        'planeNo'      -> Current Plane Number
 
 
 %% Changelog
 
 % v1.0 - Initial Commit (Expanded Functionality of 'contaminantPlots')
 % v2.0 - Shifted to Using 'griddedInterpolant' and Added Support for Multi-Plane Figures)
+% v2.1 - Rename and Minor Formatting Updates
 
 
 %% Main Function
 
-function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                            mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                            xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo)
+function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                                mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                                xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                                xLimsPlot, yLimsPlot, zLimsPlot, normalise)
     
     cellSize = 1e-3; % [m or l]
     
@@ -46,7 +47,6 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
     switch orientation
         
         case 'YZ'
-            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,2))), ...
                          height(unique(positionData(:,3)))];
@@ -68,7 +68,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                                yLimsData(1):cellSizeY:yLimsData(2), ...
                                zLimsData(1):cellSizeZ:zLimsData(2));
             
-            % Map Scalar Data on to 3D Surface
+            % Map Data on to 3D Surface
             scalar = zeros(size(x));
             scalar(2,:,:) = interp(y(2,:,:), z(2,:,:));
             
@@ -82,7 +82,6 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
         case 'XZ'
-            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,3)))];
@@ -118,7 +117,6 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
             end
             
         case 'XY'
-
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,2)))];
@@ -159,18 +157,19 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
     switch orientation
         
         case 'YZ'
-
-            % Figure Setup
+            % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+%                 set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
+                                 'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
                 set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 20, 'layer', 'top');
+                         'fontSize', 16, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
                 
-                % Geometry Plotting
+                % Plot Geometry
                 if ~isempty(geometry)
                     parts = fieldnames(geometry);
     
@@ -186,7 +185,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
 
             end
             
-            % Data Plotting
+            % Plot Contour
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
 
@@ -198,13 +197,13 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                     plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
                           geometry.(parts{i}).boundaries.YZ(:,2), ...
                           geometry.(parts{i}).boundaries.YZ(:,3), ...
-                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            % Plot Contour Lines
             if ~isempty(contourlines)
-                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -212,14 +211,15 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                 scalar = permute(scalar, [2,1,3]);
                 
                 contours = contourslice(x, y, z, scalar, xLimsData, [], [], contourlines);
-                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
-           end
-            
-            if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
             end
             
-            % Figure Formatting
+            % Plot Reference Point
+            if ~isempty(refPoint)
+                scatter3(refPoint(1), refPoint(2), refPoint(3), 200, 'w', 'x', 'lineWidth', 2);
+            end
+            
+            % Format Figure
             if planeNo == nPlanes
 
                 if nPlanes == 1
@@ -228,6 +228,7 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                     lightangle(90, 45);
                     axis on;
                     box on;
+                    grid off;
                     caxis(cLims);
                     view([90, 0]);
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
@@ -250,18 +251,14 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                         ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
                         zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
                     end
-                    
-                    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-                    hold off;
-                    
-                    pause(2);
-                    exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+                
                 else
                     title(figTitle, 'color', ([254, 254, 254] / 255));
                     subtitle(figSubtitle);
                     lightangle(0, 45);
                     axis on;
                     box on;
+                    grid off;
                     view([30, 30]);
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
@@ -272,46 +269,55 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                     yticks(tickData);
                     tickData = [];
                     zticks(tickData);
-                    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-                    hold off;
-                    
-                    pause(2);
-                    exportgraphics(gca, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
                 end
-
+                
+%                 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+                hold off;
+                
+                % Save Figure
+                pause(2);
+                
+                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+%                 print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
+                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
             else
                 planeNo = planeNo + 1;
             end
             
         case 'XZ'
-            % Figure Setup
-            fig = fig + 1;
-            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
-                     'fontSize', 20, 'layer', 'top');
-            lighting gouraud;
-            colormap(cMap);
-            hold on;
-            
-            % Geometry Plotting
-            if ~isempty(geometry)
-                parts = fieldnames(geometry);
-
-                for i = 1:height(parts)
-                    patch('faces', geometry.(parts{i}).faces, ...
-                          'vertices', geometry.(parts{i}).vertices, ...
-                          'faceColor', [0.5, 0.5, 0.5], ...
-                          'edgeColor', [0.5, 0.5, 0.5], ...
-                          'lineStyle', 'none');
-                end
+            % Initialise Figure
+            if planeNo == 1
+                fig = fig + 1;
+%                 set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
+                                 'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 16, 'layer', 'top');
+                lighting gouraud;
+                colormap(cMap);
+                hold on;
                 
+                % Plot Geometry
+                if ~isempty(geometry)
+                    parts = fieldnames(geometry);
+    
+                    for i = 1:height(parts)
+                        patch('faces', geometry.(parts{i}).faces, ...
+                              'vertices', geometry.(parts{i}).vertices, ...
+                              'faceColor', [0.5, 0.5, 0.5], ...
+                              'edgeColor', [0.5, 0.5, 0.5], ...
+                              'lineStyle', 'none');
+                    end
+                    
+                end
+
             end
             
-            % Data Plotting
+            % Plot Contour
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-            if ~isempty(geometry) && yLimsData < yDims(1)
+
+            if nPlanes == 1 && ~isempty(geometry) && yLimsData < yDims(1)
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
@@ -319,13 +325,13 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                     plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
                           geometry.(parts{i}).boundaries.XZ(:,2), ...
                           geometry.(parts{i}).boundaries.XZ(:,3), ...
-                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            % Plot Contour Lines
             if ~isempty(contourlines)
-                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -333,77 +339,113 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                 scalar = permute(scalar, [2,1,3]);
                 
                 contours = contourslice(x, y, z, scalar, [], yLimsData, [], contourlines);
-                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
-           end
-            
-            if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
             end
             
-            % Figure Formatting
-            title(figTitle, 'color', ([254, 254, 254] / 255));
-            subtitle(figSubtitle);
-            lightangle(0, 45);
-            axis on;
-            box on;
-            caxis(cLims);
-            view([0, 0]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-            xticks(tickData(2:(end - 1)));
-            tickData = [];
-            yticks(tickData);
-            tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-            zticks(tickData(2:(end - 1)));
-            xtickformat('%+.2f');
-            ytickformat('%+.2f');
-            ztickformat('%+.2f');
-            
-            if normalise
-                xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-            else
-                xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+            % Plot Reference Point
+            if ~isempty(refPoint)
+                scatter3(refPoint(1), refPoint(2), refPoint(3), 200, 'w', 'x', 'lineWidth', 2);
             end
+            
+            % Format Figure
+            if planeNo == nPlanes
 
-            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-            hold off;
-            
-            pause(2);
-            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
-            
-        case 'XY'
-            % Figure Setup
-            fig = fig + 1;
-            set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-            set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
-                     'fontSize', 20, 'layer', 'top');
-            lighting gouraud;
-            colormap(cMap);
-            hold on;
-            
-            % Geometry Plotting
-            if ~isempty(geometry)
-                parts = fieldnames(geometry);
+                if nPlanes == 1
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(0, 45);
+                    axis on;
+                    box on;
+                    grid off
+                    caxis(cLims);
+                    view([0, 0]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
+                    xticks(tickData(2:(end - 1)));
+                    tickData = [];
+                    yticks(tickData);
+                    tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
+                    zticks(tickData(2:(end - 1)));
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
+                    
+                    if normalise
+                        xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                    else
+                        xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                    end
 
-                for i = 1:height(parts)
-                    patch('faces', geometry.(parts{i}).faces, ...
-                          'vertices', geometry.(parts{i}).vertices, ...
-                          'faceColor', [0.5, 0.5, 0.5], ...
-                          'edgeColor', [0.5, 0.5, 0.5], ...
-                          'lineStyle', 'none');
+                else
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(0, 45);
+                    axis on;
+                    box on;
+                    grid off;
+                    view([30, 30]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = [];
+                    xticks(tickData);
+                    tickData = [];
+                    yticks(tickData);
+                    tickData = [];
+                    zticks(tickData);
                 end
                 
+%                 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+                hold off;
+                
+                % Save Figure
+                pause(2);
+                
+                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+%                 print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
+                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+            else
+                planeNo = planeNo + 1;
             end
             
-            % Data Plotting
+        case 'XY'
+            % Initialise Figure
+            if planeNo == 1
+                fig = fig + 1;
+%                 set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
+                                 'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 16, 'layer', 'top');
+                lighting gouraud;
+                colormap(cMap);
+                hold on;
+                
+                % Plot Geometry
+                if ~isempty(geometry)
+                    parts = fieldnames(geometry);
+    
+                    for i = 1:height(parts)
+                        patch('faces', geometry.(parts{i}).faces, ...
+                              'vertices', geometry.(parts{i}).vertices, ...
+                              'faceColor', [0.5, 0.5, 0.5], ...
+                              'edgeColor', [0.5, 0.5, 0.5], ...
+                              'lineStyle', 'none');
+                    end
+                    
+                end
+
+            end
+            
+            % Plot Contour
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none');
-             
-            if ~isempty(geometry) && zLimsData > zDims(2)
+
+            if nPlanes == 1 && ~isempty(geometry) && zLimsData > zDims(2)
                 
                 for i = 1:height(parts)
                     geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
@@ -411,13 +453,13 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                     plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
                           geometry.(parts{i}).boundaries.XY(:,2), ...
                           geometry.(parts{i}).boundaries.XY(:,3), ...
-                          'color', [0.5, 0.5, 0.5], 'lineStyle', '-', 'lineWidth', 1.5);
+                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
                 end
                 
             end
             
+            % Plot Contour Lines
             if ~isempty(contourlines)
-                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -425,47 +467,78 @@ function [fig, planeNo] = planarScalarPlots(orientation, xLimsData, yLimsData, z
                 scalar = permute(scalar, [2,1,3]);
                 
                 contours = contourslice(x, y, z, scalar, [], [], zLimsData, contourlines);
-                set(contours, 'edgeColor', 'w', 'lineStyle', '--', 'lineWidth', 1.5);
-           end
-            
-            if ~isempty(CoM)
-                scatter3(CoM(1), CoM(2), CoM(3), 250, 'w', 'x', 'lineWidth', 4);
+                set(contours, 'edgeColor', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
             end
             
-            % Figure Formatting
-            title(figTitle, 'color', ([254, 254, 254] / 255));
-            subtitle(figSubtitle);
-            lightangle(0, 45);
-            axis on;
-            box on;
-            caxis(cLims);
-            view([0, 90]);
-            xlim([xLimsPlot(1), xLimsPlot(2)]);
-            ylim([yLimsPlot(1), yLimsPlot(2)]);
-            zlim([zLimsPlot(1), zLimsPlot(2)]);
-            tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-            xticks(tickData(2:(end - 1)));
-            tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-            yticks(tickData(2:(end - 1)));
-            tickData = [];
-            zticks(tickData);
-            xtickformat('%+.2f');
-            ytickformat('%+.2f');
-            ztickformat('%+.2f');
-            
-            if normalise
-                xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-            else
-                xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+            % Plot Reference Point
+            if ~isempty(refPoint)
+                scatter3(refPoint(1), refPoint(2), refPoint(3), 200, 'w', 'x', 'lineWidth', 2);
             end
+            
+            % Format Figure
+            if planeNo == nPlanes
 
-            set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
-            hold off;
-            
-            pause(2);
-            exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+                if nPlanes == 1
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(0, 45);
+                    axis on;
+                    box on;
+                    grid off;
+                    caxis(cLims);
+                    view([0, 90]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
+                    xticks(tickData(2:(end - 1)));
+                    tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
+                    yticks(tickData(2:(end - 1)));
+                    tickData = [];
+                    zticks(tickData);
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
+                    
+                    if normalise
+                        xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                    else
+                        xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                    end
+
+                else
+                    title(figTitle, 'color', ([254, 254, 254] / 255));
+                    subtitle(figSubtitle);
+                    lightangle(0, 45);
+                    axis on;
+                    box on;
+                    grid off;
+                    view([30, 30]);
+                    xlim([xLimsPlot(1), xLimsPlot(2)]);
+                    ylim([yLimsPlot(1), yLimsPlot(2)]);
+                    zlim([zLimsPlot(1), zLimsPlot(2)]);
+                    tickData = [];
+                    xticks(tickData);
+                    tickData = [];
+                    yticks(tickData);
+                    tickData = [];
+                    zticks(tickData);
+                end
+
+%                 set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+                hold off;
+                
+                % Save Figure
+                pause(2);
+                
+                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+%                 print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
+                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+            else
+                planeNo = planeNo + 1;
+            end
     
     end
     

@@ -1,4 +1,4 @@
-%% Snapshot POD Calculator v1.0
+%% Snapshot POD Calculator v1.1
 % ----
 % Performs Shapshot POD on Fluctuating Scalar or Vector Fields
 %
@@ -17,6 +17,7 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Formatting Updates
 
 
 %% Supported Field Types
@@ -52,22 +53,19 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
             end
 
         case 'vector'
-        uSnapshotMatrix = zeros(Nt,Ns);
-        vSnapshotMatrix = uSnapshotMatrix;
-        wSnapshotMatrix = uSnapshotMatrix;
-        
-        for i = 1:Nt
-            uSnapshotMatrix(i,:) = PODdata.(PODvar{1}).prime{i};
-            vSnapshotMatrix(i,:) = PODdata.(PODvar{2}).prime{i};
-            wSnapshotMatrix(i,:) = PODdata.(PODvar{3}).prime{i};
+            uSnapshotMatrix = zeros(Nt,Ns);
+            vSnapshotMatrix = uSnapshotMatrix;
+            wSnapshotMatrix = uSnapshotMatrix;
             
-            waitbar((i / Nt), wB);
-        end
-
-        snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
-
-        otherwise
-            error('Unrecognised Field Type');
+            for i = 1:Nt
+                uSnapshotMatrix(i,:) = PODdata.(PODvar{1}).prime{i};
+                vSnapshotMatrix(i,:) = PODdata.(PODvar{2}).prime{i};
+                wSnapshotMatrix(i,:) = PODdata.(PODvar{3}).prime{i};
+                
+                waitbar((i / Nt), wB);
+            end
+    
+            snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
     
     end
     
@@ -104,7 +102,7 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     disp(['    First ', num2str(modesEnergetic), ' Modes Each Contain Greater Than 1% of Total Energy']);
     disp(['    First ', num2str(modes80percent), ' Modes Contain Approximately 80% of Total Energy']);
     
-    % Figure Setup
+    % Initialise Figure
     fig = fig + 1;
     
     switch fieldType
@@ -122,11 +120,12 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
              'fontSize', 20, 'layer', 'top');
     hold on;
     
-    % Plot  
+    % Plot Modes
+    cMap = viridis(3);
     bar(PODdata.modeEnergy, 0.75, ...
-        'lineWidth', 2, 'faceColor', ([68, 1, 84] / 255));
+        'lineWidth', 2, 'faceColor', cMap(1,:));
     
-    % Figure Formatting
+    % Format Figure
     axis on;
     box on;
     grid off;
@@ -136,12 +135,15 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     xticks(tickData);
     tickData = (4:4:16);
     yticks(tickData);
-    xlabel({' ', '{\bf{Mode}}'}, 'fontName', 'LM Roman 12');
-    ylabel({'{\bf{Energy Content (\it{%})}}', ' '}, 'fontName', 'LM Roman 12');
+    xlabel('\bf{Mode}}', 'fontName', 'LM Roman 12');
+    ylabel('{\bf{Energy Content (\it{%})}}', 'fontName', 'LM Roman 12');
     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
     
+    % Save Figure
     pause(2);
-    exportgraphics(gcf, ['~/MATLAB/Output/Figures/', figName, '.png'], 'resolution', 300);
+    
+    exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
 
 end

@@ -3,15 +3,15 @@
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
 % Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
-%                                    sampleInterval, timeDirs, nProc);
+%                                    timeDirs, sampleInterval, nProc);
 %        'saveLocation'   -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
 %        'caseName'       -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
 %        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
-%        'sampleInterval' -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
+%        'sampleInterval' -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
 %        'nProc'          -> Number of Processors Used for Parallel Collation
 
 
@@ -26,7 +26,7 @@
 %% Main Function
 
 function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
-                                     sampleInterval, timeDirs, nProc) %#ok<INUSD>
+                                     timeDirs, sampleInterval, nProc) %#ok<INUSD>
     
     % Collate Volumetric Lagrangian Data
     disp('===============');
@@ -49,7 +49,6 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
-    clear j;
     
     % Read Particle Properties
     for i = 1:height(LagProps)
@@ -137,7 +136,6 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         end
         
     end
-    clear valid;
 
 end
 

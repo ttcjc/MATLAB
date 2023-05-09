@@ -88,7 +88,6 @@ function [caseName, dataID, probeData, sampleInterval, timePrecision, geometry, 
         end
     
     end
-    clear valid;
     
     % Populate Planar Information
     probeData.planeOrientation = 'YZ';

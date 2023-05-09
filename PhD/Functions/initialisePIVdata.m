@@ -50,7 +50,6 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
         end
 
     end
-    clear valid;
 
     disp(' ');
     disp(' ');
@@ -143,13 +142,6 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
 
     parforWaitBar(wB, height(dataFiles));
     
-    time = zeros(height(dataFiles),1);
-    u = cell(height(dataFiles),1);
-    v = cell(height(dataFiles),1);
-    w = cell(height(dataFiles),1);
-    corrCoeff = cell(height(dataFiles),1);
-    isValid = cell(height(dataFiles),1);
-        
     switch format
     
         case 'planar'
@@ -157,7 +149,13 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
         case 'stereo'
     
         case 'tomo'
-        
+            time = zeros(height(dataFiles),1);
+            u = cell(height(dataFiles),1);
+            v = cell(height(dataFiles),1);
+            w = cell(height(dataFiles),1);
+            corrCoeff = cell(height(dataFiles),1);
+            isValid = cell(height(dataFiles),1);
+
             parfor i = 1:height(dataFiles)
                 fileID = fopen([caseFolder, '/', dataFiles(i).name]);
                 content = textscan(fileID, '%f %f %f %f %f %f %f %f', 'headerLines', 4, 'delimiter', ' ', 'CollectOutput', true);
@@ -173,10 +171,7 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
                 
                 send(dQ, []);
             end
-            clear i;
-            
-            delete(wB);
-            
+
             PIVdata.time = time;
             PIVdata.u = u;
             PIVdata.v = v;
@@ -186,6 +181,8 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
             clear time u v w corrCoeff isValid;
     
     end
+
+    delete(wB);
 
     evalc('delete(gcp(''nocreate''));');
     executionTime = toc;
@@ -227,6 +224,5 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
         end
         
     end
-    clear valid;
     
 end

@@ -43,6 +43,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
+    clear i;
 
     if ~isempty(timeDirs)
         disp('Lagrangian Data Identified in the Following Time Directories:');
@@ -50,6 +51,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         for i = 1:height(timeDirs)
             disp(['    ', timeDirs(i).name]);
         end
+        clear i;
 
     else
         error('Invalid Case Directory (No Volume Data Available)');
@@ -61,7 +63,14 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             error('Invalid Case Directory (No Plane Data Available)');
         end
 
-        dataFilesPlane = dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']);
+        % Check for Distributed Files
+        try
+            dataFilesPlane = dir([caseFolder, '/LagrangianExtractionPlane/*/LagrangianExtractionPlaneData_*']);
+            distributedFiles = true;
+        catch
+            dataFilesPlane = dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']);
+            distributedFiles = false;
+        end
 
         if isempty(dataFilesPlane)
             error('Invalid Case Directory (No Plane Data Available)');
@@ -75,7 +84,14 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             error('Invalid Case Directory (No Surface Data Available)');
         end
 
-        dataFilesSurface = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
+        % Check for Distributed Files
+        try
+            dataFilesSurface = dir([caseFolder, '/LagrangianSurfaceContamination/*/LagrangianSurfaceContaminationData']);
+            distributedFiles = true;
+        catch
+            dataFilesSurface = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
+            distributedFiles = false;
+        end
 
         if isempty(dataFilesSurface)
             error('Invalid Case Directory (No Surface Data Available)');
@@ -133,6 +149,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
+            clear valid;
             
         end
         
@@ -169,6 +186,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
+            clear valid;
             
         end
         
@@ -204,6 +222,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
     
             end
+            clear valid;
             
         end
         
@@ -317,6 +336,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 end
                 
             end
+            clear i;
 
             valid = true;
         else
@@ -324,6 +344,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
+    clear valid;
     
     % Specify Sampling Frequency
     valid = false;
@@ -354,6 +375,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
     end
+    clear valid;
 
     % Specify Data Collation Format
     if plane || surface
@@ -379,6 +401,7 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
             end
         
         end
+        clear valid;
 
     end
     
@@ -393,15 +416,15 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     if plane
         disp(' ');
         
-        LagDataPlane = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                        timeDirs, sampleInterval, format);
+        LagDataPlane = readLagDataPlane(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+                                        LagProps, timeDirs, sampleInterval, format);
     end
     
     if surface
         disp(' ');
         
-        LagDataSurface = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                            timeDirs, sampleInterval, format);
+        LagDataSurface = readLagDataSurface(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+                                            LagProps, timeDirs, sampleInterval, format);
     end
     
     if volume

@@ -77,6 +77,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 valid = false;
 while ~valid
@@ -94,6 +95,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 valid = false;
 while ~valid
@@ -111,6 +113,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 disp(' ');
 disp(' ');
@@ -119,6 +122,6 @@ disp(' ');
 %% Collate Data
 
 [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-     LagDataVolume, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
-                                                        plane, surface, volume, ...
-                                                        timeDirs, deltaT, timePrecision, nProc);
+ LagDataVolume, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
+                                                    plane, surface, volume, ...
+                                                    timeDirs, deltaT, timePrecision, nProc);

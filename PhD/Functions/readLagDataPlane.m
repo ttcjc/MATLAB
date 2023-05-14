@@ -18,7 +18,7 @@
 
 % v1.0 - Initial Commit
 % v2.0 - Parallelised and Split Into Separate Planar, Surface and Volumetric Functions
-% v3.0 - Added Support for 'Snapshot' Data Collation
+% v3.0 - Added Support for ‘Snapshot’ Data Collation and the ‘Uslip’ Field
 
 
 %% Suported Data Collation Formats
@@ -29,8 +29,8 @@
 
 %% Main Function
 
-function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                              timeDirs, sampleInterval, format)
+function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+                                    LagProps, timeDirs, sampleInterval, format)
     
     % Collate Planar Lagrangian Data
     disp('===========');
@@ -45,14 +45,84 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
     disp(' ');
 
     tic;
+    
+    if distributedFiles
+        
+        % Identify Distributed Directories
+        dataDirs = dir([caseFolder, '/LagrangianSurfaceContamination']);
 
-    dataFiles = dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']);
+        i = 1;
+        while i <= height(dataDirs)
+            
+            if isnan(str2double(dataDirs(i).name))
+                dataDirs(i,:) = [];
+            else
+                i = i + 1;
+            end
+            
+        end
+        clear i;
+        
+        dataFiles = dir([caseFolder, '/LagrangianExtractionPlane/', dataDirs(1).name, '/LagrangianExtractionPlaneData_*']);
+    else
+        dataFiles = dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']);
+    end
+    
+    % Reduce Time Instances to Desired Sampling Frequency
+    sampleTimes = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
+    nTimes = height(sampleTimes);
+
+    j = height(timeDirs);
+    for i = nTimes:-1:1
+        sampleTimes(i) = str2double(timeDirs(j).name);
+        j = j - sampleInterval;
+    end
+    clear i k;
     
     for i = 1:height(dataFiles)
-        disp(['    Loading ''', dataFiles(i).name, '''...']);
-        
-        % Read Data File
-        content = readmatrix([caseFolder, '/LagrangianExtractionPlane/', dataFiles(i).name], 'fileType', 'text', 'trailingDelimitersRule', 'ignore');
+                
+        if distributedFiles
+            
+            % Concatenate Distributed Files
+            if i ~= 1
+                disp(' ');
+            end
+            
+            disp(['    Concatenating ', dataFiles(i).name, ' Files...']);
+
+            contentInt = [];
+            contentFloat = [];
+
+            for j = 1:height(dataDirs)
+                
+                if str2double(dataDirs(j).name) <= str2double(timeDirs(end).name)
+                    fileID = fopen([caseFolder, '/LagrangianExtractionPlane/', dataDirs(j).name, '/', dataFiles(i).name]);
+                    contentRaw = textscan(fileID, '%f32 %u32 %u32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32', 'headerLines', 0, 'delimiter', '\n');
+                    
+                    contentInt = [contentInt; cell2mat(contentRaw(2:3))]; %#ok<AGROW>
+                    contentFloat = [contentFloat; cell2mat(contentRaw([1,(4:end)]))]; %#ok<AGROW>
+                    
+                    fclose(fileID);
+                else
+                    break;
+                end
+                
+            end
+            clear j;
+            
+        else
+            
+            % Read Data File
+            disp(['    Loading ''', dataFiles(i).name, '''...']);
+            
+            fileID = fopen([caseFolder, '/LagrangianExtractionPlane/', dataFiles(i).name]);
+            contentRaw = textscan(fileID, '%f32 %u32 %u32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32', 'headerLines', 0, 'delimiter', '\n');
+
+            contentInt = cell2mat(contentRaw(2:3));
+            contentFloat = cell2mat(contentRaw([1,(4:end)]));
+            
+            fclose(fileID);
+        end
         
         % Identify Plane Position
         planePos = strfind(dataFiles(i).name, '_') + 1;
@@ -64,96 +134,96 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
         end
         
         % Align Particles With Plane Position
-        content(:,6) = str2double(dataFiles(i).name(planePos:end));
-        
-        % Bin Particle Impacts Into Desired Frequency Windows
-        LagData.(plane).time = zeros(ceil(height(timeDirs) / sampleInterval),1);
-        
-        k = height(timeDirs);
-        for j = height(LagData.(plane).time):-1:1
-            LagData.(plane).time(j) = str2double(timeDirs(k).name);
-            k = k - sampleInterval;
-        end
+        contentFloat(:,4) = str2double(dataFiles(i).name(planePos:end));
         
         % Initialise Particle Properties
-        LagData.(plane).timeExact = cell(height(LagData.(plane).time),1);
+        LagData.(plane).time = sampleTimes;
+        LagData.(plane).timeExact = cell(nTimes,1);
         
         for j = 1:height(LagProps)
             prop = LagProps{j};
-            LagData.(plane).(prop) = cell(height(LagData.(plane).time),1);
+            LagData.(plane).(prop) = cell(nTimes,1);
         end
+        clear j;
+        
+        disp(' ');
+        
+        % Collate Data
+        disp(['        Collating ''', plane, ''' Data...']);
         
         % Initialise Progress Bar
         wB = waitbar(0, ['Collating ''', plane, ''' Data'], 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
-
-        % Collate Data
+        
+        % Perform Collation
         switch format
 
             case 'cumulative'
 
                 timeZero = LagData.(plane).time(1) - (LagData.(plane).time(2) - LagData.(plane).time(1));
-                for j = 1:height(LagData.(plane).time)
+                for j = 1:nTimes
                     
                     if j == 1
-                        index = find((content(:,1) > timeZero) & ...
-                                     (content(:,1) <= LagData.(plane).time(1)));
+                        index = find((contentFloat(:,1) > timeZero) & ...
+                                     (contentFloat(:,1) <= LagData.(plane).time(1)));
                     else
-                        index = find((content(:,1) > LagData.(plane).time(j - 1)) & ...
-                                     (content(:,1) <= LagData.(plane).time(j)));
+                        index = find((contentFloat(:,1) > LagData.(plane).time(j - 1)) & ...
+                                     (contentFloat(:,1) <= LagData.(plane).time(j)));
                     end
                     
                     if ~isempty(index)
-                        LagData.(plane).timeExact{j} = content(index,1);
-                        LagData.(plane).origId{j} = content(index,2);
-                        LagData.(plane).origProcId{j} = content(index,3);
-                        LagData.(plane).d{j} = content(index,4);
-                        LagData.(plane).nParticle{j} = content(index,5);
-                        LagData.(plane).positionCartesian{j} = content(index,[6,7,8]);
-                        LagData.(plane).U{j} = content(index,[9,10,11]);
-                        LagData.(plane).Uslip{j} = content(index,[12,13,14]);
+                        LagData.(plane).timeExact{j} = contentFloat(index,1);
+                        LagData.(plane).origId{j} = contentInt(index,1);
+                        LagData.(plane).origProcId{j} = contentInt(index,2);
+                        LagData.(plane).d{j} = contentFloat(index,2);
+                        LagData.(plane).nParticle{j} = contentFloat(index,3);
+                        LagData.(plane).positionCartesian{j} = contentFloat(index,[4,5,6]);
+                        LagData.(plane).U{j} = contentFloat(index,[7,8,9]);
+                        LagData.(plane).Uslip{j} = contentFloat(index,[10,11,12]);
                     end
                     
-                    waitbar((j / height(LagData.(plane).time)), wB);
+                    waitbar((j / nTimes), wB);
                 end
+                clear j;
 
             case 'snapshot'
                 
-                temporalSmoothing = 5e-5;
-                for j = 1:height(LagData.(plane).time)
-                    index = find((content(:,1) >= (LagData.(plane).time(j) - temporalSmoothing)) & ...
-                                 (content(:,1) <= (LagData.(plane).time(j) + temporalSmoothing)));
-                    
+                temporalSmoothing = 100e-6;
+                for j = 1:nTimes
+                    index = find((contentFloat(:,1) >= (LagData.(plane).time(j) - temporalSmoothing)) & ...
+                                 (contentFloat(:,1) <= LagData.(plane).time(j))); 
+                
                     if ~isempty(index)
-                        LagData.(plane).timeExact{j} = content(index,1);
-                        LagData.(plane).origId{j} = content(index,2);
-                        LagData.(plane).origProcId{j} = content(index,3);
-                        LagData.(plane).d{j} = content(index,4);
-                        LagData.(plane).nParticle{j} = content(index,5);
-                        LagData.(plane).positionCartesian{j} = content(index,[6,7,8]);
-                        LagData.(plane).U{j} = content(index,[9,10,11]);
-                        LagData.(plane).Uslip{j} = content(index,[12,13,14]);
+                        LagData.(plane).timeExact{j} = contentFloat(index,1);
+                        LagData.(plane).origId{j} = contentInt(index,1);
+                        LagData.(plane).origProcId{j} = contentInt(index,2);
+                        LagData.(plane).d{j} = contentFloat(index,2);
+                        LagData.(plane).nParticle{j} = contentFloat(index,3);
+                        LagData.(plane).positionCartesian{j} = contentFloat(index,[4,5,6]);
+                        LagData.(plane).U{j} = contentFloat(index,[7,8,9]);
+                        LagData.(plane).Uslip{j} = contentFloat(index,[10,11,12]);
                     end
             
-                    waitbar((j / height(LagData.(plane).time)), wB);
+                    waitbar((j / nTimes), wB);
                 end
+                clear j;
 
         end
         
         delete(wB);
     end
+    clear i;
 
-    executionTime = toc;
+    disp(' ');
     
-    disp(' ');
-
-    disp(['    Read Time: ', num2str(executionTime), 's']);
-
-    disp(' ');
-
     % Sort Particles in ID Order
     disp('    Sorting Particles...');
+
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Sorting Particles', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
     
+    % Perform Sort
     for i = 1:height(dataFiles)
 
         % Identify Plane Position
@@ -165,7 +235,7 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
             plane = ['X_P', erase(dataFiles(i).name(planePos:end), '.')];
         end
 
-        for j = 1:height(LagData.(plane).time)
+        for j = 1:nTimes
             [LagData.(plane).origId{j}, index] = sort(LagData.(plane).origId{j});
             
             LagData.(plane).timeExact{j} = LagData.(plane).timeExact{j}(index);
@@ -181,10 +251,23 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
                 end
 
             end
-
+            clear k;
+            
+            waitbar((j / nTimes), wB);
         end
+        clear j;
         
     end
+    clear i;
+    
+    delete(wB);
+
+    evalc('delete(gcp(''nocreate''));');
+    executionTime = toc;
+
+    disp(' ');
+
+    disp(['    Run Time: ', num2str(executionTime), 's']);
 
     disp(' ');
     
@@ -214,7 +297,7 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
 
                 case 'snapshot'
                     disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_snapshot.mat']);
-                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '._snapshot.mat'], ...
+                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_snapshot.mat'], ...
                     'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
 
             end
@@ -226,5 +309,6 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, 
         end
         
     end
+    clear valid;
     
 end

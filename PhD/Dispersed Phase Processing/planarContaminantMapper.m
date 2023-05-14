@@ -1,25 +1,31 @@
-%% Planar Lagrangian Contaminant Mapper v2.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
 
-normalise = false; % Normalisation of Dimensions
-
-cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
-
-nProc = maxNumCompThreads - 4; % Number of Processors Used for Parallel Collation
-
-cellSize = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
-
-normalisationValue = 6.415242022284566e-09; % Windsor_SB_wW_Upstream_SC 1L Time-Averaged Max
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
+
+
+%% Planar Lagrangian Contaminant Mapper v2.0
+
+cellSize.target = 8e-3; % Spatial Resolution of Contaminant Map [m or l]
+
+cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
+
+normalise = false; % Normalisation of Dimensions
+
+normalisationValue = 1; % Value Used to Normalise Masses
 
 disp('==============================');
 disp('Planar Contaminant Mapper v2.0');
@@ -114,13 +120,10 @@ switch format
 
         LagData = LagData.(planes{index});
         planePos = erase(planes{index}, '.');
+        
         clear planes;
         
         disp(['Plane of Interest: ', planePos]);
-end
-
-if normalise
-    dataID = [dataID, '_Norm'];
 end
 
 disp(' ');
@@ -140,7 +143,11 @@ while ~valid
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        dLims = [1; 120];
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            dLims = [1; 147];
+        end
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         dLims(1) = inputD('Min');
@@ -159,7 +166,7 @@ while ~valid
         dLims(1) = floor(dLims(1));
         dLims(2) = ceil(dLims(2));
         
-        if (dLims(2) < 1) || (dLims(1) > 120)
+        if contains(caseName, "Run_Test", "Windsor") && (dLims(2) < 1) || (dLims(1) > 147)
             disp('        WARNING: No Lagrangian Data in Diameter Range');
             continue;
         end
@@ -173,7 +180,7 @@ end
 clear valid;
 
 if normalise
-    dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_Norm'];
 else
     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 end
@@ -193,13 +200,34 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
-evalc('parpool(nProc);');
+evalc('parpool(''threads'');');
 
 disp(' ');
 
 disp('    Initialising...');
 
-% Identify Empty Time Instances
+% Identify Empty Time Instances Not Related to Case Initialisation
+emptyTimes = cellfun(@isempty, LagData.timeExact);
+firstValidTime = find(emptyTimes == true, 'first');
+
+suspectTimes = find(empyTimes(firstValidTime:end) == 0);
+
+if ~empty(suspectTimes)
+    
+    for i = suspectTimes
+        disp(['        WARNING: Time ''', num2str(LagData.time(i)), '''Is Unexpectedly Empty']);
+    end
+    clear i;
+    
+end
+
+
+
+
+for i = 2:nTimes
+    
+    if isempty(LagData.timeExact{i}) && ~isempty(LagData.timeExact{i - 1})
+
 i = 1;
 while i <= height(LagData.time)
     
@@ -207,8 +235,9 @@ while i <= height(LagData.time)
         LagData.timeExact{i} = -1;
         
         for j = 1:height(LagProps)
-            LagData.(LagProps{j}){i} = -1;
+            LagData.(LagProps{j}){i} = [];
         end
+        clear j;
         
     else
         i = i + 1;
@@ -217,16 +246,19 @@ while i <= height(LagData.time)
 end
 clear i;
 
+nTimes = height(LagData.time);
+
 % Shift Data Origin
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
     
-    for i = 1:height(LagData.time)
+    for i = 1:nTimes
         
-        if LagData.positionCartesian{i} ~= -1
+        if ~isempty(LagData.positionCartesian{i})
             LagData.positionCartesian{i}(:,1) = LagData.positionCartesian{i}(:,1) + 1.325;
         end
         
     end
+    clear i;
     
 end
 
@@ -235,14 +267,15 @@ if normalise
     
     if contains(caseName, ["Run_Test", "Windsor"])
         
-        for i = 1:height(LagData.time)
+        for i = 1:nTimes
             
-            if LagData.positionCartesian{i} ~= -1
+            if ~isempty(LagData.positionCartesian{i})
                 LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / 1.044), ...
                                                       spacePrecision);
             end
             
         end
+        clear i;
         
     end
     
@@ -265,6 +298,7 @@ switch format
             end
             
         end
+        clear i;
     
         geoPoints = geometry.(parts{i}).vertices;
         basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
@@ -280,8 +314,6 @@ switch format
             mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
-        clear basePoints basePoly;
-        
         xLimsData = xDims(2);
         yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
@@ -293,7 +325,7 @@ switch format
             
             xLimsData = LagData.positionCartesian{end}(1,1);
             yLimsData = [-0.5945; 0.5945];
-            zLimsData = [0; 0.739];
+            zLimsData = [0; 0.639];
             
             if normalise
                 yLimsData = round((yLimsData / 1.044), spacePrecision);
@@ -309,58 +341,60 @@ disp(' ');
 % Identify Particles of Interest
 disp('    Identifying Particles of Interest...');
 
-% Initialise Progress Bar
-wB = waitbar(0, 'Collating Particles of Interest', 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, height(LagData.time));
-
 % Collate Particles of Interest
-index = cell(height(LagData.time),1);
+index = cell(nTimes,1);
 
-d = LagData.d;
-positionCartesian = LagData.positionCartesian;
-parfor i = 1:height(LagData.time)
+for i = 1:nTimes
     
-    if positionCartesian{i} ~= -1
-        index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...
-                        ((d{i} * 1e6) <= dLims(2)) & ...
-                        (positionCartesian{i}(:,1) == xLimsData) & ...
-                        (positionCartesian{i}(:,2) >= yLimsData (1)) & ...
-                        (positionCartesian{i}(:,2) <= yLimsData (2)) & ...
-                        (positionCartesian{i}(:,3) >= zLimsData (1)) & ...
-                        (positionCartesian{i}(:,3) <= zLimsData (2))); %#ok<PFBNS>
+    if ~isempty(LagData.positionCartesian{i})
+        index{i} = find(((LagData.d{i} * 1e6) >= dLims(1)) & ...
+                        ((LagData.d{i} * 1e6) <= dLims(2)) & ...
+                        (LagData.positionCartesian{i}(:,1) == xLimsData) & ...
+                        (LagData.positionCartesian{i}(:,2) >= yLimsData (1)) & ...
+                        (LagData.positionCartesian{i}(:,2) <= yLimsData (2)) & ...
+                        (LagData.positionCartesian{i}(:,3) >= zLimsData (1)) & ...
+                        (LagData.positionCartesian{i}(:,3) <= zLimsData (2)));
     end
     
-    send(dQ, []);
 end
-clear d positionCartesian;
+clear i;
 
-delete(wB);
+disp(' ');
 
 % Remove Unnecessary Data
-for i = 1:height(LagData.time)
+disp('    Removing Unnecessary Data...');
+
+LagData = rmfield(LagData, {'origId', 'origProcId', 'U'});
+LagProps = {'d'; 'nParticle'; 'positionCartesian'};
+
+for i = 1:nTimes
     LagData.timeExact{i} = LagData.timeExact{i}(index{i});
     
     for j = 1:height(LagProps)
         LagData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
     end
+    clear j;
 
 end
+clear i;
 
 disp(' ');
 
 % Generate Instantaneous Contaminant Maps
 disp('    Generating Instantaneous Contaminant Maps...');
 
-% Adjust Uniform Cell Size to Fit Region of Interest
-cellSizeX = cellSize;
-cellSizeY = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize));
-cellSizeZ = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize));
+if normalise
+    cellSize.target = round((cellSize.target / 1.044), spacePrecision);
+end
 
-[y, z] = ndgrid(yLimsData(1):cellSizeY:yLimsData(2), zLimsData(1):cellSizeZ:zLimsData(2));
+% Adjust Uniform Cell Size to Fit Region of Interest
+cellSize.x = cellSize.target;
+cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
+cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
+
+cellSize.area = cellSize.y * cellSize.z;
+
+[y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
 
 mapData.positionGrid = zeros(height(y(:)),3);
 mapData.positionGrid(:,1) = xLimsData;
@@ -374,22 +408,22 @@ wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(mapData.inst.time));
+parforWaitBar(wB, nTimes);
 
 % Assign Particles to Map Nodes
-index = cell(height(mapData.inst.time),1); % Array Position of Closest Mesh Node
+index = cell(nTimes,1); % Array Position of Closest Mesh Node
 
 positionGrid = mapData.positionGrid;
 positionCartesian = LagData.positionCartesian;
-parfor i = 1:height(mapData.inst.time)
+parfor i = 1:nTimes
     
-    if positionCartesian{i} ~= -1
+    if ~isempty(positionCartesian{i})
         index{i} = dsearchn(positionGrid, positionCartesian{i});
     end
     
     send(dQ, []);
 end
-clear positionGrid positionCartesian;
+clear i positionGrid positionCartesian;
 
 delete(wB);
 
@@ -402,50 +436,52 @@ switch format
 end
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Instantaneous Mapping Variables', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Instantaneous Map Variables', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 dQ = parallel.pool.DataQueue;
 afterEach(dQ, @parforWaitBar);
 
-parforWaitBar(wB, height(mapData.inst.time));
+parforWaitBar(wB, nTimes);
 
 % Calculate Instantaneous Mapping Variables
-nParticles = cell(height(LagData.time),1); % Number of Particles in Cell
-d10 = nParticles; % Arithmetic Mean Diameter in Cell
-d20 = nParticles; % Surface Mean Diameter in Cell
-d30 = nParticles; % Volume Mean Diameter in Cell
-d32 = nParticles; % Sauter Mean Diameter in Cell
+nParticles = cell(nTimes,1); nParticles(:) = {zeros(height(mapData.positionGrid),1)}; % Number of Particles in Cell
 mass = nParticles; % Total Mass in Cell
 massNorm = nParticles; % Normalised Mass in Cell
+d43 = nParticles; % De Brouckere Mean Diameter in Cell
+d32 = nParticles; % Sauter Mean Diameter in Cell
+d30 = nParticles; % Volume Mean Diameter in Cell
+d20 = nParticles; % Surface Mean Diameter in Cell
+d10 = nParticles; % Arithmetic Mean Diameter in Cell
 
-positionGrid = mapData.positionGrid;
 positionCartesian = LagData.positionCartesian;
 nParticle = LagData.nParticle;
 d = LagData.d;
-parfor i = 1:height(mapData.inst.time)
-    nParticles{i} = zeros(height(positionGrid),1);
-    d10{i} = nParticles{i};
-    d20{i} = nParticles{i};
-    d30{i} = nParticles{i};
-    d32{i} = nParticles{i};
-    mass{i} = nParticles{i};
-    massNorm{i} = nParticles{i};
+parfor i = 1:nTimes
     
     for j = 1:height(positionCartesian{i})
         nParticles{i}(index{i}(j)) = nParticles{i}(index{i}(j)) + ...
                                      nParticle{i}(j);
-        d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
-                              (nParticle{i}(j) * d{i}(j));
-        d20{i}(index{i}(j)) = d20{i}(index{i}(j)) + ...
-                              (nParticle{i}(j) * (d{i}(j)^2));
-        d30{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
-                              (nParticle{i}(j) * (d{i}(j)^3));
+        
         mass{i}(index{i}(j)) = mass{i}(index{i}(j)) + ...
                                (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
+        
+        d43{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
+                              (nParticle{i}(j) * (d{i}(j)^4));
+        
+        d30{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
+                              (nParticle{i}(j) * (d{i}(j)^3));
+        
+        d20{i}(index{i}(j)) = d20{i}(index{i}(j)) + ...
+                              (nParticle{i}(j) * (d{i}(j)^2));
+        
+        d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
+                              (nParticle{i}(j) * d{i}(j));
     end
     
+    % Calculate Derived Variables
     mass{i} = 1000 * mass{i};
     massNorm{i} = mass{i} / normalisationValue;
+    d43{i} = (d43{i} ./ d30{i}) * 1e6;
     d32{i} = (d30{i} ./ d20{i}) * 1e6;
     d30{i} = ((d30{i} ./ nParticles{i}).^(1/3)) * 1e6;
     d20{i} = ((d20{i} ./ nParticles{i}).^(1/2)) * 1e6;
@@ -459,27 +495,27 @@ parfor i = 1:height(mapData.inst.time)
     
     send(dQ, []);
 end
-clear positionGrid positionCartesian nParticle d;
+clear i positionCartesian nParticle d;
 
 delete(wB);
 
-mapData.inst.nParticles = nParticles;
-mapData.inst.d10 = d10;
-mapData.inst.d20 = d20;
-mapData.inst.d30 = d30;
-mapData.inst.d32 = d32;
-mapData.inst.mass = mass;
-mapData.inst.massNorm = massNorm;
-clear nParticles d10 d20 d30 d32 mass massNorm;
+mapData.inst.nParticles = nParticles; clear nParticles;
+mapData.inst.mass = mass; clear mass;
+mapData.inst.massNorm = massNorm; clear massNorm;
+mapData.inst.d43 = d43; clear d43;
+mapData.inst.d32 = d32; clear d32;
+mapData.inst.d30 = d30; clear d30;
+mapData.inst.d20 = d20; clear d20;
+mapData.inst.d10 = d10; clear d10;
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Calculate Instantaneous Centre of Mass
-mapData.inst.CoM = cell(height(mapData.inst.time),1);
+mapData.inst.CoM = cell(nTimes,1); mapData.inst.CoM(:) = {zeros(1,3)};
 
-for i = 1:height(mapData.inst.time)
+for i = 1:nTimes
     mapData.inst.CoM{i} = zeros(1,3);
     
     mapData.inst.CoM{i}(1) = mapData.positionGrid(1,1);
@@ -488,6 +524,7 @@ for i = 1:height(mapData.inst.time)
     
     waitbar((i / height(mapData.inst.time)), wB);
 end
+clear i;
 
 delete(wB);
 
@@ -497,49 +534,43 @@ disp(' ');
 disp('    Generating Time-Averaged Contaminant Maps...');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Time-Averaged Mapping Variables', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Time-Averaged Map Variables', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-
-parforWaitBar(wB, height(mapData.inst.time));
 
 % Calculate Time-Averaged Mapping Variables
-nParticlesMean = zeros(height(mapData.positionGrid),1);
-d10Mean = nParticlesMean;
-d20Mean = nParticlesMean;
-d30Mean = nParticlesMean;
-d32Mean = nParticlesMean;
-massMean = nParticlesMean;
+mapData.mean.nParticles = zeros(height(mapData.positionGrid),1);
+mapData.mean.mass = mapData.mean.nParticles;
+mapData.mean.massNorm = mapData.mean.nParticles;
+mapData.mean.d43 = mapData.mean.nParticles;
+mapData.mean.d32 = mapData.mean.nParticles;
+mapData.mean.d30 = mapData.mean.nParticles;
+mapData.mean.d20 = mapData.mean.nParticles;
+mapData.mean.d10 = mapData.mean.nParticles;
 
-nParticles = mapData.inst.nParticles;
-d10 = mapData.inst.d10;
-d20 = mapData.inst.d20;
-d30 = mapData.inst.d30;
-d32 = mapData.inst.d32;
-mass = mapData.inst.mass;
-parfor i = 1:height(mapData.inst.time)
-    nParticlesMean = nParticlesMean + nParticles{i};
-    d10Mean = d10Mean + d10{i};
-    d20Mean = d20Mean + d20{i};
-    d30Mean = d30Mean + d30{i};
-    d32Mean = d32Mean + d32{i};
-    massMean = massMean + mass{i};
+for i = 1:nTimes
+    mapData.mean.nParticles = mapData.mean.nParticles + mapData.inst.nParticles{i};
+    mapData.mean.mass = mapData.mean.mass + mapData.inst.mass{i};
+    mapData.mean.massNorm = mapData.mean.massNorm + mapData.inst.massNorm{i};
+    mapData.mean.d43 = mapData.mean.d43 + mapData.inst.d43{i};
+    mapData.mean.d32 = mapData.mean.d32 + mapData.inst.d32{i};
+    mapData.mean.d30 = mapData.mean.d30 + mapData.inst.d30{i};
+    mapData.mean.d20 = mapData.mean.d20 + mapData.inst.d20{i};
+    mapData.mean.d10 = mapData.mean.d10 + mapData.inst.d10{i};
     
-    send(dQ, []);
+    waitbar((i / height(mapData.inst.time)), wB);
 end
-clear nParticles d10 d20 d30 d32 mass;
+clear i;
 
 delete(wB);
 
-mapData.mean.nParticles = nParticlesMean / height(mapData.inst.time);
-mapData.mean.d10 = d10Mean / height(mapData.inst.time);
-mapData.mean.d20 = d20Mean / height(mapData.inst.time);
-mapData.mean.d30 = d30Mean / height(mapData.inst.time);
-mapData.mean.d32 = d32Mean / height(mapData.inst.time);
-mapData.mean.mass = massMean / height(mapData.inst.time);
-mapData.mean.massNorm = mapData.mean.mass / normalisationValue;
-clear nParticlesMean d10Mean d20Mean d30Mean d32Mean massMean;
+mapData.mean.nParticles = mapData.mean.nParticles / nTimes;
+mapData.mean.mass = mapData.mean.mass / nTimes;
+mapData.mean.massNorm = mapData.mean.massNorm / nTimes;
+mapData.mean.d43 = mapData.mean.d43 / nTimes;
+mapData.mean.d32 = mapData.mean.d32 / nTimes;
+mapData.mean.d30 = mapData.mean.d30 / nTimes;
+mapData.mean.d20 = mapData.mean.d20 / nTimes;
+mapData.mean.d10 = mapData.mean.d10 / nTimes;
 
 % Calculate Time-Averaged Centre of Mass
 mapData.mean.CoM = zeros(1,3);
@@ -630,6 +661,7 @@ if plotInst || plotMean
         if ~valid
             disp('WARNING: No Mapping Variables Selected');
         end
+        
     end
     clear valid;
 
@@ -650,6 +682,7 @@ disp('-----------------');
 disp(' ');
 
 if plotInst || plotMean
+    
     % Define Plot Limits
     switch format
 
@@ -666,15 +699,9 @@ if plotInst || plotMean
             orientation = 'YZ';
 
             if contains(caseName, ["Run_Test", "Windsor"])
-%                 % Plot Numerical Data Range
-%                 xLimsPlot = [0.31875; 4.65925];
-%                 yLimsPlot = [-0.4945; 0.4945];
-%                 zLimsPlot = [0; 0.639];
-                
-                % Plot Experimental Data Range
-                xLimsPlot = [0.31875; 4.65925];
-                yLimsPlot = [-0.399; 0.218];
-                zLimsPlot = [0.0105; 0.4985];
+                xLimsPlot = [0.31875; 3.61525];
+                yLimsPlot = [-0.5945; 0.5945];
+                zLimsPlot = [0; 0.639];
             end
 
     end
@@ -702,41 +729,41 @@ if plotMean
         switch format
             
             case 'A'
-                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map'];
                 
             case 'B'
-                figName = ['Time_Averaged_', planePos, '_', plotVars{i}, '_Map', '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                figName = ['Time_Averaged_', planePos, '_', plotVars{i}, '_Map'];
                 
         end
         
-        contourlines = (0.2:0.2:0.8);
-%         contourlines = [];
+        if normalise
+            contourlines = (0.2:0.2:0.8);
+        else
+            contourlines = [];
+        end
         
         if any(strcmp(plotVars{i}, {'mass', 'massNorm'}))
-%             CoM = mapData.mean.CoM;
-            CoM = [];
+            refPoint = mapData.mean.CoM;
         else
-            CoM = [];
+            refPoint = [];
         end
             
         figSubtitle = ' ';
         
-        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
-%             cLims = dLims;
-            cLims = [0; 40]; % Max Planar Contamination
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32', 'd43'}))
+            cLims = [0; 150];
         elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 1]; % Max Base Contamination
-%             cLims = [0; 20]; % Max Planar Contamination
+            cLims = [0; 1];
         else
-%             cLims = [0; max(scalarData)];
-            cLims = [0; 14e-9];
+            cLims = [0; max(scalarData)];
         end
         
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise);
     end
+    clear i;
     
     disp(' ');
 end
@@ -745,16 +772,19 @@ if plotInst
     
     for i = 1:height(plotVars)
         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
-        
-        contourlines = [];
-        
-        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
-            cLims = dLims;
-        elseif strcmp(plotVars{i}, 'massNorm')
-            cLims = [0; 3.6];
+
+        if normalise
+            contourlines = (0.2:0.2:0.8);
         else
-%             cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
-            cLims = [0; 24e-9];
+            contourlines = [];
+        end
+
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
+            cLims = [0; 150];
+        elseif strcmp(plotVars{i}, 'massNorm')
+            cLims = [0; 1];
+        else
+            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
         end
         
         figHold = fig;
@@ -772,28 +802,29 @@ if plotInst
             switch format
                 
                 case 'A'
-                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.')];
                 
                 case 'B'
-                    figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.'), '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+                    figName = ['Instantaneous_', planePos, '_', plotVars{i}, '_Map_T', erase(figTime, '.')];
             end
             
         if contains(plotVars{i}, ["mass", "massNorm"])
-%             CoM = mapData.inst.CoM{j};
-            CoM = [];
+            refPoint = mapData.inst.CoM{j};
         else
-            CoM = [];
+            refPoint = [];
         end
             
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise);
         end
+        clear j;
         
     end
+    clear i;
     
     disp(' ');
 end

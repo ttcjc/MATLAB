@@ -17,7 +17,7 @@
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - Added Support for ‘Snapshot’ Data Collation
+% v2.0 - Added Support for ‘Snapshot’ Data Collation and the ‘Uslip’ Field
 
 
 %% Suported Data Collation Formats
@@ -28,8 +28,8 @@
 
 %% Main Function
 
-function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID, LagProps, ...
-                                      timeDirs, sampleInterval, format)
+function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+                                      LagProps, timeDirs, sampleInterval, format)
     
     % Collate Planar Lagrangian Data
     disp('============');
@@ -45,101 +45,162 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
 
     tic;
     
-    dataFile = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
+    if distributedFiles
 
-    disp(['    Loading ''', dataFile.name, '''...']);
+        % Identify Distributed Directories
+        dataDirs = dir([caseFolder, '/LagrangianSurfaceContamination']);
+
+        i = 1;
+        while i <= height(dataDirs)
+
+            if isnan(str2double(dataDirs(i).name))
+                dataDirs(i,:) = [];
+            else
+                i = i + 1;
+            end
+
+        end
+        clear i;
+
+        % Concatenate Distributed Files
+        disp('    Concatenating ''LagrangianSurfaceContaminationData'' Files...');
+
+        contentInt = [];
+        contentFloat = [];
+
+        for i = 1:height(dataDirs)
+
+            if str2double(dataDirs(i).name) <= str2double(timeDirs(end).name)
+                dataFile = dir([caseFolder, '/LagrangianSurfaceContamination/', dataDirs(i).name, '/LagrangianSurfaceContaminationData']);
+
+                fileID = fopen([caseFolder, '/LagrangianSurfaceContamination/', dataDirs(i).name, '/', dataFile.name]);
+                contentRaw = textscan(fileID, '%f32 %u32 %u32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32', 'headerLines', 0, 'delimiter', '\n');
+
+                contentInt = [contentInt; cell2mat(contentRaw(2:3))]; %#ok<AGROW>
+                contentFloat = [contentFloat; cell2mat(contentRaw([1,(4:end)]))]; %#ok<AGROW>
+
+                fclose(fileID);
+            else
+                break;
+            end
+
+        end
+        clear i;
+
+    else
+
+        % Read Data File
+        dataFile = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
+
+        disp(['    Loading ''', dataFile.name, '''...']);
+
+        fileID = fopen([caseFolder, '/LagrangianSurfaceContamination/', dataFile.name]);
+        contentRaw = textscan(fileID, '%f32 %u32 %u32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32 %f32', 'headerLines', 0, 'delimiter', '\n');
+
+        contentInt = cell2mat(contentRaw(2:3));
+        contentFloat = cell2mat(contentRaw([1,(4:end)]));
+
+        fclose(fileID);
+    end
     
-    % Read Data File
-    content = readmatrix([caseFolder, '/LagrangianSurfaceContamination/', dataFile.name], 'fileType', 'text', 'trailingDelimitersRule', 'ignore');
-
-    % Bin Particle Impacts Into Desired Frequency Windows
-    LagData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
+    % Reduce Time Instances to Desired Sampling Frequency
+    sampleTimes = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
+    nTimes = height(sampleTimes);
 
     j = height(timeDirs);
-    for i = height(LagData.time):-1:1
-        LagData.time(i) = str2double(timeDirs(j).name);
+    for i = nTimes:-1:1
+        sampleTimes(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
+    clear i k;
 
     % Initialise Particle Properties
-    LagData.timeExact = cell(height(LagData.time),1);
+    LagData.time = sampleTimes;
+    LagData.timeExact = cell(nTimes,1);
 
     for i = 1:height(LagProps)
         prop = LagProps{i};
-        LagData.(prop) = cell(height(LagData.time),1);
+        LagData.(prop) = cell(nTimes,1);
     end
+    clear i;
 
-    % Initialise Progress Bar
-    wB = waitbar(0, 'Collating Surface Contamination Data', 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
+    disp(' ');
 
     % Collate Data
+    disp('        Collating Surface Data...');
+
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Collating Surface Data', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+
+    % Perform Collation
     switch format
 
         case 'cumulative'
             
             timeZero = LagData.time(1) - (LagData.time(2) - LagData.time(1));
-            for i = 1:height(LagData.time)
+            for i = 1:nTimes
                 
                 if i == 1
-                    index = find((content(:,1) > timeZero) & ...
-                                 (content(:,1) <= LagData.time(1)));
+                    index = find((contentFloat(:,1) > timeZero) & ...
+                                 (contentFloat(:,1) <= LagData.time(1)));
                 else
-                    index = find((content(:,1) > LagData.time(i - 1)) & ...
-                                 (content(:,1) <= LagData.time(i)));
+                    index = find((contentFloat(:,1) > LagData.time(i - 1)) & ...
+                                 (contentFloat(:,1) <= LagData.time(i)));
                 end
                 
                 if ~isempty(index)
-                    LagData.timeExact{i} = content(index,1);
-                    LagData.origId{i} = content(index,2);
-                    LagData.origProcId{i} = content(index,3);
-                    LagData.d{i} = content(index,4);
-                    LagData.nParticle{i} = content(index,5);
-                    LagData.positionCartesian{i} = content(index,[6,7,8]);
-                    LagData.U{i} = content(index,[9,10,11]);
-                    LagData.Uslip{i} = content(index,[12,13,14]);
+                    LagData.timeExact{i} = contentFloat(index,1);
+                    LagData.origId{i} = contentInt(index,1);
+                    LagData.origProcId{i} = contentInt(index,2);
+                    LagData.d{i} = contentFloat(index,2);
+                    LagData.nParticle{i} = contentFloat(index,3);
+                    LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
+                    LagData.U{i} = contentFloat(index,[7,8,9]);
+                    LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
                 
-                waitbar((i / height(LagData.time)), wB);
+                waitbar((i / nTimes), wB);
             end
+            clear i;
 
         case 'snapshot'
             
-            temporalSmoothing = 5e-5;
+            temporalSmoothing = 100e-6;
             for i = 1:height(LagData.time)
-                index = find((content(:,1) >= (LagData.time(i) - temporalSmoothing)) & ...
-                             (content(:,1) <= (LagData.time(i) + temporalSmoothing)));
+                index = find((contentFloat(:,1) >= (LagData.time(i) - temporalSmoothing)) & ...
+                             (contentFloat(:,1) <= LagData.time(i)));
                 
                 if ~isempty(index)
-                    LagData.timeExact{i} = content(index,1);
-                    LagData.origId{i} = content(index,2);
-                    LagData.origProcId{i} = content(index,3);
-                    LagData.d{i} = content(index,4);
-                    LagData.nParticle{i} = content(index,5);
-                    LagData.positionCartesian{i} = content(index,[6,7,8]);
-                    LagData.U{i} = content(index,[9,10,11]);
-                    LagData.Uslip{i} = content(index,[12,13,14]);
+                    LagData.timeExact{i} = contentFloat(index,1);
+                    LagData.origId{i} = contentInt(index,1);
+                    LagData.origProcId{i} = contentInt(index,2);
+                    LagData.d{i} = contentFloat(index,2);
+                    LagData.nParticle{i} = contentFloat(index,3);
+                    LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
+                    LagData.U{i} = contentFloat(index,[7,8,9]);
+                    LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
         
-                waitbar((i / height(LagData.time)), wB);
+                waitbar((i / nTimes), wB);
             end
+            clear i;
 
     end
 
     delete(wB);
-    
-    executionTime = toc;
-    
-    disp(' ');
-
-    disp(['    Read Time: ', num2str(executionTime), 's']);
 
     disp(' ');
 
     % Sort Particles in ID Order
     disp('    Sorting Particles...');
     
-    for i = 1:height(LagData.time)
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Sorting Particles', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    
+    % Perform Sort
+    for i = 1:nTimes
         [LagData.origId{i}, index] = sort(LagData.origId{i});
         
         LagData.timeExact{i} = LagData.timeExact{i}(index);
@@ -155,9 +216,21 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
             end
             
         end
+        clear j;
         
+        waitbar((i / nTimes), wB);
     end
+    clear i;
     
+    delete(wB);
+    
+    evalc('delete(gcp(''nocreate''));');
+    executionTime = toc;
+
+    disp(' ');
+
+    disp(['    Run Time: ', num2str(executionTime), 's']);
+
     disp(' ');
     
     disp('  SUCCESS  ')
@@ -198,5 +271,6 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, dataID
         end
         
     end
+    clear valid;
     
 end

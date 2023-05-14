@@ -42,7 +42,7 @@ disp(' ');
 % v2.0 - Rewritten to Follow Recent Lagrangian Processing Structure Changes
 % v2.1 - Added Time-Averaging Functionality
 % v3.0 - Rewrite, Accommodating New OpenFOAM Data Formats
-% v3.1 - Added Support for Multiple Mean Particle Diameter Definitions
+% v3.1 - Added Support for Multiple Mean Particle Diameter Definitions (Memory Intensive)
 % v3.2 - Removed Parallelisation of Field Calculations to Reduce Memory Requirements
 
 
@@ -262,11 +262,11 @@ afterEach(dQ, @parforWaitBar);
 parforWaitBar(wB, nTimes);
 
 % Collate Particles of Interest
-index = cell(height(LagData.time),1);
+index = cell(nTimes,1);
 
 d = LagData.d;
 positionCartesian = LagData.positionCartesian;
-parfor i = 1:height(LagData.time)
+parfor i = 1:nTimes
     
     if ~isempty(positionCartesian{i})
         index{i} = find(((d{i} * 1e6) >= dLims(1)) & ...

@@ -113,8 +113,7 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
         case 'tomo'            
             % Initialise Position Grid
             fileID = fopen([caseFolder, '/', dataFiles(1).name]);
-            content = textscan(fileID, '%f %f %f %f %f %f %f %f', 'headerLines', 4, 'delimiter', ' ', 'CollectOutput', true);
-            content = content{1};
+            content = cell2mat(textscan(fileID, '%f %f %f %f %f %f %f %f', 'headerLines', 4, 'delimiter', '\n'));
             fclose(fileID);
         
             % Rotate Co-Ordinate System and Convert to Metres
@@ -158,8 +157,7 @@ function [caseFolder, caseName, PIVdata, format, samplingFrequency] = initialise
 
             parfor i = 1:height(dataFiles)
                 fileID = fopen([caseFolder, '/', dataFiles(i).name]);
-                content = textscan(fileID, '%f %f %f %f %f %f %f %f', 'headerLines', 4, 'delimiter', ' ', 'CollectOutput', true);
-                content = content{1};
+                content = cell2mat(textscan(fileID, '%f %f %f %f %f %f %f %f', 'headerLines', 4, 'delimiter', '\n'));
                 fclose(fileID);
         
                 time(i) = i * (1 / samplingFrequency);

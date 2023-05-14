@@ -1,4 +1,4 @@
-%% Volumetric Lagrangian Data Reader v3.0
+%% Volumetric Lagrangian Data Reader v3.1
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
@@ -21,6 +21,7 @@
 % v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
 % v2.0 - Rewrite to Support 'LagrangianExtractionPlaneData'
 % v3.0 - Parallelised and Split Into Separate Planar, Surface and Volumetric Functions
+% v3.1 - Improved Efficiency of Scalar Data Collation and Added Support for the ‘Uslip’ Field
 
 
 %% Main Function
@@ -37,23 +38,26 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
     
     disp('***********');
     disp(' COLLATING ');
-
+    
     tic;
     evalc('parpool(nProc);');
     
     % Reduce Time Instances to Desired Sampling Frequency
-    LagData.time = zeros(ceil(height(timeDirs) / sampleInterval),1);
-    
+    LagData.time = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
+    nTimes = height(LagData.time);
+
     j = height(timeDirs);
-    for i = height(LagData.time):-1:1
+    for i = nTimes:-1:1
         LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
+    clear i k;
     
     % Read Particle Properties
     for i = 1:height(LagProps)
         prop = LagProps{i};
-        propData = cell(height(LagData.time),1);
+        
+        disp(['    Collating ''', prop, ''' Data...']);
         
         % Initialise Progress Bar
         wB = waitbar(0, ['Collating ''', prop, ''' Data'], 'name', 'Progress');
@@ -61,35 +65,35 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         dQ = parallel.pool.DataQueue;
         afterEach(dQ, @parforWaitBar);
         
-        parforWaitBar(wB, height(LagData.time));
+        parforWaitBar(wB, nTimes);
         
         % Collate Data
+        propData = cell(nTimes,1);
+        
         time = LagData.time;
-        parfor j = 1:height(LagData.time)
+        parfor j = 1:nTimes
             propData{j} = readInstPropData(caseFolder, num2str(time(j), '%.7g'), cloudName, prop);
             
             send(dQ, []);
         end
-        clear time;
-        
-        LagData.(prop) = propData;
+        clear j time;
         
         delete(wB);
+        
+        LagData.(prop) = propData; clear propData;
     end
-    
-    evalc('delete(gcp(''nocreate''));');
-    executionTime = toc;
-
-    disp(' ');
-
-    disp(['    Read Time: ', num2str(executionTime), 's']);
+    clear i;
 
     disp(' ');
 
     % Sort Particles in ID Order
     disp('    Sorting Particles...');
     
-    for i = 1:1:height(LagData.time)
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Sorting Particles', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    
+    for i = 1:1:nTimes
         [LagData.origId{i}, index] = sort(LagData.origId{i});
         
         for j = 1:height(LagProps)
@@ -103,11 +107,23 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
             end
             
         end
+        clear j;
         
+        waitbar((i / nTimes), wB);
     end
+    clear i;
+    
+    delete(wB);
+
+    evalc('delete(gcp(''nocreate''));');
+    executionTime = toc;
 
     disp(' ');
-    
+
+    disp(['    Run Time: ', num2str(executionTime), 's']);
+
+    disp(' ');
+
     disp('  SUCCESS  ');
     disp('***********');
     
@@ -136,6 +152,7 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         end
         
     end
+    clear valid;
 
 end
 
@@ -145,10 +162,17 @@ end
 function propData = readInstPropData(caseFolder, time, cloudName, prop)
     
     fileID = fopen([caseFolder, '/', time, '/lagrangian/', cloudName, '/', prop]);
-    content = textscan(fileID, '%s', 'headerLines', 15, 'delimiter', '\n', 'collectOutput', true);
+    content = textscan(fileID, '%s', 'headerLines', 7, 'delimiter', '\n');
+    
+    if contains(content{1}{5}, 'labelField')
+        type = 'int';
+    else
+        type = 'float';
+    end        
+    
     frewind(fileID);
     
-    if height(content{1}) == 5
+    if height(content{1}) == 13
         
         if contains(content{1}{3}, '{')
             format = 'A';
@@ -176,7 +200,15 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
             nParticles = str2double(dataLine(1:(dataStart - 2)));
             dataVal = str2double(dataLine(dataStart:dataEnd));
             
-            propData = dataVal * ones(nParticles,1);
+            switch type
+                
+                case 'int'
+                    propData = uint32(dataVal * ones(nParticles,1));
+                    
+                case 'float'
+                    propData = single(dataVal * ones(nParticles,1));
+                    
+            end
             
         case 'B'
             dataLine = content{1}{3};
@@ -184,13 +216,28 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
             dataEnd = strfind(dataLine, ')') - 1;
             
             dataVals = (dataLine(dataStart:dataEnd));
-            
-            propData = str2double(split(dataVals, ' '));
+
+            switch type
+
+                case 'int'
+                    propData = uint64(str2double(split(dataVals, ' ')));
+                
+                case 'float'
+                    propData = single(str2double(split(dataVals, ' ')));
+                    
+            end
             
         case 'C'
-            dataRange = content{1}(6:(end - 4));
             
-            propData = str2double(dataRange);
+            switch type
+
+                case 'int'
+                    propData = cell2mat(textscan(fileID, '%u32', 'headerLines', 20, 'delimiter', '\n'));
+                
+                case 'float'
+                    propData = cell2mat(textscan(fileID, '%f32', 'headerLines', 20, 'delimiter', '\n'));
+                    
+            end
             
         case 'D'
             dataLine = content{1}{3};
@@ -199,14 +246,14 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
             
             dataVecs = (dataLine(dataStart:dataEnd));
             
-            propData = cell2mat(textscan(dataVecs, '(%f %f %f)', 'delimiter', ' ', 'collectOutput', true));
+            propData = cell2mat(textscan(dataVecs, '(%f32 %f32 %f32)', 'headerLines', 0, 'delimiter', '\n'));
             
         case 'E'
-            propData = cell2mat(textscan(fileID, '(%f %f %f)', 'headerLines', 20, 'delimiter', '\n', 'collectOutput', true));
+            propData = cell2mat(textscan(fileID, '(%f32 %f32 %f32)', 'headerLines', 20, 'delimiter', '\n'));
         
         case 'F'
             % Barycentric Co-Ordinates Are Confusing and Not Very Useful
-    
+            
     end
     
     fclose(fileID);

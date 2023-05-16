@@ -124,9 +124,7 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseName, distri
     end
     clear i;
 
-    disp(' ');
-
-    % Collate Data
+    % Collate Particle Data
     disp('        Collating Surface Data...');
 
     % Initialise Progress Bar

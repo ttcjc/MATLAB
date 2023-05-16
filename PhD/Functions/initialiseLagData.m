@@ -4,8 +4,8 @@
 % ----
 % Usage: [dataID, LagProps, LagDataPlane, LagDataSurface, ...
 %         LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
-%                                                                    plane, surface, volume, ...
-%                                                                    timeDirs, deltaT, timePrecision, nProc);
+%                                                                    plane, surface, volume, timeDirs, deltaT, ...
+%                                                                    timePrecision, nProc);
 %        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'    -> Case Path, Stored as s String
 %        'caseName'      -> Case Name, Stored as a String
@@ -64,15 +64,11 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
         % Check for Distributed Files
-        try
-            dataFilesPlane = dir([caseFolder, '/LagrangianExtractionPlane/*/LagrangianExtractionPlaneData_*']);
-            distributedFiles = true;
-        catch
-            dataFilesPlane = dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']);
+        if ~isempty(dir([caseFolder, '/LagrangianExtractionPlane/LagrangianExtractionPlaneData_*']))
             distributedFiles = false;
-        end
-
-        if isempty(dataFilesPlane)
+        elseif ~isempty(dir([caseFolder, '/LagrangianExtractionPlane/*/LagrangianExtractionPlaneData_*']))
+            distributedFiles = true;
+        else
             error('Invalid Case Directory (No Plane Data Available)');
         end
         
@@ -85,15 +81,11 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
         end
 
         % Check for Distributed Files
-        try
-            dataFilesSurface = dir([caseFolder, '/LagrangianSurfaceContamination/*/LagrangianSurfaceContaminationData']);
-            distributedFiles = true;
-        catch
-            dataFilesSurface = dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']);
+        if ~isempty(dir([caseFolder, '/LagrangianSurfaceContamination/LagrangianSurfaceContaminationData']))
             distributedFiles = false;
-        end
-
-        if isempty(dataFilesSurface)
+        elseif ~isempty(dir([caseFolder, '/LagrangianSurfaceContamination/*/LagrangianSurfaceContaminationData']))
+            distributedFiles = true;
+        else
             error('Invalid Case Directory (No Surface Data Available)');
         end
         

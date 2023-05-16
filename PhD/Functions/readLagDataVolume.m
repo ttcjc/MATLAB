@@ -38,6 +38,8 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
     
     disp('***********');
     disp(' COLLATING ');
+
+    disp(' ');
     
     tic;
     evalc('parpool(nProc);');
@@ -51,9 +53,9 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInterval;
     end
-    clear i k;
+    clear i j;
     
-    % Read Particle Properties
+    % Collate Particle Data
     for i = 1:height(LagProps)
         prop = LagProps{i};
         
@@ -67,7 +69,7 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
         
         parforWaitBar(wB, nTimes);
         
-        % Collate Data
+        % Perform Collation
         propData = cell(nTimes,1);
         
         time = LagData.time;
@@ -93,6 +95,7 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
     wB = waitbar(0, 'Sorting Particles', 'name', 'Progress');
     wB.Children.Title.Interpreter = 'none';
     
+    % Perform Sort
     for i = 1:1:nTimes
         [LagData.origId{i}, index] = sort(LagData.origId{i});
         
@@ -174,17 +177,17 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
     
     if height(content{1}) == 13
         
-        if contains(content{1}{3}, '{')
+        if contains(content{1}{11}, '{')
             format = 'A';
-        elseif contains(content{1}{3}, '((')
+        elseif contains(content{1}{11}, '((')
             format = 'D';
         else
             format = 'B';
         end
         
-    elseif ~isempty(content{1}{3})
+    elseif ~isempty(content{1}{11})
         format = 'F';
-    elseif contains(content{1}{6}, '(')
+    elseif contains(content{1}{14}, '(')
         format = 'E';
     else
         format = 'C';
@@ -193,7 +196,7 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
     switch format
         
         case 'A'
-            dataLine = content{1}{3};
+            dataLine = content{1}{11};
             dataStart = strfind(dataLine, '{') + 1;
             dataEnd = strfind(dataLine, '}') - 1;
             
@@ -211,7 +214,7 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
             end
             
         case 'B'
-            dataLine = content{1}{3};
+            dataLine = content{1}{11};
             dataStart = strfind(dataLine, '(') + 1;
             dataEnd = strfind(dataLine, ')') - 1;
             
@@ -240,7 +243,7 @@ function propData = readInstPropData(caseFolder, time, cloudName, prop)
             end
             
         case 'D'
-            dataLine = content{1}{3};
+            dataLine = content{1}{11};
             dataStart = strfind(dataLine, '((') + 1;
             dataEnd = strfind(dataLine, '))');
             

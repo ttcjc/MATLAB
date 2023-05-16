@@ -82,6 +82,7 @@ while ~valid
     end
 
 end
+clear valid;
 
 disp(' ');
 disp(' ');
@@ -93,9 +94,6 @@ disp(' ');
                                                                       cloudName, false, false, ...
                                                                       true, timeDirs, deltaT, ...
                                                                       timePrecision, nProc);
-if normalise
-    dataID = [dataID, '_Norm'];
-end
 
 disp(' ');
 disp(' ');
@@ -114,7 +112,11 @@ while ~valid
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        dLims = [1; 120];
+        
+        if contains(caseName, ["Run_Test", "Windsor"])
+            dLims = [1; 147];
+        end
+
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         dLims(1) = inputD('Min');
@@ -133,7 +135,7 @@ while ~valid
         dLims(1) = floor(dLims(1));
         dLims(2) = ceil(dLims(2));
         
-        if (dLims(2) < 1) || (dLims(1) > 120)
+        if contains(caseName, "Run_Test", "Windsor") && ((dLims(2) < 1) || (dLims(1) > 147))
             disp('        WARNING: No Lagrangian Data in Diameter Range');
             continue;
         end
@@ -144,9 +146,10 @@ while ~valid
     end
 
 end
+clear valid;
 
 if normalise
-    dataID = insertBefore(dataID, '_Norm', ['_D', num2str(dLims(1)), '_D', num2str(dLims(2))]);
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_Norm'];
 else
     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 end
@@ -165,30 +168,29 @@ disp(' ');
 disp('***********');
 disp('  RUNNING ');
 
-tic;
-evalc('parpool(nProc);');
+% tic;
+% evalc('parpool(''threads'');');
 
 disp(' ');
 
 disp('    Initialising...');
 
-% Identify Empty Time Instances
-i = 1;
-while i <= height(LagData.time)
+nTimes = height(LagData.time);
+
+% Identify Empty Time Instances Not Related to Case Initialisation
+emptyTimes = cellfun(@isempty, LagData.origId);
+firstValidTime = find(emptyTimes == true, 1, 'first');
+
+suspectTimes = find(emptyTimes(firstValidTime:end) == 0);
+
+if ~isempty(suspectTimes)
     
-    if isempty(LagData.d{i})
-        
-        for j = 1:height(LagProps)
-            LagData.(LagProps{j}){i} = [];
-        end
-        
-    else
-        i = i + 1;
+    for i = suspectTimes
+        disp(['        WARNING: Time ''', num2str(LagData.time(i)), ''' Is Unexpectedly Empty']);
     end
+    clear i;
     
 end
-
-nTimes = height(LagData.time);
 
 % Shift Data Origin
 if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
@@ -200,6 +202,7 @@ if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(
         end
         
     end
+    clear i;
     
 end
 
@@ -286,16 +289,24 @@ clear d positionCartesian;
 delete(wB);
 
 % Remove Unnecessary Data
-LagData = rmfield(LagData, {'origId', 'origProcId', 'U'});
-LagProps = {'d'; 'nParticle'; 'positionCartesian'};
+disp('    Removing Unnecessary Data...');
+
+LagFields = fieldnames(LagData);
+reqFields = {'time'; 'd'; 'nParticle'; 'positionCartesian'};
+
+LagData = rmfield(LagData, LagFields(~ismember(LagFields, reqFields)));
+LagProps = LagProps(ismember(LagProps, reqFields));
 
 for i = 1:nTimes
+    LagData.timeExact{i} = LagData.timeExact{i}(index{i});
     
     for j = 1:height(LagProps)
         LagData.(LagProps{j}){i} = LagData.(LagProps{j}){i}(index{i},:);
     end
-    
+    clear j;
+
 end
+clear i;
 
 disp(' ');
 
@@ -313,9 +324,9 @@ cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)
 
 cellSize.volume = cellSize.x * cellSize.y * cellSize.z;
 
-[volumeData.x, volumeData.y, volumeData.z] = ndgrid(xLimsData(1):(cellSize.x):xLimsData(2), ...
-                                                    yLimsData(1):(cellSize.y):yLimsData(2), ...
-                                                    zLimsData(1):(cellSize.z):zLimsData(2));
+[x, y, z] = ndgrid(xLimsData(1):(cellSize.x):xLimsData(2), ...
+                   yLimsData(1):(cellSize.y):yLimsData(2), ...
+                   zLimsData(1):(cellSize.z):zLimsData(2));
 
 volumeData.inst.time = LagData.time;
 
@@ -332,9 +343,6 @@ totalParticles = cellfun(@height, LagData.positionCartesian);
 index = cell(nTimes,1); % Array Position of Closest Mesh Node
 
 positionCartesian = LagData.positionCartesian;
-x = volumeData.x;
-y = volumeData.y;
-z = volumeData.z;
 parfor i = 1:nTimes
     
     if totalParticles(i) > 0
@@ -479,11 +487,11 @@ volumeData.mean.d10 = volumeData.mean.d10 / nTimes;
 delete(wB);
 
 evalc('delete(gcp(''nocreate''));');
-executionTime = toc;
+% executionTime = toc;
 
 disp(' ');
 
-disp(['    Run Time: ', num2str(executionTime), 's']);
+% disp(['    Run Time: ', num2str(executionTime), 's']);
 
 disp(' ');
 

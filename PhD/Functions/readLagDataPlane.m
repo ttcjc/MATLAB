@@ -113,6 +113,9 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distribu
         else
             
             % Read Data File
+            if i ~= 1
+                disp(' ');
+            end
             disp(['    Loading ''', dataFiles(i).name, '''...']);
             
             fileID = fopen([caseFolder, '/LagrangianExtractionPlane/', dataFiles(i).name]);
@@ -146,9 +149,7 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distribu
         end
         clear j;
         
-        disp(' ');
-        
-        % Collate Data
+        % Collate Particle Data
         disp(['        Collating ''', plane, ''' Data...']);
         
         % Initialise Progress Bar

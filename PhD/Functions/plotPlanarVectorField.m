@@ -2,10 +2,12 @@
 % ----
 % Plots Previously Processed Planar Vector Fields
 % ----
-% Usage: [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsData, zLimsData, positionData, vectorData, ...
-%                                               nComponents, component, mapPerim, nPlanes, planeNo, ...
-%                                               fig, figName, Map, geometry, streamlines, xDims, yDims, zDims, ...
-%                                               figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise);
+% Usage: [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+%                                               vectorData, nComponents, component, mapPerim, ...
+%                                               nPlanes, planeNo, fig, figName, cMap, geometry, ...
+%                                               streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
+%                                               cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave)
+% 
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        '*LimsData'    -> Contour Plot Limits
 %        'positionData' -> Cartesian Positions of Data Points
@@ -26,6 +28,7 @@
 %        'cLims'        -> Colour Map Limits
 %        '*LimsPlot'    -> 3D Axes Limits
 %        'normalise'    -> Normalise Dimensions [True/False]
+%        'figSave'     -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -37,10 +40,11 @@
 
 %% Main Function
 
-function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsData, zLimsData, positionData, vectorData, ...
-                                                nComponents, component, mapPerim, nPlanes, planeNo, ...
-                                                fig, figName, cMap, geometry, streamlines, xDims, yDims, zDims, ...
-                                                figTitle, figSubtitle, cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise)
+function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+                                                vectorData, nComponents, component, mapPerim, ...
+                                                nPlanes, planeNo, fig, figName, cMap, geometry, ...
+                                                streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
+                                                cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave)
     
     cellSize = 1e-3; % [m or l]
     
@@ -218,9 +222,10 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 20, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -236,28 +241,30 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                               'edgeColor', [0.5, 0.5, 0.5], ...
                               'lineStyle', 'none');
                     end
+                    clear i;
                     
                 end
 
             end
 
-            % Plot Contour
+            % Plot Vector Field
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(vector), ...
-                 'lineStyle', 'none', 'faceLighting', 'none');
+                 'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
 
-            % Plot Geometry Outline
-            if nPlanes == 1 && ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
-                          geometry.(parts{i}).boundaries.YZ(:,2), ...
-                          geometry.(parts{i}).boundaries.YZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
-            end
+%             % Plot Geometry Outline
+%             if nPlanes == 1 && ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
+% 
+%                 for i = 1:height(parts)
+%                     geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
+% 
+%                     plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
+%                           geometry.(parts{i}).boundaries.YZ(:,2), ...
+%                           geometry.(parts{i}).boundaries.YZ(:,3), ...
+%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+%                 end
+%                 clear i;
+% 
+%             end
 
             % Plot Streamlines
             if streamlines
@@ -270,7 +277,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                 
                 streams = streamslice(x, y, z, zeros(size(x)), v, w, xLimsData, [], [], ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
             % Format Figure
@@ -290,9 +297,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     tickData = [];
                     xticks(tickData);
                     tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-                    yticks(tickData(2:(end - 1)));
+                    xticks(tickData(2:5));
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-                    zticks(tickData(2:(end - 1)));
+                    zticks(tickData(2:5));
                     xtickformat('%+.2f');
                     ytickformat('%+.2f');
                     ztickformat('%+.2f');
@@ -323,14 +330,16 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     zticks(tickData);
                 end
                 
-                set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
                 hold off;
                 
                 % Save Figure
                 pause(2);
-                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                
+                if figSave
+                    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                end
+                
             else
                 planeNo = planeNo + 1;
             end
@@ -339,9 +348,10 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 20, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -357,28 +367,30 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                               'edgeColor', [0.5, 0.5, 0.5], ...
                               'lineStyle', 'none');
                     end
+                    clear i;
                     
                 end
 
             end
 
-            % Plot Contour
+            % Plot Vector Field
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
-                 'lineStyle', 'none', 'faceLighting', 'none');
+                 'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
 
-            % Plot Geometry Outline
-            if nPlanes == 1 && ~isempty(geometry) && yLimsData < yDims(1)
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XZ(:,1) = yLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
-                          geometry.(parts{i}).boundaries.XZ(:,2), ...
-                          geometry.(parts{i}).boundaries.XZ(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
-            end
+%             % Plot Geometry Outline
+%             if nPlanes == 1 && ~isempty(geometry) && yLimsData < yDims(1)
+% 
+%                 for i = 1:height(parts)
+%                     geometry.(parts{i}).boundaries.XZ(:,1) = yLimsData;
+% 
+%                     plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
+%                           geometry.(parts{i}).boundaries.XZ(:,2), ...
+%                           geometry.(parts{i}).boundaries.XZ(:,3), ...
+%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+%                 end
+%                 clear i;
+% 
+%             end
 
             % Plot Streamlines
             if streamlines
@@ -391,7 +403,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                 
                 streams = streamslice(x, y, z, u, zeros(size(x)), w, [], yLimsData, [], ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
             % Format Figure
@@ -409,11 +421,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
                     tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-                    xticks(tickData(2:(end - 1)));
+                    x(tickData(2:5));
                     tickData = [];
                     yticks(tickData);
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-                    zticks(tickData(2:(end - 1)));
+                    zticks(tickData(2:5));
                     xtickformat('%+.2f');
                     ytickformat('%+.2f');
                     ztickformat('%+.2f');
@@ -444,14 +456,16 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     zticks(tickData);
                 end
                 
-                set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
                 hold off;
                 
                 % Save Figure
                 pause(2);
-                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                
+                if figSave
+                    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                end
+                
             else
                 planeNo = planeNo + 1;
             end
@@ -460,9 +474,10 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 20, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -478,28 +493,30 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                               'edgeColor', [0.5, 0.5, 0.5], ...
                               'lineStyle', 'none');
                     end
+                    clear i;
                     
                 end
 
             end
 
-            % Plot Contour
+            % Plot Vector Field
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(vector), ...
-                 'lineStyle', 'none', 'faceLighting', 'none');
+                 'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
 
-            % Plot Geometry Outline
-            if nPlanes == 1 && ~isempty(geometry) && zLimsData > zDims(2)
-
-                for i = 1:height(parts)
-                    geometry.(parts{i}).boundaries.XZ(:,1) = zLimsData;
-
-                    plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
-                          geometry.(parts{i}).boundaries.XY(:,2), ...
-                          geometry.(parts{i}).boundaries.XY(:,3), ...
-                          'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-                end
-
-            end
+%             % Plot Geometry Outline
+%             if nPlanes == 1 && ~isempty(geometry) && zLimsData > zDims(2)
+% 
+%                 for i = 1:height(parts)
+%                     geometry.(parts{i}).boundaries.XZ(:,1) = zLimsData;
+% 
+%                     plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
+%                           geometry.(parts{i}).boundaries.XY(:,2), ...
+%                           geometry.(parts{i}).boundaries.XY(:,3), ...
+%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
+%                 end
+%                 clear i;
+% 
+%             end
 
             % Plot Streamlines
             if streamlines
@@ -512,7 +529,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                 
                 streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], zLimsData, ...
                                       2, 'arrows', 'linear');
-                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 1);
+                set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
             % Format Figure
@@ -530,9 +547,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
                     tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
-                    xticks(tickData(2:(end - 1)));
+                    xticks(tickData(2:5));
                     tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-                    yticks(tickData(2:(end - 1)));
+                    yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);
                     xtickformat('%+.2f');
@@ -565,14 +582,16 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, xLimsData, yLimsDat
                     zticks(tickData);
                 end
                 
-                set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
                 hold off;
                 
                 % Save Figure
                 pause(2);
-                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                
+                if figSave
+                    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+                end
+                
             else
                 planeNo = planeNo + 1;
             end

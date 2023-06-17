@@ -1,22 +1,28 @@
-%% Experimental Spray Data Initialisation v1.0
+%% Experimental Spray Data Initialisation v1.1
 % ----
-% Hi
+% Initialisation of Experimental Spray Data for Further Processing
 % ----
-% Usage: [] = initialiseExpSprayData();
-%        'Baa' -> Moo
+% Usage: [] = [caseFolder, caseID, ...
+%              expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc)
+%
+%        'saveLocation'  -> Start of File Path, Stored as a String
+%        'nProc'         -> Number of Processors Used for Parallel Collation
+
 
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
 
 
 %% Main Function
 
-function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc) %#ok<INUSD>
+function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc) %#ok<INUSD>
 
     % Load Previously Collated Data (If Desired/Possible)
     disp('Experimental Spray Data Load');
     disp('-----------------------------');
+    
     valid = false;
     while ~valid
         disp(' ');
@@ -30,12 +36,13 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
 
             if contains(filePath, '/planarExperimentalSpray/')
                 disp(['    Loading ''', fileName, '''...']);
+                
+                caseFolder = load([filePath, fileName], 'caseFolder').caseFolder;
+                caseID = load([filePath, fileName], 'caseID').caseID;
                 expSprayData = load([filePath, fileName], 'expSprayData').expSprayData;
                 samplingFrequency = load([filePath, fileName], 'samplingFrequency').samplingFrequency;
+                
                 disp('        Success');
-
-                caseFolder = [];
-                caseName = fileName(1:(end - 4));
                 
                 return;
             else
@@ -49,6 +56,7 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
         end
 
     end
+    clear valid;
 
     disp(' ');
     disp(' ');
@@ -57,14 +65,14 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
     disp('Experimental Spray Data Acquisition');
     disp('------------------------------------');
     
-    caseFolder = uigetdir('~/Data/Experimental/', 'Select Case');
+    caseFolder = uigetdir('~/Data', 'Select Case');
     
     namePos = max(strfind(caseFolder, '/')) + 1;
-    caseName = caseFolder(namePos:end);
+    caseID = caseFolder(namePos:end);
     
     disp(' ');
 
-    disp(['Case: ', caseName]);
+    disp(['Case: ', caseID]);
 
     % Confirm Support
     if ~contains(caseFolder, 'Far_Field_Soiling_07_22')
@@ -84,31 +92,33 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
     disp(' COLLATING ');
     
     tic;
+    
     evalc('parpool(nProc);');
+    
+    %%%%
     
     disp(' ');
     
     disp('    Initialising...');
     
     % Specify Sampling Frequency
-    samplingFrequency = str2double(caseName((max(strfind(caseName, '_')) + 1):(end - 2)));
+    samplingFrequency = str2double(caseID((max(strfind(caseID, '_')) + 1):(end - 2)));
     
     % Identify Plane Position
-    planePos = str2double(caseName((min(strfind(caseName, '_')) + 1):(strfind(caseName, 'L_') - 1)));
+    planePos = str2double(caseID((min(strfind(caseID, '_')) + 1):(strfind(caseID, 'L_') - 1)));
     
     % Initialise Position Grid
     fileID = fopen([caseFolder, '/', dataFiles(1).name]);
-    content = textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', ' ', 'CollectOutput', true);
-    content = content{1};
+    content = cell2mat(textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', '\n'));
     fclose(fileID);
 
     % Convert to Metres and Adjust Origin
-    expSprayData.positionGrid = zeros(height(content),3);
+    expSprayData.positionGrid = zeros([height(content),3]);
     expSprayData.positionGrid(:,1) = 0.48325 + (planePos * 1.044);
     expSprayData.positionGrid(:,(2:3)) = content(:,(1:2)) / 1000;
     expSprayData.positionGrid(:,3) = expSprayData.positionGrid(:,3) + 0.1545;
     
-    % Sort Position Grid for Compatibility 
+    % Sort Position Grid for Compatibility
     [expSprayData.positionGrid, index] = sortrows(expSprayData.positionGrid,3);
     
     disp(' ');
@@ -124,28 +134,32 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
 
     parforWaitBar(wB, height(dataFiles));
     
-    time = zeros(height(dataFiles),1);
+    time = zeros([height(dataFiles),1]);
     seedingDensity = cell(height(dataFiles),1);
 
     parfor i = 1:height(dataFiles)
         fileID = fopen([caseFolder, '/', dataFiles(i).name]);
-        content = textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', ' ', 'CollectOutput', true);
-        content = content{1};
+        content = cell2mat(textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', '\n'));
         fclose(fileID);
 
         time(i) = i * (1 / samplingFrequency);
         seedingDensity{i} = content(index,3);
         
+        % Update Waitbar
         send(dQ, []);
     end
+    clear i;
     
     expSprayData.time = time;
     expSprayData.seedingDensity = seedingDensity;
     clear time seedingDensity;
     
     delete(wB);
-
+    
+    %%%%
+    
     evalc('delete(gcp(''nocreate''));');
+    
     executionTime = toc;
 
     disp(' ');
@@ -171,9 +185,9 @@ function [caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExp
                 mkdir([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray']);
             end
             
-            disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseName, '.mat']);
-            save([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseName, '.mat'], ...
-                 'expSprayData', 'samplingFrequency', '-v7.3', '-noCompression');
+            disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseID, '.mat']);
+            save([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseID, '.mat'], ...
+                 'caseFolder', 'caseID', 'expSprayData', 'samplingFrequency', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

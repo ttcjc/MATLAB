@@ -2,11 +2,11 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
+% Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, cloudName, LagProps, ...
 %                                    timeDirs, sampleInterval, nProc);
 %        'saveLocation'   -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
-%        'caseName'       -> Case Name, Stored as a String
+%        'caseID'         -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
 %        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
@@ -26,7 +26,7 @@
 
 %% Main Function
 
-function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
+function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, cloudName, LagProps, ...
                                      timeDirs, sampleInterval, nProc) %#ok<INUSD>
     
     % Collate Volumetric Lagrangian Data
@@ -38,11 +38,14 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
     
     disp('***********');
     disp(' COLLATING ');
-
-    disp(' ');
     
     tic;
+    
     evalc('parpool(nProc);');
+    
+    %%%%
+    
+    disp(' ');
     
     % Reduce Time Instances to Desired Sampling Frequency
     LagData.time = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
@@ -117,8 +120,11 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
     clear i;
     
     delete(wB);
-
+    
+    %%%%
+    
     evalc('delete(gcp(''nocreate''));');
+    
     executionTime = toc;
 
     disp(' ');
@@ -140,12 +146,12 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseName, dataID,
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume'], 'dir')
-                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume']);
+            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume'], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume']);
             end
             
-            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat']);
-            save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/', dataID, '.mat'], ...
+            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume/', dataID, '.mat']);
+            save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume/', dataID, '.mat'], ...
                  'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
             disp('        Success');
             

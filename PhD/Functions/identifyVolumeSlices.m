@@ -229,7 +229,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     volumeSlice.(['s', num2str(i)]).xLims = allPlanes(index);
                 end
                 
-                volumeSlice.(['s', num2str(i)]).planeLocation = volumeSlice.(['s', num2str(i)]).xLims;
+                volumeSlice.(['s', num2str(i)]).position = volumeSlice.(['s', num2str(i)]).xLims;
             
             case 'XZ'
                 allPlanes = unique(positionData(:,2), 'stable');
@@ -243,7 +243,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     volumeSlice.(['s', num2str(i)]).yLims = allPlanes(index);
                 end
                 
-                volumeSlice.(['s', num2str(i)]).planeLocation = volumeSlice.(['s', num2str(i)]).yLims;
+                volumeSlice.(['s', num2str(i)]).position = volumeSlice.(['s', num2str(i)]).yLims;
             
             case 'XY'
                 allPlanes = unique(positionData(:,3), 'stable');
@@ -257,21 +257,21 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     volumeSlice.(['s', num2str(i)]).zLims = allPlanes(index);
                 end
                 
-                volumeSlice.(['s', num2str(i)]).planeLocation = volumeSlice.(['s', num2str(i)]).zLims;
+                volumeSlice.(['s', num2str(i)]).position = volumeSlice.(['s', num2str(i)]).zLims;
         
         end
 
         % Rename Slice
-        if volumeSlice.(['s', num2str(i)]).planeLocation > 0
-            sliceName = [volumeSlice.(['s', num2str(i)]).orientation, '_P', erase(num2str(volumeSlice.(['s', num2str(i)]).planeLocation, ['%.', num2str(spacePrecision), 'f']), '.')];
-        elseif volumeSlice.(['s', num2str(i)]).planeLocation < 0
-            sliceName = [volumeSlice.(['s', num2str(i)]).orientation, '_N', erase(num2str(abs(volumeSlice.(['s', num2str(i)]).planeLocation), ['%.', num2str(spacePrecision), 'f']), '.')];
+        if volumeSlice.(['s', num2str(i)]).position > 0
+            sliceName = [volumeSlice.(['s', num2str(i)]).orientation, '_P', erase(num2str(volumeSlice.(['s', num2str(i)]).position, ['%.', num2str(spacePrecision), 'f']), '.')];
+        elseif volumeSlice.(['s', num2str(i)]).position < 0
+            sliceName = [volumeSlice.(['s', num2str(i)]).orientation, '_N', erase(num2str(abs(volumeSlice.(['s', num2str(i)]).position), ['%.', num2str(spacePrecision), 'f']), '.')];
         else
             sliceName = [volumeSlice.(['s', num2str(i)]).orientation, '_0'];
         end
 
         volumeSlice = renameStructField(volumeSlice, ['s', num2str(i)], sliceName);
-        volumeSlice.(sliceName) = orderfields(volumeSlice.(sliceName), {'orientation', 'planeLocation', 'xLims', 'yLims', 'zLims'});
+        volumeSlice.(sliceName) = orderfields(volumeSlice.(sliceName), {'orientation', 'position', 'xLims', 'yLims', 'zLims'});
         
     end
     

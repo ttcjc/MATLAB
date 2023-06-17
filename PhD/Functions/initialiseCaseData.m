@@ -2,7 +2,7 @@
 % ----
 % Initialisation of OpenFOAM v7 Case Data for Further Processing
 % ----
-% Usage: [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
+% Usage: [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
 %         xDims, yDims, zDims, spacePrecision, normalise] = initialiseCaseData(normalise);
 %        'normalise' -> Normalise Dimensions [True/False]
 
@@ -23,7 +23,7 @@
 
 %% Main Function
 
-function [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
+function [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
           xDims, yDims, zDims, spacePrecision, normalise] = initialiseCaseData(normalise)
 
     % Select Case
@@ -33,14 +33,14 @@ function [caseFolder, caseName, timeDirs, deltaT, timePrecision, geometry, ...
     caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
     
     namePos = max(strfind(caseFolder, '/')) + 1;
-    caseName = caseFolder(namePos:end);
+    caseID = caseFolder(namePos:end);
 
     disp(' ');
 
-    disp(['Case: ', caseName]);
+    disp(['Case: ', caseID]);
 
     % Confirm Support
-    if ~contains(caseName, ["Run_Test", "Windsor"])
+    if ~contains(caseID, ["Run_Test", "Windsor"])
         error('Invalid Case Directory (Unsupported Case Type)');
     end
     

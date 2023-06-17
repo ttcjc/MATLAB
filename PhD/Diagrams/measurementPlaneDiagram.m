@@ -30,28 +30,53 @@ LWT.connectivity = [
                     1, 5, 6, 2, 1; % Floor
                    ];
 
+% % Define Measurement Plane(s)
+% measurementPlanes.A.position = [
+%                                 0.20225, -0.399, 0.0105;
+%                                 0.20225, -0.399, 0.4985;
+%                                 0.20225, 0.219, 0.4985;
+%                                 0.20225, 0.219, 0.0105;
+%                                ];
+% measurementPlanes.A.name = '1.0 $\ell$';
+% 
+% measurementPlanes.B.position = [
+%                                 0.72425, -0.399, 0.0105;
+%                                 0.72425, -0.399, 0.4985;
+%                                 0.72425, 0.219, 0.4985;
+%                                 0.72425, 0.219, 0.0105;
+%                                ];
+% measurementPlanes.B.name = '1.5 $\ell$';
+% 
+% measurementPlanes.C.position = [
+%                                 1.24625, -0.399, 0.0105;
+%                                 1.24625, -0.399, 0.4985;
+%                                 1.24625, 0.219, 0.4985;
+%                                 1.24625, 0.219, 0.0105;
+%                                ];
+% measurementPlanes.C.name = '2.0 $\ell$';
+
 % Define Measurement Plane(s)
 measurementPlanes.A.position = [
-                                0.20225, -0.399, 0.0105;
-                                0.20225, -0.399, 0.4985;
-                                0.20225, 0.219, 0.4985;
-                                0.20225, 0.219, 0.0105;
+                                0.20225, -0.522, 0;
+                                0.20225, -0.522, 0.6264;
+                                0.20225, 0.522, 0.6264;
+                                0.20225, 0.522, 0;
                                ];
 measurementPlanes.A.name = '1.0 $\ell$';
 
 measurementPlanes.B.position = [
-                                0.72425, -0.399, 0.0105;
-                                0.72425, -0.399, 0.4985;
-                                0.72425, 0.219, 0.4985;
-                                0.72425, 0.219, 0.0105;
+                                0.72425, -0.522, 0;
+                                0.72425, -0.522, 0.6264;
+                                0.72425, 0.522, 0.6264;
+                                0.72425, 0.522, 0;
                                ];
 measurementPlanes.B.name = '1.5 $\ell$';
 
 measurementPlanes.C.position = [
-                                1.24625, -0.399, 0.0105;
-                                1.24625, -0.399, 0.4985;
-                                1.24625, 0.219, 0.4985;
-                                1.24625, 0.219, 0.0105;
+                                1.24625, -0.522, 0;
+                                1.24625, -0.522, 0.6264;
+                                1.24625, 0.522, 0.6264;
+                                1.24625, 0.522, 0;
                                ];
 measurementPlanes.C.name = '2.0 $\ell$';
 
@@ -59,7 +84,7 @@ measurementPlanes.C.name = '2.0 $\ell$';
 figName = 'Methodology_Measurement_Planes';
 cMap = viridis(height(fieldnames(measurementPlanes)));
 % cMap = viridis(3);
-% cMap = cMap(3,:);
+% cMap = cMap(1,:);
 xLimsPlot = [-1.00625, 1.41075];
 yLimsPlot = [-0.97, 0.97];
 zLimsPlot = [0, 0.97];
@@ -69,9 +94,10 @@ figSubtitle = ' ';
 
 % Figure Setup
 fig = fig + 1;
-set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-set(gca, 'dataAspectRatio', [1, 1, 1], 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
+set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
 lighting gouraud;
 hold on;
 
@@ -132,7 +158,6 @@ tickData = [];
 yticks(tickData);
 tickData = [];
 zticks(tickData);
-set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
 hold off;
 
 pause(2);

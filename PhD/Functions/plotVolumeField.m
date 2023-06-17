@@ -4,19 +4,21 @@
 % ----
 % Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
 %                              fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-%                              xLimsPlot, yLimsPlot, zLimsPlot);
-%        '*LimsData'   -> Contour Plot Limits
-%        '*Init'       -> Initial 3D Arrays of Cartesian Positions
-%        'POD'         -> POD Mode Presentation [True/False]
-%        'fieldData'   -> 3D Array of Field Data @ '*Init' Points
-%        'fig'         -> Figure Number
-%        'figName'     -> Figure Name
-%        'geometry'    -> STL(s) to Include in Plot
-%        'isoValue'    -> Field Value Used for Isosurface
-%        'cMap'        -> Colour Map
-%        'figTitle'    -> Leave Blank ('-') for Formatting Purposes
-%        'figSubtitle' -> Figure Title
-%        '*LimsPlot'   -> 3D Axes Limits
+%                              xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+% 
+%        '*LimsData'    -> Contour Plot Limits
+%        '*Init'        -> Initial 3D Arrays of Cartesian Positions
+%        'POD'          -> POD Mode Presentation [True/False]
+%        'fieldData'    -> 3D Array of Field Data @ '*Init' Points
+%        'fig'          -> Figure Number
+%        'figName'      -> Figure Name
+%        'geometry'     -> STL(s) to Include in Plot
+%        'isoValue'     -> Field Value Used for Isosurface
+%        'cMap'         -> Colour Map
+%        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
+%        'figSubtitle'  -> Figure Title
+%        '*LimsPlot'    -> 3D Axes Limits
+%        'figSave'      -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -31,7 +33,7 @@
 
 function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
                                fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-                               xLimsPlot, yLimsPlot, zLimsPlot)
+                               xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
     % Generate Refined Grid
     cellSize = 4e-3;
@@ -69,12 +71,12 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
     
     % Initialise Figure
     fig = fig + 1;
-%     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
-                     'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-             'fontSize', 20, 'layer', 'top');
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                     'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+    set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+             'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
     lighting gouraud;
+    colormap(cMap);
     hold on;
     
     % Plot Geometry
@@ -88,6 +90,7 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
                   'edgeColor', [0.5, 0.5, 0.5], ...
                   'lineStyle', 'none');
         end
+        clear i;
 
     end
 
@@ -123,14 +126,14 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
     yticks(tickData);
     tickData = [];
     zticks(tickData);
-%     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
     
     % Save Figure
     pause(2);
-    
     exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-%     print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
-    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+
+    if figSave
+        savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+    end
 
 end

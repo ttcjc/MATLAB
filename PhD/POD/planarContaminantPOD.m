@@ -1,15 +1,25 @@
-%% Planar Lagrangian Contaminant POD Calculator v2.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
+
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
+
+
+%% Planar Lagrangian Contaminant POD Calculator v2.0
+
+figSave = false; % Save .fig File(s)
 
 disp('======================================');
 disp('Planar Contaminant POD Calculator v2.0');
@@ -84,16 +94,16 @@ switch format
 
                     if contains(filePath, '/base')
                         disp(['Loading ''', fileName, '''...']);
+                        
+                        caseID = load([filePath, fileName], 'caseID').caseID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
                         sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
                         normalise = load([filePath, fileName], 'normalise').normalise;
-                        timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
-                        disp('    Success');
                         
-                        namePos = strfind(filePath, '/');
-                        caseName = filePath((namePos(end - 2) + 1):(namePos(end - 1) - 1));
+                        disp('    Success');
                         
                         valid = true;
                     else
@@ -105,17 +115,17 @@ switch format
 
                     if contains(filePath, '/X_')
                         disp(['Loading ''', fileName, '''...']);
+                        
+                        caseID = load([filePath, fileName], 'caseID').caseID;
+                        planeID = load([filePath, fileName], 'planeID').planeID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
                         sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
                         normalise = load([filePath, fileName], 'normalise').normalise;
-                        timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
-                        disp('    Success');
                         
-                        namePos = strfind(filePath, '/');
-                        caseName = filePath((namePos(end - 2) + 1):(namePos(end - 1) - 1));
-                        planePos = filePath((namePos(end - 1) + 1):(namePos(end) - 1));
+                        disp('    Success');
 
                         valid = true;
                     else
@@ -137,19 +147,16 @@ switch format
             
             if contains(filePath, 'Hz')
                 disp(['Loading ''', fileName, '''...']);
+                
+                caseID = load([filePath, fileName], 'caseID').caseID;
+                planeID = load([filePath, fileName], 'planeID').planeID;
                 dataID = load([filePath, fileName], 'dataID').dataID;
                 mapData = load([filePath, fileName], 'mapData').mapData;
                 sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                 normalise = load([filePath, fileName], 'normalise').normalise;
-                timePrecision = 2;
-                disp('    Success');
                 
-                namePos = strfind(filePath, '/');
-                caseName = filePath((namePos(end - 1) + 1):(namePos(end) - 1));
-                nameDelimiter = strfind(caseName, '_');
-                planeUnit = strfind(caseName, 'L_');
-                planeDelimeter = max(nameDelimiter(nameDelimiter < planeUnit));
-                planePos = caseName((planeDelimeter + 1):planeUnit);
+                disp('    Success');
                 
                 valid = true;
             else
@@ -180,8 +187,7 @@ disp('POD Options');
 disp('------------');
 
 % Select Variable of Interest
-PODvar = fieldnames(mapData.mean);
-% PODvar = PODvar(1:(end - 1));
+PODvar = fieldnames(mapData.inst);
 
 valid = false;
 while ~valid
@@ -218,6 +224,8 @@ disp('  RUNNING ');
 
 tic;
 
+%%%%
+
 disp(' ');
 
 disp('    Initialising...');
@@ -231,6 +239,7 @@ switch format
         for i = 1:height(parts)
             
             if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
+                parts = parts{i};
                 break;
             end
             
@@ -239,14 +248,15 @@ switch format
             end
             
         end
+        clear i;
     
-        geoPoints = geometry.(parts{i}).vertices;
+        geoPoints = geometry.(parts).vertices;
         basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
         
-        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
+        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 1);
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-        basePoly = polybuffer(basePoly, -0.0025, 'jointType', 'square');
+        basePoly = polybuffer(basePoly, -0.005, 'jointType', 'square');
         mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
@@ -254,42 +264,24 @@ switch format
             mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
-        clear basePoints basePoly;
-        
-        xLimsData = xDims(2);
+        xLimsData = xDims(2) + 1e-3; % Offset Particles From Base for Better Visibility
         yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
-    case 'B'
-    
-        if contains(caseName, ["Run_Test", "Windsor"])
-            mapPerim = [];
-            
-            xLimsData = mapData.positionGrid(1,1);
-            yLimsData = [-0.5945; 0.5945];
-            zLimsData = [0; 0.739];
-            
-            if normalise
-                yLimsData = round((yLimsData / 1.044), spacePrecision);
-                zLimsData = round((zLimsData / 1.044), spacePrecision);
-            end
-            
-        end
-        
-    case 'C'
+    case {'B', 'C'}
         mapPerim = [];
 
         xLimsData = mapData.positionGrid(1,1);
         yLimsData = [min(mapData.positionGrid(:,2)); max(mapData.positionGrid(:,2))];
         zLimsData = [min(mapData.positionGrid(:,3)); max(mapData.positionGrid(:,3))];
+        
 end
 
 % Initialise POD Variables
 PODdata.positionGrid = mapData.positionGrid;
-% PODdata.time = mapData.time;
-PODdata.time = mapData.inst.time;
-PODdata.(PODvar).mean = mapData.mean.(PODvar);
+PODdata.time = mapData.time;
 PODdata.(PODvar).inst = mapData.inst.(PODvar);
+PODdata.(PODvar).mean = mapData.mean.(PODvar);
 
 clear mapData;
 
@@ -307,8 +299,10 @@ PODdata.(PODvar).prime = cell(height(PODdata.time),1);
 for i = 1:height(PODdata.time)
     PODdata.(PODvar).prime{i} = PODdata.(PODvar).inst{i} - PODdata.(PODvar).mean;
     
+    % Update Waitbar
     waitbar((i / height(PODdata.time)), wB);
 end
+clear i;
 
 delete(wB);
 
@@ -319,17 +313,19 @@ switch format
 
     case 'A'
         [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
-                                                                            'scalar', 'Base');
+                                                                            'scalar', 'Base', figSave);
 
     case 'B'
         [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
-                                                                            'scalar', planePos);
+                                                                            'scalar', planeID, figSave);
     
     case 'C'
         [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
-                                                                            'scalar', planePos);
+                                                                            'scalar', planeID, figSave);
 
 end
+
+%%%%
 
 executionTime = toc;
 
@@ -395,8 +391,8 @@ if plotModes
         case 'A'
             orientation = 'YZ';
 
-            if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.52725];
+            if contains(caseID, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.43075];
                 yLimsPlot = [-0.2445; 0.2445];
                 zLimsPlot = [0; 0.389];
             end
@@ -404,41 +400,39 @@ if plotModes
         case 'B'
             orientation = 'YZ';
 
-            if contains(caseName, ["Run_Test", "Windsor"])
-%                 % Plot Numerical Data Range
-%                 xLimsPlot = [0.31875; 4.65925];
-%                 yLimsPlot = [-0.5945; 0.5945];
-%                 zLimsPlot = [0; 0.739];
-
-                % Plot Experimental Data Range
-                xLimsPlot = [0.31875; 4.65925];
-                yLimsPlot = [-0.399; 0.218];
-                zLimsPlot = [0.0105; 0.4985];
+            if contains(caseID, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 2.73575];
+                yLimsPlot = [-0.522; 0.522];
+                zLimsPlot = [0; 0.6264];
             end
             
         case 'C'
             orientation = 'YZ';
             
-            xLimsPlot = [0.31875; 4.65925];
-            yLimsPlot = [-0.399; 0.218];
-            zLimsPlot = [0.0105; 0.4985];
+            xLimsPlot = [0.31875; 2.73575];
+            yLimsPlot = [-0.522; 0.522];
+            zLimsPlot = [0; 0.6264];
             
     end
 
     if normalise
-        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+        
+%         if contains(caseID, ["Run_Test", "Windsor"])
+            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+%         end
+        
     end
 
     positionData = PODdata.positionGrid;
-    cMap = cool2warm(32);
-    contourlines = [];
-    CoM = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
-    cLims = [-1; 1];
     nPlanes = 1;
     planeNo = 1;
+    cMap = cool2warm(32);
+    contourlines = [];
+    refPoint = [];
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    cLims = [-1; 1];
 
     for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
@@ -451,20 +445,21 @@ if plotModes
                 figName = ['Base_POD_', PODvar, '_M', num2str(i)];
 
             case 'B'
-                figName = [planePos, '_POD_', PODvar, '_M', num2str(i)];
+                figName = [planeID, '_POD_', PODvar, '_M', num2str(i)];
             
             case 'C'
-                figName = [planePos, '_POD_', PODvar, '_M', num2str(i)];
+                figName = [planeID, '_POD_', PODvar, '_M', num2str(i)];
 
         end
 
         figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
 
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
     end
+    clear i;
     
 else
     disp('    Skipping Mode Presentation');
@@ -492,20 +487,20 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar]);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar]);
                 end
                 
             case 'C'
                 
-                if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseName, '/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseName, '/', PODvar]);
+                if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar]);
                 end
                 
         end
@@ -513,21 +508,21 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/base/', PODvar, '/', dataID, '.mat'], ...
-                     'dataID', 'PODdata', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar, '/', dataID, '.mat'], ...
+                      'caseID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseName, '/', planePos, '/', PODvar, '/', dataID, '.mat'], ...
-                     'dataID', 'PODdata', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar, '/', dataID, '.mat'], ...
+                      'caseID', 'planeID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
             
             case 'C'
-                disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseName, '/', PODvar, '/', dataID, '.mat']);
-                save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseName, '/', PODvar, '/', dataID, '.mat'], ...
-                     'dataID', 'PODdata', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '.mat']);
+                save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '.mat'], ...
+                      'caseID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -596,12 +591,13 @@ disp('    Initialising...');
 % Initialise Reconstruction Variables
 reconData.positionGrid = PODdata.positionGrid;
 reconData.time = PODdata.time;
-reconData.(PODvar).mean = PODdata.(PODvar).mean;
 reconData.(PODvar).inst = cell(Nt,1);
+reconData.(PODvar).mean = PODdata.(PODvar).mean;
 
 for i = 1:Nt
     reconData.(PODvar).inst{i} = reconData.(PODvar).mean;
 end
+clear i;
 
 disp(' ');
 
@@ -631,11 +627,15 @@ if any(strcmp(PODvar, {'mass', 'massNorm'}))
         reconData.(PODvar).CoM{i}(2) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,2)) / sum(reconData.(PODvar).inst{i});
         reconData.(PODvar).CoM{i}(3) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,3)) / sum(reconData.(PODvar).inst{i});
         
+        % Update Waitbar
         waitbar((i / Nt), wB);
     end
+    clear i;
     
     delete(wB);
 end
+
+%%%%
 
 executionTime = toc;
 
@@ -702,8 +702,8 @@ if plotRecon
         case 'A'
             orientation = 'YZ';
 
-            if contains(caseName, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.52725];
+            if contains(caseID, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 1.43075];
                 yLimsPlot = [-0.2445; 0.2445];
                 zLimsPlot = [0; 0.389];
             end
@@ -711,51 +711,45 @@ if plotRecon
         case 'B'
             orientation = 'YZ';
 
-            if contains(caseName, ["Run_Test", "Windsor"])
-%                 % Plot Numerical Data Range
-%                 xLimsPlot = [0.31875; 4.65925];
-%                 yLimsPlot = [-0.5945; 0.5945];
-%                 zLimsPlot = [0; 0.739];
-
-                % Plot Experimental Data Data
-                xLimsPlot = [0.31875; 4.65925];
-                yLimsPlot = [-0.399; 0.218];
-                zLimsPlot = [0.0105; 0.4985];
+            if contains(caseID, ["Run_Test", "Windsor"])
+                xLimsPlot = [0.31875; 2.73575];
+                yLimsPlot = [-0.522; 0.522];
+                zLimsPlot = [0; 0.6264];
             end
             
         case 'C'
             orientation = 'YZ';
             
-%             % Plot Numerical Data Range
-%             xLimsPlot = [0.31875; 4.65925];
-%             yLimsPlot = [-0.5945; 0.5945];
-%             zLimsPlot = [0; 0.739];
-
-            % Plot Experimental Data Data
-            xLimsPlot = [0.31875; 4.65925];
-            yLimsPlot = [-0.399; 0.218];
-            zLimsPlot = [0.0105; 0.4985];
-    
+            xLimsPlot = [0.31875; 2.73575];
+            yLimsPlot = [-0.522; 0.522];
+            zLimsPlot = [0; 0.6264];
+            
     end
 
     if normalise
-        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+        
+        if contains(caseID, ["Run_Test", "Windsor"])
+            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+        end
+        
     end
 
-    positionData = reconData.positionGrid;
-    cMap = flipud(viridis(32));
-    contourlines = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    positionData = PODdata.positionGrid;
     nPlanes = 1;
     planeNo = 1;
+    cMap = cool2warm(32);
+    contourlines = [];
+    refPoint = [];
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     
-    if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32'}))
-        cLims = dLims;
+    if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32', 'd43'}))
+        cLims = [0; 150];
+    elseif strcmp(PODvar, 'massNorm')
+        cLims = [0; 1.2];
     else
-        cLims = [0; 2.2];
-%         cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
+        cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
     end
 
     figHold = fig;
@@ -776,26 +770,21 @@ if plotRecon
                 figName = ['Base_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
             
             case 'B'
-                figName = [planePos, '_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
+                figName = [planeID, '_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
                 
             case 'C'
-                figName = [planePos, '_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
+                figName = [planeID, '_', PODvar, '_Reconstruction_T', erase(figTime, '.')];
         
-        end
-        
-        if any(strcmp(PODvar, {'mass', 'massNorm'}))
-            CoM = reconData.(PODvar).CoM{i};
-        else
-            CoM = [];
         end
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
     end
+    clear i;
     
 else
     disp('    Skipping Reconstruction Presentation');
@@ -823,20 +812,20 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar]);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar]);
                 end
                 
             case 'C'
                 
-                if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseName, '/', PODvar], 'dir')
-                    mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseName, '/', PODvar]);
+                if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseID, '/', PODvar], 'dir')
+                    mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseID, '/', PODvar]);
                 end
                 
         end
@@ -844,20 +833,20 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
                      'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseName, '/', planePos, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
+                save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
                      'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
                 
             case 'C'
-                disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseName, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
-                save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseName, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
+                save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
                      'dataID', 'reconData', 'nModes', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
         

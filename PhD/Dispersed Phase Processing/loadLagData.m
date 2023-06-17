@@ -51,7 +51,7 @@ disp(' ');
 disp(['Case: ', caseName]);
 
 % Confirm Support
-if ~contains(caseName, ["Run_Test", "Windsor"])
+if ~contains(caseName, ["Distribution_Test", "Run_Test", "Windsor"])
     error('Invalid Case Directory (Unsupported Case Type)');
 end
 

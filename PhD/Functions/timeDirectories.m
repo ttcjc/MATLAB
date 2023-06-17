@@ -3,6 +3,7 @@
 % Collates OpenFOAM v7 Time Directories
 % ----
 % Usage: [timeDirs, deltaT] = timeDirectories(caseFolder, format);
+%
 %        'caseFolder' -> Case Path, Stored as a String
 %        'format'     -> Required Time Directory Type, Stored as a String
 

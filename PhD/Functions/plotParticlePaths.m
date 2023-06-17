@@ -2,7 +2,22 @@
 % ----
 % Plots Previously Processed Particle Paths
 % ----
-% Usage: fig = plotParticlePaths();
+% Usage: fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
+%                                minColourVar, maxColourVar, figTitle, figSubtitle, ...
+%                                xLimsPlot, yLimsPlot, zLimsPlot, figSave)
+% 
+%        'trackingData' -> Discrete Particle Paths in Cartesian Form
+%        'fig'          -> Figure Number
+%        'figName'      -> Figure Name
+%        'geometry'     -> STL(s) to Include in Plot
+%        'cMap'         -> Colour Map
+%        'colourVar'    -> Particle Property Used to Colour Tracks
+%        'minColourVar' -> Minimum Possible Value of 'colourVar'
+%        'maxColourVar' -> Maximum Possible Value of 'colourVar'
+%        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
+%        'figSubtitle'  -> Figure Title
+%        '*LimsPlot'    -> 3D Axes Limits
+%        'figSave'      -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -16,7 +31,7 @@
 
 function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
                                  minColourVar, maxColourVar, figTitle, figSubtitle, ...
-                                 xLimsPlot, yLimsPlot, zLimsPlot)
+                                 xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
     % Remove Unnecessary Time Instances 
     for i = 1:height(trackingData.ID)
@@ -28,7 +43,6 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
     
     % Initialise Figure
     fig = fig + 1;
-%     set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', figName);
     set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
                      'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
     set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
@@ -47,6 +61,7 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
                   'edgeColor', [0.5, 0.5, 0.5], ...
                   'lineStyle', 'none');
         end
+        clear i;
 
     end
     
@@ -63,9 +78,8 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
         
         plot3(trackingData.path{i}(:,1), trackingData.path{i}(:,2), trackingData.path{i}(:,3), ...
               'color', cMap(cIndex,:), 'lineWidth', 1.5);
-%         scatter3(trackingData.path{i}(end,1), trackingData.path{i}(end,2), trackingData.path{i}(end,3), ...
-%                  30, cMap(cIndex,:), 'filled');
     end
+    clear i;
     
     % Format Figure
     title(figTitle, 'color', ([254, 254, 254] / 255));
@@ -83,14 +97,14 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
     yticks(tickData);
     tickData = [];
     zticks(tickData);
-%     set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
     hold off;
     
     % Save Figure
     pause(2);
-    
     exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-%     print(gcf, [userpath, '/Output/Figures/', figName, '.pdf'], '-image', '-dpdf', '-r600')
-    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+
+    if figSave
+        savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+    end
     
 end

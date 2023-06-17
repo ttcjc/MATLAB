@@ -2,10 +2,12 @@
 % ----
 % Reconstructs Field Using POD Data Produced Using 'performPOD'
 %
-% Weiss, Julien: A Tutorial on the Proper Orthogonal Decomposition. In: 2019 AIAA Aviation Forum. 17–21
-% June 2019, Dallas, Texas, United States.
+% J. Weiss
+% "A Tutorial on the Proper Orthogonal Decomposition"
+% 2019 AIAA Aviation Forum, 17-21 June 2019, Dallas, Texas, United States
 % ----
 % Usage: reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
+%
 %        'reconData' -> Structure Containing Position and Field Data
 %        'PODdata'   -> Structure Containing Previously Processed POD Data
 %        'PODvar'    -> Field Variable Used to Perform POD Stored as String
@@ -50,6 +52,7 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                 for j = 1:Nt
                     reconData.(mode).prime{j} = modeMatrix(j,:)';
                 end
+                clear j;
 
             case 'vector'
                 uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
@@ -65,6 +68,7 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                     reconData.(mode).v.prime{j} = vModeMatrix(j,:)';
                     reconData.(mode).w.prime{j} = wModeMatrix(j,:)';
                 end
+                clear j;
         
         end
         
@@ -84,6 +88,7 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
                     reconData.(PODvar{2}).inst{j} = reconData.(PODvar{2}).inst{j} + reconData.(mode).v.prime{j};
                     reconData.(PODvar{3}).inst{j} = reconData.(PODvar{3}).inst{j} + reconData.(mode).w.prime{j};
                 end
+                clear j;
         
         end
         
@@ -91,8 +96,10 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
             reconData = rmfield(reconData, mode);
         end
         
+        % Update Waitbar
         waitbar((i / length(nModes)), wB);
     end
+    clear i;
     
     delete(wB);
 

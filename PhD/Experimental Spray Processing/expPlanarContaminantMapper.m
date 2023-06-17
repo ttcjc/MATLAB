@@ -1,24 +1,32 @@
-%% Planar Experimental Spray Mapper v1.0
+%% Preamble
 
 clear variables;
 close all;
 clc;
 evalc('delete(gcp(''nocreate''));');
 
-saveLocation = '/mnt/Processing/Data';
-% saveLocation = '~/Data';
+if exist('/mnt/Processing/Data', 'dir')
+    saveLocation = '/mnt/Processing/Data';
+else
+    saveLocation = '~/Data';
+end
 
-normalise = false; % Normalisation of Dimensions
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-normalisationValue = 0.031814910694444; % SB_1.0L_120s_15Hz Time-Averaged Max
+nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
+
+%% Planar Experimental Spray Mapper v1.1
+
+figSave = false; % Save .fig File(s);
+
+normalise = true;
+
+normalisationValue = 0.031814910694444; % Value Used to Normalise Spray (SB, 1.0 L, 15 Hz)
+
 disp('=====================================');
-disp('Planar Experimental Spray Mapper v1.0');
+disp('Planar Experimental Spray Mapper v1.1');
 disp('=====================================');
 
 disp(' ');
@@ -28,6 +36,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
 
 
 %% Initialise Case
@@ -38,8 +47,23 @@ disp(' ');
 disp(' ');
 disp(' ');
 
-% Load Experimental Spray Data
-[caseFolder, caseName, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc);
+
+%% Initialise Experimental Spray Data
+[caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc);
+
+nameDelimiter = strfind(caseID, '_');
+planeUnit = strfind(caseID, 'L_');
+planeDelimeter = max(nameDelimiter(nameDelimiter < planeUnit));
+
+if contains(caseFolder, 'Far_Field_Soiling_07_22')
+    
+    if normalise
+        planeID = caseID((planeDelimeter + 1):(planeUnit - 1));
+    else
+        planeID = num2str(str2double(caseID((planeDelimeter + 1):(planeUnit - 1))) * 1.044);
+    end
+    
+end
 
 disp(' ');
 disp(' ');
@@ -135,7 +159,7 @@ if sampleInterval ~= 1
 end
 
 % Define Data ID
-timePrecision = 2;
+timePrecision = 3;
 
 startInst = erase(num2str(expSprayData.time(1), ['%.', num2str(timePrecision), 'f']), '.');
 endInst = erase(num2str(expSprayData.time(end), ['%.', num2str(timePrecision), 'f']), '.');
@@ -164,91 +188,65 @@ disp('  RUNNING ');
 
 tic;
 
+%%%%
+
 disp(' ');
 
 disp('    Initialising...');
 
+nTimes = height(expSprayData.time);
+
 mapData.positionGrid = expSprayData.positionGrid;
-mapData.inst.time = expSprayData.time;
+mapData.time = expSprayData.time;
 mapData.inst.seedingDensity = expSprayData.seedingDensity;
 clear expSprayData;
 
-% ---- Temporary ---- %
-[mapData.positionGrid, index] = sortrows(mapData.positionGrid,3);
-
-for i = 1:height(mapData.inst.time)
-    mapData.inst.seedingDensity{i} = mapData.inst.seedingDensity{i}(index);
-end
-% ---- Temporary ---- %
-
 % Normalise Position Data
 if normalise
-    mapData.positionGrid = round((mapData.positionGrid / 1.044), spacePrecision);
+    
+    if contains(caseFolder, 'Far_Field_Soiling_07_22')
+        mapData.positionGrid = round((mapData.positionGrid / 1.044), spacePrecision);
+    end
+    
 end
 
 disp(' ');
 
-% % Calculate Instantaneous Centre of Mass
-% disp('    Calculating Instantaneous Centre of Mass...');
-% 
-% % Initialise Progress Bar
-% wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
-% wB.Children.Title.Interpreter = 'none';
-% 
-% mapData.inst.CoM = cell(height(mapData.inst.time),1);
-% 
-% for i = 1:height(mapData.inst.time)
-%     mapData.inst.CoM{i} = zeros(1,3);
-%     
-%     mapData.inst.CoM{i}(1) = mapData.positionGrid(1,1);
-%     mapData.inst.CoM{i}(2) = sum(mapData.inst.seedingDensity{i} .* mapData.positionGrid(:,2)) / sum(mapData.inst.seedingDensity{i});
-%     mapData.inst.CoM{i}(3) = sum(mapData.inst.seedingDensity{i} .* mapData.positionGrid(:,3)) / sum(mapData.inst.seedingDensity{i});
-%     
-%     waitbar((i / height(mapData.inst.time)), wB);
-% end
-% 
-% delete(wB);
-% 
-% disp(' ');
-
 % Calculate Time-Averaged Contaminant Map
 disp('    Generating Time-Averaged Contaminant Map...');
 
-mapData.mean.seedingDensity = zeros(height(mapData.positionGrid),1);
+mapData.mean.seedingDensity = zeros([height(mapData.positionGrid),1]);
 
-for i = 1:height(mapData.inst.time)
+for i = 1:nTimes
     mapData.mean.seedingDensity = mapData.mean.seedingDensity + mapData.inst.seedingDensity{i};
 end
+clear i;
 
-mapData.mean.seedingDensity = mapData.mean.seedingDensity / height(mapData.inst.time);
+mapData.mean.seedingDensity = mapData.mean.seedingDensity / nTimes;
 
 % Normalise Contaminant Maps
-if normalise
+mapData.inst.seedingDensityNorm = mapData.inst.seedingDensity;
 
-    for i = 1:height(mapData.inst.time)
-        mapData.inst.seedingDensity{i} = mapData.inst.seedingDensity{i} / normalisationValue;
-    end
-    
-    mapData.mean.seedingDensity = mapData.mean.seedingDensity / normalisationValue;
+for i = 1:nTimes
+    mapData.inst.seedingDensityNorm{i} = mapData.inst.seedingDensityNorm{i} / normalisationValue;
 end
 
-% % Calculate Time-Averaged Centre of Mass
-% mapData.mean.CoM = zeros(1,3);
-%     
-% mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-% mapData.mean.CoM(2) = sum(mapData.mean.seedingDensity .* mapData.positionGrid(:,2)) / sum(mapData.mean.seedingDensity);
-% mapData.mean.CoM(3) = sum(mapData.mean.seedingDensity .* mapData.positionGrid(:,3)) / sum(mapData.mean.seedingDensity);
+mapData.mean.seedingDensityNorm = mapData.mean.seedingDensity / normalisationValue;
 
 % Calculate Standard Deviation
-mapData.std.seedingDensity = zeros(height(mapData.positionGrid),1);
+mapData.std.seedingDensity = zeros([height(mapData.positionGrid),1]);
+mapData.std.seedingDensityNorm = mapData.std.seedingDensity;
 
-for i = 1:height(mapData.inst.time)
+for i = 1:nTimes
     mapData.std.seedingDensity = mapData.std.seedingDensity + (mapData.inst.seedingDensity{i} - mapData.mean.seedingDensity).^2;
+    mapData.std.seedingDensityNorm = mapData.std.seedingDensityNorm + (mapData.inst.seedingDensityNorm{i} - mapData.mean.seedingDensityNorm).^2;
 end
 
-mapData.std.seedingDensity = sqrt((1 / height(mapData.inst.time)) * mapData.std.seedingDensity);
+mapData.std.seedingDensity = sqrt((1 / nTimes) * mapData.std.seedingDensity);
+mapData.std.seedingDensityNorm = sqrt((1 / nTimes) * mapData.std.seedingDensityNorm);
 
-evalc('delete(gcp(''nocreate''));');
+%%%%
+
 executionTime = toc;
 
 disp(' ');
@@ -276,11 +274,9 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
-        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -289,25 +285,23 @@ while ~valid
 end
 clear valid;
 
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Plot Standard Deviation of Contamination? [y/n]: ', 's');
-
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotStd = false;
-        
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotStd = true;
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
+% valid = false;
+% while ~valid
+%     disp(' ');
+%     selection = input('Plot Standard Deviation of Contamination? [y/n]: ', 's');
+% 
+%     if selection == 'n' | selection == 'N' %#ok<OR2>
+%         plotStd = false;
+%         valid = true;
+%     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+%         plotStd = true;
+%         valid = true;
+%     else
+%         disp('    WARNING: Invalid Entry');
+%     end
+% 
+% end
+% clear valid;
 
 valid = false;
 while ~valid
@@ -319,7 +313,7 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
-        nFrames = inputFrames(height(mapData.inst.time));
+        nFrames = inputFrames(nTimes);
         
         if nFrames == -1
             continue;
@@ -344,84 +338,86 @@ disp('-----------------');
 
 disp(' ');
 
-if plotMean || plotStd || plotInst    
+if plotMean || plotInst
+    
     % Define Plot Limits
     xLimsData = mapData.positionGrid(1,1);
     yLimsData = [min(mapData.positionGrid(:,2)); max(mapData.positionGrid(:,2))];
     zLimsData = [min(mapData.positionGrid(:,3)); max(mapData.positionGrid(:,3))];
     
-%     % Plot Numerical Data Range
-%     xLimsPlot = [0.31875; 4.65925];
-%     yLimsPlot = [-0.5945; 0.5945];
-%     zLimsPlot = [0; 0.739];
-    
-    % Plot Experimental Data Range
-    xLimsPlot = [0.31875; 4.65925];
-    yLimsPlot = [-0.399; 0.218];
-    zLimsPlot = [0.0105; 0.4985];
+    if contains(caseFolder, 'Far_Field_Soiling_07_22')
+        xLimsPlot = [0.31875; 2.73575];
+        yLimsPlot = [-0.522; 0.522];
+        zLimsPlot = [0; 0.6264];
+%         xLimsPlot = [0.31875; 4.65925];
+%         yLimsPlot = [-0.399; 0.218];
+%         zLimsPlot = [0.0105; 0.4985];
+    end
 
     if normalise
-        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+        
+        if contains(caseFolder, 'Far_Field_Soiling_07_22')
+            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
+            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
+            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
+        end
+        
     end
     
     orientation = 'YZ';
     positionData = mapData.positionGrid;
     mapPerim = [];
-    cMap = flipud(viridis(32));
-    CoM = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
     nPlanes = 1;
     planeNo = 1;
+    cMap = flipud(viridis(32));
+    refPoint = [];
+    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
 end
 
 % Remove Geometry From Empty Tunnel
-if contains(caseName, 'ET')
+if contains(caseID, 'ET')
     geometry = [];
 end
 
 if plotMean
-    disp('    Presenting Time-Averaged Contamination...');
+    disp('    Presenting Time-Averaged Seeding Density...');
 
-    scalarData = mapData.mean.seedingDensity;
-    figName = [caseName, '_Experimental_Contamination_Time_Average'];
-%     contourlines = (0.2:0.2:0.8);
-    contourlines = [];
+    scalarData = mapData.mean.seedingDensityNorm;
+    figName = 'Time_Averaged_Experimental_Seeding_Density';
+    contourlines = [0.02; 0.02];
     figSubtitle = ' ';
-    cLims = [0; 0.032];
+    cLims = [0; 1.2];
 
-    fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                            mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                            xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+    [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                           mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
     
     disp(' ');
 end
 
-if plotStd
-    disp('    Presenting Standard Deviation of Contamination...');
-
-    scalarData = mapData.std.seedingDensity;
-    figName = [caseName, '_Experimental_Contamination_Standard_Deviation'];
-    contourlines = [];
-    figSubtitle = ' ';
-    cLims = [0; 0.6];
-
-    fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                            mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                            xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
-    
-    disp(' ');
-end
+% if plotStd
+%     disp('    Presenting Standard Deviation of Seeding Density...');
+% 
+%     scalarData = mapData.std.seedingDensityNorm;
+%     figName = 'Standard_Deviation_Experimental_Seeding_Density';
+%     contourlines = [0.012; 0.012];
+%     figSubtitle = ' ';
+%     cLims = [0; 0.6];
+% 
+%     [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+%                                            mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+%                                            xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+%                                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+%     
+%     disp(' ');
+% end
 
 if plotInst
-    disp('    Presenting Instantaneous Contamination...');
+    disp('    Presenting Instantaneous Seeding Density...');
     
-    contourlines = [];
-    cLims = [0; 0.1];
-%     cLims = [0; max(cellfun(@max, mapData.inst.seedingDensity))];
+    contourlines = [0.02; 0.02];
+    cLims = [0; 2.2];
 
     figHold = fig;
 
@@ -432,15 +428,15 @@ if plotInst
             fig = figHold;
         end
 
-        scalarData = mapData.inst.seedingDensity{i};
-        figTime = num2str(mapData.inst.time(i), '%.2f');
-        figName = [caseName, '_Experimental_Contamination_Instantaneous_T', erase(figTime, '.')];
+        scalarData = mapData.inst.seedingDensityNorm{i};
+        figTime = num2str(mapData.time(i), '%.2f');
+        figName = ['Instantaneous_Experimental_Seeding_Density_T', erase(figTime, '.')];
         figSubtitle = [figTime, ' \it{s}'];
         
-        fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                mapPerim, fig, figName, cMap, geometry, contourlines, ...
-                                xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, nPlanes, planeNo);
+        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
+                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
     end
     
     disp(' ');
@@ -469,13 +465,13 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseName], 'dir')
-            mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseName]);
+        if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID], 'dir')
+            mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID]);
         end
         
-        disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseName, '/', dataID '.mat']);
-        save([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseName, '/', dataID '.mat'], ...
-             'dataID', 'mapData', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+        disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat']);
+        save([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat'], ...
+             'caseID', 'planeID', 'dataID', 'mapData', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
         disp('        Success');
         
         valid = true;

@@ -2,11 +2,11 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Planar Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataPlane(saveLocation, caseFolder, caseName, dataID, LagProps, ...
+% Usage: LagData = readLagDataPlane(saveLocation, caseFolder, caseID, dataID, LagProps, ...
 %                                   timeDirs, sampleInterval, format);
 %        'saveLocation'   -> Start of File Path, Stored as a String
 %        'caseFolder'     -> Case Path, Stored as s String
-%        'caseName'       -> Case Name, Stored as a String
+%        'caseID'         -> Case Name, Stored as a String
 %        'dataID'         -> Data ID, Stored as a String
 %        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
 %        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
@@ -29,7 +29,7 @@
 
 %% Main Function
 
-function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+function LagData = readLagDataPlane(saveLocation, caseFolder, caseID, distributedFiles, dataID, ...
                                     LagProps, timeDirs, sampleInterval, format)
     
     % Collate Planar Lagrangian Data
@@ -42,9 +42,11 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distribu
     disp('***********');
     disp(' COLLATING ');
     
-    disp(' ');
-
     tic;
+    
+    %%%%
+    
+    disp(' ');
     
     if distributedFiles
         
@@ -262,8 +264,11 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distribu
     clear i;
     
     delete(wB);
+    
+    %%%%
 
     evalc('delete(gcp(''nocreate''));');
+    
     executionTime = toc;
 
     disp(' ');
@@ -285,20 +290,20 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseName, distribu
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane'], 'dir')
-                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane']);
+            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane'], 'dir')
+                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane']);
             end
 
             switch format
 
                 case 'cumulative'
-                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_cumulative.mat']);
-                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_cumulative.mat'], ...
+                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane/', dataID, '_cumulative.mat']);
+                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane/', dataID, '_cumulative.mat'], ...
                     'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
 
                 case 'snapshot'
-                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_snapshot.mat']);
-                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/', dataID, '_snapshot.mat'], ...
+                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane/', dataID, '_snapshot.mat']);
+                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane/', dataID, '_snapshot.mat'], ...
                     'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
 
             end

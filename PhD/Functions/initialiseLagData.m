@@ -3,12 +3,12 @@
 % Initialisation of OpenFOAM v7 Lagrangian Data for Further Processing
 % ----
 % Usage: [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-%         LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
+%         LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseID, cloudName, ...
 %                                                                    plane, surface, volume, timeDirs, deltaT, ...
 %                                                                    timePrecision, nProc);
 %        'saveLocation'  -> Start of File Path, Stored as a String
 %        'caseFolder'    -> Case Path, Stored as s String
-%        'caseName'      -> Case Name, Stored as a String
+%        'caseID'        -> Case Name, Stored as a String
 %        'cloudName'     -> OpenFOAM Cloud Name, Stored as a String
 %        'plane'         -> Collect Planar Data [True/False]
 %        'surface'       -> Collect Surface Data [True/False]
@@ -28,7 +28,7 @@
 %% Main Function
 
 function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-          LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
+          LagDataVolume, sampleInterval, format] = initialiseLagData(saveLocation, caseFolder, caseID, cloudName, ...
                                                                      plane, surface, volume, ...
                                                                      timeDirs, deltaT, timePrecision, nProc)
 
@@ -118,15 +118,17 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 if selection == 'n' | selection == 'N' %#ok<OR2>
                     break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/plane/*.mat'], ...
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/plane/*.mat'], ...
                                                      'Select Plane Data');
     
-                    if contains(filePath, ['/LagData/', caseName, '/plane'])
+                    if contains(filePath, ['/LagData/', caseID, '/plane'])
                         disp(['    Loading ''', fileName, '''...']);
+                        
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataPlane = load([filePath, fileName], 'LagData').LagData;
                         sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
                         formatPlane = load([filePath, fileName], 'format').format;
+                        
                         disp('        Success');
                         
                         valid = true;
@@ -155,15 +157,17 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 if selection == 'n' | selection == 'N' %#ok<OR2>
                     break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/surface/*.mat'], ...
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface/*.mat'], ...
                                                      'Select Surface Data');
     
-                    if contains(filePath, ['/LagData/', caseName, '/surface'])
+                    if contains(filePath, ['/LagData/', caseID, '/surface'])
                         disp(['    Loading ''', fileName, '''...']);
+                        
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataSurface = load([filePath, fileName], 'LagData').LagData;
                         sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
                         formatSurface = load([filePath, fileName], 'format').format;
+                        
                         disp('        Success');
                         
                         valid = true;
@@ -192,14 +196,16 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                 if selection == 'n' | selection == 'N' %#ok<OR2>
                     break;
                 elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseName, '/volume/*.mat'], ...
+                    [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume/*.mat'], ...
                                                      'Select Volume Data');
     
-                    if contains(filePath, ['/LagData/', caseName, '/volume'])
+                    if contains(filePath, ['/LagData/', caseID, '/volume'])
                         disp(['    Loading ''', fileName, '''...']);
+                        
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         LagDataVolume = load([filePath, fileName], 'LagData').LagData;
                         sampleInterval = [sampleInterval; load([filePath, fileName], 'sampleInterval').sampleInterval]; %#ok<AGROW>
+                        
                         disp('        Success');
                         
                         valid = true;
@@ -408,21 +414,21 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
     if plane
         disp(' ');
         
-        LagDataPlane = readLagDataPlane(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+        LagDataPlane = readLagDataPlane(saveLocation, caseFolder, caseID, distributedFiles, dataID, ...
                                         LagProps, timeDirs, sampleInterval, format);
     end
     
     if surface
         disp(' ');
         
-        LagDataSurface = readLagDataSurface(saveLocation, caseFolder, caseName, distributedFiles, dataID, ...
+        LagDataSurface = readLagDataSurface(saveLocation, caseFolder, caseID, distributedFiles, dataID, ...
                                             LagProps, timeDirs, sampleInterval, format);
     end
     
     if volume
         disp(' ');
         
-        LagDataVolume = readLagDataVolume(saveLocation, caseFolder, caseName, dataID, cloudName, LagProps, ...
+        LagDataVolume = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, cloudName, LagProps, ...
                                           timeDirs, sampleInterval, nProc);
     end
     

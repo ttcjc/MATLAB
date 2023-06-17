@@ -2,16 +2,19 @@
 % ----
 % Performs Shapshot POD on Fluctuating Scalar or Vector Fields
 %
-% Weiss, Julien: A Tutorial on the Proper Orthogonal Decomposition. In: 2019 AIAA Aviation Forum. 17–21
-% June 2019, Dallas, Texas, United States.
+% J. Weiss
+% "A Tutorial on the Proper Orthogonal Decomposition"
+% 2019 AIAA Aviation Forum, 17-21 June 2019, Dallas, Texas, United States
 % ----
 % Usage: [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
-%                                                                            fieldType, location)
+%                                                                            fieldType, location, figSave)
+%
 %        'fig'       -> Figure Number
 %        'PODdata'   -> Structure Containing Position and Field Data
 %        'PODvar'    -> Field Variable Used to Perform POD Stored as String
 %        'fieldType' -> Desired Field Type Stored as String
 %        'location'  -> Data Location Identifier Stored as String
+%        'figSave'     -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -29,7 +32,7 @@
 %% Main Function
 
 function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig, PODdata, PODvar, ...
-                                                                             fieldType, location)
+                                                                             fieldType, location, figSave)
 
     Ns = height(PODdata.positionGrid); % Number of Spatial Points
     Nt = height(PODdata.time); % Number of Time Instances
@@ -49,8 +52,10 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
             for i = 1:Nt
                 snapshotMatrix(i,:) = PODdata.(PODvar).prime{i};
                 
+                % Update Waitbar
                 waitbar((i / Nt), wB);
             end
+            clear i;
 
         case 'vector'
             uSnapshotMatrix = zeros(Nt,Ns);
@@ -62,8 +67,10 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
                 vSnapshotMatrix(i,:) = PODdata.(PODvar{2}).prime{i};
                 wSnapshotMatrix(i,:) = PODdata.(PODvar{3}).prime{i};
                 
+                % Update Waitbar
                 waitbar((i / Nt), wB);
             end
+            clear i;
     
             snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
     
@@ -115,9 +122,10 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
 
     end
     
-    set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', figName);
-    set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-             'fontSize', 20, 'layer', 'top');
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                     'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+    set(gca, 'positionConstraint', 'outerPosition', ...
+             'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
     hold on;
     
     % Plot Modes
@@ -135,15 +143,16 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     xticks(tickData);
     tickData = (4:4:16);
     yticks(tickData);
-    xlabel('\bf{Mode}}', 'fontName', 'LM Roman 12');
-    ylabel('{\bf{Energy Content (\it{%})}}', 'fontName', 'LM Roman 12');
-    set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+    xlabel('{\bf{Mode}}', 'fontName', 'LM Roman 12');
+    ylabel('{\bf{Energy Content ({\it{%}})}}', 'fontName', 'LM Roman 12');
     hold off;
-    
+
     % Save Figure
     pause(2);
-    
     exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
-    savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
 
+    if figSave
+        savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+    end
+    
 end

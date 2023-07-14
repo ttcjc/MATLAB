@@ -608,8 +608,8 @@ mapData.mean.massNorm = mapData.mean.massNorm / nTimes;
 mapData.mean.d20 = mapData.mean.d20 / nTimes;
 mapData.mean.d10 = mapData.mean.d10 / nTimes;
 
-% Perform Calculation
-disp('        Time-Averaged Centre of Mass');
+% Calculate Time-Averaged Centre of Mass
+disp('        Calculating Time-Averaged Centre of Mass');
 
 mapData.mean.CoM = zeros([1,3], 'single');
     

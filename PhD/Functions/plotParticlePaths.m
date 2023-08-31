@@ -33,20 +33,11 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
                                  minColourVar, maxColourVar, figTitle, figSubtitle, ...
                                  xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
-    % Remove Unnecessary Time Instances 
-    for i = 1:height(trackingData.ID)
-        index = find(isnan(trackingData.age{i}) == false);
-        
-        trackingData.path{i} = trackingData.path{i}(index,:);
-        trackingData.age{i} = trackingData.age{i}(index);
-    end
-    
     % Initialise Figure
     fig = fig + 1;
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'paperPositionMode', 'manual', 'paperUnits', 'inches', ...
-                     'paperSize', [3.45, 3.45], 'paperPosition', [0.05, 0.05, 3.35, 3.35]);
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-             'fontSize', 20, 'layer', 'top');
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
+    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
+             'fontSize', 18, 'layer', 'top');
     lighting gouraud;
     hold on;
     
@@ -69,7 +60,7 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
     for i = 1:height(trackingData.ID)
         
         if strcmp(colourVar, 'Diameter')
-            pColourVar = trackingData.d(i) * 1e6;
+            pColourVar = trackingData.d(i);
         elseif strcmp(colourVar, 'Age')
             pColourVar = trackingData.age{i}(end);
         end
@@ -77,7 +68,7 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
         cIndex = ceil(1 + (height(cMap) - 1) * ((pColourVar - minColourVar) / (maxColourVar - minColourVar)));
         
         plot3(trackingData.path{i}(:,1), trackingData.path{i}(:,2), trackingData.path{i}(:,3), ...
-              'color', cMap(cIndex,:), 'lineWidth', 1.5);
+              'color', cMap(cIndex,:), 'lineWidth', 2);
     end
     clear i;
     
@@ -100,7 +91,9 @@ function fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, col
     hold off;
     
     % Save Figure
-    pause(2);
+    set(figure(fig), 'position', [25, 25, 650, 650]);
+    pause(1);
+    
     exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
 
     if figSave

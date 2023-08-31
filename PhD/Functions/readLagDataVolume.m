@@ -22,6 +22,7 @@
 % v2.0 - Rewrite to Support 'LagrangianExtractionPlaneData'
 % v3.0 - Parallelised and Split Into Separate Planar, Surface and Volumetric Functions
 % v3.1 - Improved Efficiency of Scalar Data Collation and Added Support for the ‘Uslip’ Field
+% v3.2 - Sort Particles Based on 'origProcId' and 'origId' to Enable Multiple Injection Sources
 
 
 %% Main Function
@@ -99,19 +100,12 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, c
     wB.Children.Title.Interpreter = 'none';
     
     % Perform Sort
-    for i = 1:1:nTimes
-        [LagData.origId{i}, index] = sort(LagData.origId{i});
+    for i = 1:nTimes
+        [~, index] = sortrows([LagData.origProcId{i}, LagData.origId{i}]);
         
         for j = 1:height(LagProps)
             prop = LagProps{j};
-            
-            if j == 3
-                % Don't Sort 'origId' Twice
-                continue;
-            else
-                LagData.(prop){i} = LagData.(prop){i}(index,:);
-            end
-            
+            LagData.(prop){i} = LagData.(prop){i}(index,:);
         end
         clear j;
         

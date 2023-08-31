@@ -1,12 +1,13 @@
-%% Volume Field Plotter v2.2
+%% Volume Field Plotter v2.4
 % ----
 % Plots Previously Processed Volume Fields
 % ----
-% Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
-%                              fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-%                              xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+% Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
+%                              POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
+%                              figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 % 
-%        '*LimsData'    -> Contour Plot Limits
+%        '*LimsData'    -> Contour Plot Limits [Dimensions of '*Init']
+%        'spatialRes'   -> Target Grid Spacing [Dimensions of '*Init']
 %        '*Init'        -> Initial 3D Arrays of Cartesian Positions
 %        'POD'          -> POD Mode Presentation [True/False]
 %        'fieldData'    -> 3D Array of Field Data @ '*Init' Points
@@ -17,7 +18,8 @@
 %        'cMap'         -> Colour Map
 %        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
 %        'figSubtitle'  -> Figure Title
-%        '*LimsPlot'    -> 3D Axes Limits
+%        'viewAngle'    -> View Angle
+%        '*LimsPlot'    -> 3D Axes Limits [Dimensions of '*Init']
 %        'figSave'      -> Save .fig File [True/False]
 
 
@@ -27,20 +29,20 @@
 % v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 % v2.1 - Cleaned-up POD Functionality
 % v2.2 - Rename and Minor Formatting Updates
+% v2.3 - Added Spatial Resolution as an Input Variable
+% v2.4 - Added Support for Saving Multiple View Angles
 
 
 %% Main Function
 
-function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zInit, POD, fieldData, ...
-                               fig, figName, geometry, isoValue, cMap, figTitle, figSubtitle, ...
-                               xLimsPlot, yLimsPlot, zLimsPlot, figSave)
+function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
+                               POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
+                               figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
     % Generate Refined Grid
-    cellSize = 4e-3;
-
-    cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
-    cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
-    cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
+    cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
+    cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / spatialRes));
+    cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / spatialRes));
     
     [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                        yLimsData(1):cellSizeY:yLimsData(2), ...
@@ -71,10 +73,9 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
     
     % Initialise Figure
     fig = fig + 1;
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                     'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
-    set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-             'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
+    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
+             'fontSize', 18, 'layer', 'top');
     lighting gouraud;
     colormap(cMap);
     hold on;
@@ -116,7 +117,6 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
     lightangle(0, 45);
     axis on;
     box on;
-    view([30, 30]);
     xlim([xLimsPlot(1), xLimsPlot(2)]);
     ylim([yLimsPlot(1), yLimsPlot(2)]);
     zlim([zLimsPlot(1), zLimsPlot(2)]);
@@ -128,9 +128,21 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, xInit, yInit, zI
     zticks(tickData);
     hold off;
     
-    % Save Figure
+    set(figure(fig), 'position', [25, 25, 650, 650]);
     pause(2);
-    exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+    
+    % Save Figure
+    for i = 1:height(viewAngle)
+        view(viewAngle(i,:));
+        
+        if height(viewAngle) == 1
+            exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+        else
+            exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.png'], 'resolution', 600);
+            pause(2);
+        end
+        
+    end
 
     if figSave
         savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);

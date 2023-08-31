@@ -2,16 +2,18 @@
 % ----
 % Plots Previously Processed Planar Scalar Fields
 % ----
-% Usage: [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-%                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-%                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+% Usage: [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+%                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+%                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+%                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+%                                               yLimsPlot, zLimsPlot, normalise, figSave);
 % 
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
-%        '*LimsData'    -> Contour Plot Limits
 %        'positionData' -> Cartesian Positions of Data Points
 %        'scalarData'   -> Field Value @ 'positionData' Points
-%        'mapPerim'     -> Map Perimeter Used When Plotting a Plane of Arbitrary Shape
+%        'spatialRes'   -> Target Grid Spacing [Dimensions of 'positionData']
+%        '*LimsData'    -> Contour Plot Limits [Dimensions of 'positionData']
+%        'mapPerim'     -> Map Perimeter Used When Plotting a Plane of Arbitrary Shape [Dimensions of 'positionData']
 %        'nPlanes'      -> Number of Planes in a Multi-Plane Figure
 %        'planeNo'      -> Current Plane Number
 %        'fig'          -> Figure Number
@@ -19,12 +21,11 @@
 %        'cMap'         -> Colour Map
 %        'geometry'     -> STL(s) to Include in Plot
 %        'contourlines' -> Contour Lines at the Corresponding Values
-%        '*Dims'        -> Simple Bounding Box of Geometry
-%        'refPoint'     -> Reference Point (CoM, CoP etc.)
+%        'refPoint'     -> Reference Point (CoM, CoP etc.) [Dimensions of 'positionData']
 %        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
 %        'figSubtitle'  -> Figure Title
 %        'cLims'        -> Colour Map Limits
-%        '*LimsPlot'    -> 3D Axes Limits
+%        '*LimsPlot'    -> 3D Axes Limits [Dimensions of 'positionData']
 %        'normalise'    -> Normalise Dimensions [True/False]
 %        'figSave'     -> Save .fig File [True/False]
 
@@ -34,16 +35,16 @@
 % v1.0 - Initial Commit (Expanded Functionality of 'contaminantPlots')
 % v2.0 - Shifted to Using 'griddedInterpolant' and Added Support for Multi-Plane Figures)
 % v2.1 - Rename and Minor Formatting Updates
+% v2.1 - Added Spatial Resolution as an Input Variable
 
 
 %% Main Function
 
-function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                                mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                                xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                                xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave)
-    
-    cellSize = 1e-3;
+function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                                xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                                planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                                refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                                yLimsPlot, zLimsPlot, normalise, figSave)
     
     % Format Data
     switch orientation
@@ -62,9 +63,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             interp = griddedInterpolant(y, z, scalar, 'linear', 'none');
             
             % Generate 3D Surface
-            cellSizeX = cellSize;
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
+            cellSizeX = spatialRes;
+            cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / spatialRes));
+            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / spatialRes));
             
             [x, y, z] = ndgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
                                yLimsData(1):cellSizeY:yLimsData(2), ...
@@ -97,9 +98,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             interp = griddedInterpolant(x, z, scalar, 'linear', 'none');
             
             % Generate 3D Surface
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
-            cellSizeY = cellSize;
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize));
+            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
+            cellSizeY = spatialRes;
+            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / spatialRes));
 
             [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
@@ -132,9 +133,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             interp = griddedInterpolant(x, y, scalar, 'linear', 'none');
             
             % Generate 3D Surface
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize));
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize));
-            cellSizeZ = cellSize;
+            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
+            cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / spatialRes));
+            cellSizeZ = spatialRes;
             
             [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
                                yLimsData(1):cellSizeY:yLimsData(2), ...
@@ -162,10 +163,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
-                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 18, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -190,21 +190,6 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Plot Scalar Field
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
-
-%             % Plot Geometry Outline
-%             if nPlanes == 1 && ~isempty(geometry) && (xLimsData < xDims(1) || xLimsData > xDims(2))
-%                 
-%                 for i = 1:height(parts)
-%                     geometry.(parts{i}).boundaries.YZ(:,1) = xLimsData;
-%                     
-%                     plot3(geometry.(parts{i}).boundaries.YZ(:,1), ...
-%                           geometry.(parts{i}).boundaries.YZ(:,2), ...
-%                           geometry.(parts{i}).boundaries.YZ(:,3), ...
-%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-%                 end
-%                 clear i;
-%                 
-%             end
             
             % Plot Contour Lines
             if ~isempty(contourlines)
@@ -241,9 +226,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
                     tickData = [];
                     xticks(tickData);
                     tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
-                    yticks(tickData(2:5));
+                    yticks(tickData(2:(end-1)));
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
-                    zticks(tickData(2:5));
+                    zticks(tickData(2:(end-1)));
                     xtickformat('%+.2f');
                     ytickformat('%+.2f');
                     ztickformat('%+.2f');
@@ -278,7 +263,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
                 hold off;
                 
                 % Save Figure
-                pause(2);
+                set(figure(fig), 'position', [25, 25, 650, 650]);
+                pause(1);
+                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
                 
                 if figSave
@@ -293,10 +280,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
-                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 18, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -321,21 +307,6 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Plot Scalar Field
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
-            
-%             % Plot Geometry Outline
-%             if nPlanes == 1 && ~isempty(geometry) && yLimsData < yDims(1)
-%                 
-%                 for i = 1:height(parts)
-%                     geometry.(parts{i}).boundaries.XZ(:,2) = yLimsData;
-%                     
-%                     plot3(geometry.(parts{i}).boundaries.XZ(:,1), ...
-%                           geometry.(parts{i}).boundaries.XZ(:,2), ...
-%                           geometry.(parts{i}).boundaries.XZ(:,3), ...
-%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-%                 end
-%                 clear i;
-%                 
-%             end
             
             % Plot Contour Lines
             if ~isempty(contourlines)
@@ -409,7 +380,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
                 hold off;
                 
                 % Save Figure
-                pause(2);
+                set(figure(fig), 'position', [25, 25, 650, 650]);
+                pause(1);
+                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
                 
                 if figSave
@@ -424,10 +397,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Initialise Figure
             if planeNo == 1
                 fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                                 'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
-                set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-                         'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
+                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
+                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
+                         'fontSize', 18, 'layer', 'top');
                 lighting gouraud;
                 colormap(cMap);
                 hold on;
@@ -452,21 +424,6 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
             % Plot Scalar Field
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
-            
-%             % Plot Geometry Outline
-%             if nPlanes == 1 && ~isempty(geometry) && zLimsData > zDims(2)
-%                 
-%                 for i = 1:height(parts)
-%                     geometry.(parts{i}).boundaries.XY(:,3) = zLimsData;
-%                     
-%                     plot3(geometry.(parts{i}).boundaries.XY(:,1), ...
-%                           geometry.(parts{i}).boundaries.XY(:,2), ...
-%                           geometry.(parts{i}).boundaries.XY(:,3), ...
-%                           'color', 'w', 'lineStyle', '-', 'lineWidth', 1.5);
-%                 end
-%                 clear i;
-%                 
-%             end
             
             % Plot Contour Lines
             if ~isempty(contourlines)
@@ -537,10 +494,10 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsDat
                     zticks(tickData);
                 end
                 
-                hold off;
-                
                 % Save Figure
-                pause(2);
+                set(figure(fig), 'position', [25, 25, 650, 650]);
+                pause(1);
+                
                 exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
                 
                 if figSave

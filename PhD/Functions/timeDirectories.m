@@ -1,4 +1,4 @@
-%% Time Directory Reader v1.1
+%% Time Directory Reader v1.2
 % ----
 % Collates OpenFOAM v7 Time Directories
 % ----
@@ -12,6 +12,7 @@
 
 % v1.0 - Initial Commit
 % v1.1 - Added Support for 'global' and 'probe' Directory Identification
+% v1.2 - Minor Update to Sort Time Directories (Allowing for 'timeDirs' > 10 s)
 
 
 %% Supported Formats
@@ -71,7 +72,12 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
 
     end
     clear i;
+    
+    % Sort Time Directories
+    [~, index] = sort(str2double({timeDirs.name}));
+    timeDirs = timeDirs(index);
 
+    % Determine Delta T
     deltaT = str2double(timeDirs(end).name) - str2double(timeDirs(end - 1).name);
     timePrecision = width(extractAfter(num2str(deltaT, 8), '.'));
     deltaT = round(deltaT, timePrecision);

@@ -19,6 +19,7 @@
 % v1.0 - Initial Commit
 % v2.0 - Parallelised and Split Into Separate Planar, Surface and Volumetric Functions
 % v3.0 - Added Support for ‘Snapshot’ Data Collation and the ‘Uslip’ Field
+% v3.1 - Sort Particles Based on 'origProcId' and 'origId' to Enable Multiple Injection Sources
 
 
 %% Suported Data Collation Formats
@@ -239,24 +240,17 @@ function LagData = readLagDataPlane(saveLocation, caseFolder, caseID, distribute
         end
 
         for j = 1:nTimes
-            [LagData.(plane).origId{j}, index] = sort(LagData.(plane).origId{j});
+            [~, index] = sortrows([LagData.(plane).origProcId{j}, LagData.(plane).origId{j}]);
             
             LagData.(plane).timeExact{j} = LagData.(plane).timeExact{j}(index);
 
             for k = 1:height(LagProps)
                 prop = LagProps{k};
-
-                if k == 3
-                    % Don't Sort 'origId' Twice
-                    continue;
-                else
-                    LagData.(plane).(prop){j} = LagData.(plane).(prop){j}(index,:);
-                end
-
+                LagData.(plane).(prop){j} = LagData.(plane).(prop){j}(index,:);
             end
             clear k;
             
-            waitbar((j / nTimes), wB);
+            waitbar(((j + ((i - 1) * nTimes)) / (height(dataFiles) * nTimes)), wB);
         end
         clear j;
         

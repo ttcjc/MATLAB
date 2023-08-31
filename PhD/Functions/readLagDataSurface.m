@@ -18,6 +18,7 @@
 
 % v1.0 - Initial Commit
 % v2.0 - Added Support for ‘Snapshot’ Data Collation and the ‘Uslip’ Field
+% v2.1 - Sort Particles Based on 'origProcId' and 'origId' to Enable Multiple Injection Sources
 
 
 %% Suported Data Collation Formats
@@ -191,7 +192,7 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
     delete(wB);
 
     disp(' ');
-
+    
     % Sort Particles in ID Order
     disp('    Sorting Particles...');
     
@@ -201,20 +202,13 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
     
     % Perform Sort
     for i = 1:nTimes
-        [LagData.origId{i}, index] = sort(LagData.origId{i});
+        [~, index] = sortrows([LagData.origProcId{i}, LagData.origId{i}]);
         
         LagData.timeExact{i} = LagData.timeExact{i}(index);
         
         for j = 1:height(LagProps)
             prop = LagProps{j};
-            
-            if j == 3
-                % Don't Sort 'origId' Twice
-                continue;
-            else
-                LagData.(prop){i} = LagData.(prop){i}(index,:);
-            end
-            
+            LagData.(prop){i} = LagData.(prop){i}(index,:);
         end
         clear j;
         

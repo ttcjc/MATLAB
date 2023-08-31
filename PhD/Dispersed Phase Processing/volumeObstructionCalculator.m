@@ -11,7 +11,7 @@ else
     saveLocation = '~/Data';
 end
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
+nProc = 4; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -34,7 +34,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit
-% v2.0 - 
+% v2.0 - Added Support for Full-Scale Windsor Model Simulations
 
 
 %% Select Region of Interest

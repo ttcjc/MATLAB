@@ -211,11 +211,13 @@ function [dataID, LagProps, LagDataPlane, LagDataSurface, ...
                         valid = true;
                     else
                         disp('    WARNING: Invalid File Selection');
+                        
                         clear fileName filePath;
                     end
     
                 else
                     disp('    WARNING: Invalid Entry');
+                    
                     clear fileName filePath;
                 end
     
@@ -448,6 +450,7 @@ function time = inputTime(type)
     
     if isnan(time) || length(time) > 1 || time <= 0
         disp('        WARNING: Invalid Entry');
+        
         time = -1;
     end
 
@@ -460,9 +463,11 @@ function sampleInterval = inputFreq(origFreq)
     
     if isnan(newFreq) || newFreq <= 0 || newFreq > origFreq
         disp('            WARNING: Invalid Entry');
+        
         sampleInterval = -1;
     elseif mod(origFreq, newFreq) ~= 0
         disp(['            WARNING: New Frequency Must Be a Factor of ', num2str(origFreq),' Hz']);
+        
         sampleInterval = -1;
     else
         sampleInterval = origFreq / newFreq;

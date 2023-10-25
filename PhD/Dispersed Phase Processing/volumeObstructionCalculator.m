@@ -19,8 +19,6 @@ figHold = 0; % Enable Overwriting of Figures
 
 %% Lagrangian Line of Sight Obstruction Calculator v2.0
 
-dL = 1.25e-4; % Small Distance Used During LOS Numerical Integration [m]
-
 figSave = false; % Save .fig File(s)
 
 disp('=========================================');
@@ -45,8 +43,8 @@ disp('-------------------');
 disp(' ');
 
 disp('Possible Regions of Interest:');
-disp('    A: Near-Field');
-disp('    B: Far-Field');
+disp('    A: Near-Wake');
+disp('    B: Far-Wake');
 
 valid = false;
 while ~valid
@@ -85,7 +83,7 @@ while ~valid
         
         case 'A'
             
-            if contains(filePath, '/nearField')
+            if contains(filePath, '/nearWake')
                 disp(['Loading ''', fileName, '''...']);
                 
                 caseID = load([filePath, fileName], 'caseID').caseID;
@@ -107,7 +105,7 @@ while ~valid
             
         case 'B'
             
-            if contains(filePath, '/farField')
+            if contains(filePath, '/farWake')
                 disp(['Loading ''', fileName, '''...']);
                 
                 caseID = load([filePath, fileName], 'caseID').caseID;
@@ -131,13 +129,20 @@ while ~valid
 end
 clear valid;
 
+% Small Distance Used During LOS Numerical Integration
+if contains(caseID, 'Windsor_SB_fullScale_multiPhase')
+    dL = 5e-4; 
+else
+    dL = 1.25e-4;
+end
+
 disp(' ');
 disp(' ');
 
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
+[geometry, xDims, yDims, zDims, spacePrecision, normalise, normLength] = selectGeometry(normalise);
 
 disp(' ');
 disp(' ');
@@ -147,11 +152,7 @@ disp(' ');
 
 % Temporarily Restore Original Dimensions
 if normalise
-
-    if contains(caseID, ["Run_Test", "Windsor"])
-        volumeData.positionGrid = round((volumeData.positionGrid * 1.044), spacePrecision);
-    end
-
+    volumeData.positionGrid = round((volumeData.positionGrid * normLength), spacePrecision);
 end
 
 % Select Plane of Interest
@@ -186,6 +187,7 @@ while ~valid
        (obstructData.originPoint(2) < min(volumeData.positionGrid(:,2)) || obstructData.originPoint(2) > max(volumeData.positionGrid(:,1))) || ...
        (obstructData.originPoint(3) < min(volumeData.positionGrid(:,3)) || obstructData.originPoint(3) > max(volumeData.positionGrid(:,1)))
         disp('        WARNING: Origin Point Lies Outside Volume');
+        
         continue;
     end
     
@@ -195,6 +197,7 @@ while ~valid
             
             if obstructData.originPoint(1) < obstructData.targetPlane.position
                 disp('        WARNING: Origin Point Must Lie in the Positive X-Direction of the Target Plane');
+                
                 continue;
             end
             
@@ -202,6 +205,7 @@ while ~valid
             
             if obstructData.originPoint(2) > obstructData.targetPlane.position
                 disp('        WARNING: Origin Point Must Lie in the Negative Y-Direction of the Target Plane');
+                
                 continue;
             end
             
@@ -209,6 +213,7 @@ while ~valid
             
             if obstructData.originPoint(3) > obstructData.targetPlane.position
                 disp('        WARNING: Origin Point Must Lie in the Positive Z-Direction of the Target Plane');
+                
                 continue;
             end
             
@@ -220,16 +225,12 @@ clear valid;
 
 % Restore Normalised Dimensions
 if normalise
-
-    if contains(caseID, ["Run_Test", "Windsor"])
-        volumeData.positionGrid = round((volumeData.positionGrid / 1.044), spacePrecision);
-        obstructData.positionGrid = round((obstructData.positionGrid / 1.044), spacePrecision);
-        obstructData.targetPlane.position = round((obstructData.targetPlane.position / 1.044), spacePrecision);
-        obstructData.originPoint = round((obstructData.originPoint / 1.044), spacePrecision);
-        
-        dL = round((dL / 1.044), spacePrecision);
-    end
-
+    volumeData.positionGrid = round((volumeData.positionGrid / normLength), spacePrecision);
+    obstructData.positionGrid = round((obstructData.positionGrid / normLength), spacePrecision);
+    obstructData.targetPlane.position = round((obstructData.targetPlane.position / normLength), spacePrecision);
+    obstructData.originPoint = round((obstructData.originPoint / normLength), spacePrecision);
+    
+    dL = round((dL / normLength), spacePrecision);
 end
 
 disp(' ');
@@ -247,6 +248,9 @@ disp('***********');
 disp('  RUNNING ');
 
 tic;
+
+maxNumCompThreads(nProc);
+
 evalc('parpool(''threads'');');
 
 %%%%
@@ -296,10 +300,10 @@ if removeIntersect
         index = ~isnan(tsearchn(geoPoints, DT, volumeData.positionGrid));
 
         for j = 1:height(fields)
-            volumeData.mean.(fields{j})(index,:) = nan;
+            volumeData.mean.(fields{j})(index,:) = NaN;
 
             for k = 1:nTimes
-                volumeData.inst.(fields{j}){k}(index,:) = nan;
+                volumeData.inst.(fields{j}){k}(index,:) = NaN;
             end
 
         end
@@ -322,7 +326,10 @@ rayLR = find((obstructData.positionGrid(:,2) == max(obstructData.positionGrid(:,
 rayUR = find((obstructData.positionGrid(:,2) == max(obstructData.positionGrid(:,2)) & ...
                  (obstructData.positionGrid(:,3) == max(obstructData.positionGrid(:,3)))));
 
-if contains(caseID, ["Run_Test", "Windsor"])
+if contains(caseID, 'Windsor_SB_fullScale_multiPhase')
+    rayCent = dsearchn(obstructData.positionGrid(:,[2,3]), [0, 0.76]);
+    rayInj = dsearchn(obstructData.positionGrid(:,[2,3]), [-0.668 0.03]);
+else
     rayCent = dsearchn(obstructData.positionGrid(:,[2,3]), [0, 0.1945]);
     rayInj = dsearchn(obstructData.positionGrid(:,[2,3]), [-0.167 0.006]);
 end
@@ -359,23 +366,22 @@ parforWaitBar(wB, nTimes);
 
 % Perform Calculation
 pointsRay = cell(nTimes,1); pointsRay(:) = {cell(height(rayID),1)};
-massRay = pointsRay;
+densityRay = pointsRay;
 nParticlesRay = pointsRay;
 dRay = pointsRay;
 areaDensity = cell(nTimes,1); areaDensity(:) = {zeros([height(obstructData.positionGrid),1], 'single')};
 
-mass = volumeData.inst.mass;
+density = volumeData.inst.density;
 nParticles = volumeData.inst.nParticles;
-d = volumeData.inst.d20;
+d = volumeData.inst.d32;
 positionGrid = obstructData.positionGrid;
 originPoint = obstructData.originPoint;
-cellVolume = cellSize.volume;
 parfor i = 1:nTimes
-    massField = reshape(mass{i}, gridShape);
-    nParticlesField = reshape(nParticles{i}, gridShape);
-    dField = reshape(d{i}, gridShape);
+    densityField = reshape(full(density{i}), gridShape);
+    nParticlesField = reshape(full(nParticles{i}), gridShape);
+    dField = reshape(full(d{i}), gridShape);
     
-    massInterp = griddedInterpolant(x, y, z, massField, 'linear', 'none');
+    densityInterp = griddedInterpolant(x, y, z, densityField, 'linear', 'none');
     nParticlesInterp = griddedInterpolant(x, y, z, nParticlesField, 'linear', 'none');
     dInterp = griddedInterpolant(x, y, z, dField, 'nearest', 'none');
     
@@ -387,12 +393,11 @@ parfor i = 1:nTimes
         dist = (dL:dL:distFull)';
         samplePoints = originPoint + (dist * (dirVec / distFull));
         
-        areaDensity{i}(j) = sum((massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3))) * ...
-                                (dL / cellVolume));
+        areaDensity{i}(j) = sum((densityInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3))) * dL);
         
         if j == rayID(k) %#ok<PFBNS>
             pointsRay{i}{k} = samplePoints;
-            massRay{i}{k} = massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
+            densityRay{i}{k} = densityInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
             nParticlesRay{i}{k} = nParticlesInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
             dRay{i}{k} = dInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
             
@@ -405,19 +410,19 @@ parfor i = 1:nTimes
     end
     
     % Remove Unnecessary Data
-    mass{i} = [];
+    density{i} = [];
     nParticle{i} = [];
     d{i} = [];
     
     % Update Waitbar
     send(dQ, []);
 end
-clear i j k mass nParticles d positionGrid originPoint cellVolume;
+clear density nParticles d positionGrid originPoint;
 
 delete(wB);
 
 obstructData.inst.rayData.samplePoints = pointsRay; clear pointsRay;
-obstructData.inst.rayData.mass = massRay; clear massRay;
+obstructData.inst.rayData.density = densityRay; clear densityRay;
 obstructData.inst.rayData.nParticles = nParticlesRay; clear nParticlesRay;
 obstructData.inst.rayData.d = dRay; clear dRay;
 obstructData.inst.areaDensity = areaDensity; clear areaDensity;
@@ -432,16 +437,16 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 obstructData.mean.rayData.samplePoints = cell(height(rayID),1);
-obstructData.mean.rayData.mass = obstructData.mean.rayData.samplePoints;
+obstructData.mean.rayData.density = obstructData.mean.rayData.samplePoints;
 obstructData.mean.rayData.nParticles = obstructData.mean.rayData.samplePoints;
 obstructData.mean.rayData.d = obstructData.mean.rayData.samplePoints;
 obstructData.mean.areaDensity = zeros([height(obstructData.positionGrid),1], 'single');
 
-massField = reshape(volumeData.mean.mass, gridShape);
-nParticlesField = reshape(volumeData.mean.nParticles, gridShape);
-dField = reshape(volumeData.mean.d20, gridShape);
+densityField = reshape(full(volumeData.mean.density), gridShape);
+nParticlesField = reshape(full(volumeData.mean.nParticles), gridShape);
+dField = reshape(full(volumeData.mean.d32), gridShape);
     
-massInterp = griddedInterpolant(x, y, z, massField, 'linear', 'none');
+densityInterp = griddedInterpolant(x, y, z, densityField, 'linear', 'none');
 nParticlesInterp = griddedInterpolant(x, y, z, nParticlesField, 'linear', 'none');
 dInterp = griddedInterpolant(x, y, z, dField, 'linear', 'none');
 
@@ -453,12 +458,11 @@ for i = 1:height(obstructData.positionGrid)
     dist = (dL:dL:distFull)';
     samplePoints = obstructData.originPoint + (dist * (dirVec / distFull));
     
-    obstructData.mean.areaDensity(i) = sum((massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3))) * ...
-                                      (dL / cellSize.volume));
+    obstructData.mean.areaDensity(i) = sum((densityInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3))) * dL);
     
     if i == rayID(j)
         obstructData.mean.rayData.samplePoints{j} = samplePoints;
-        obstructData.mean.rayData.mass{j} = massInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
+        obstructData.mean.rayData.density{j} = densityInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
         obstructData.mean.rayData.nParticles{j} = nParticlesInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
         obstructData.mean.rayData.d{j} = dInterp(samplePoints(:,1), samplePoints(:,2), samplePoints(:,3));
         
@@ -529,7 +533,6 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -548,9 +551,20 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
-        nFrames = inputFrames(nTimes);
         
-        if nFrames == -1
+        startFrame = inputFrames(nTimes, 'Start');
+        
+        if startFrame == -1
+            continue;
+        end
+        
+        endFrame = inputFrames(nTimes, 'End');
+        
+        if endFrame == -1
+            continue;
+        elseif endFrame < startFrame
+            disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
+            
             continue;
         end
         
@@ -599,32 +613,37 @@ if plotInst || plotMean
 
         case 'A'
 
-            if contains(caseID, ["Run_Test", "Windsor"])
+            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
                 xLimsPlot = [0.31875; 1.43075];
                 yLimsPlot = [-0.2445; 0.2445];
                 zLimsPlot = [0; 0.389];
+            else
+                xLimsPlot = [1.275; 1.43075];
+                yLimsPlot = [-0.978; 0.978];
+                zLimsPlot = [0; 1.538];
             end
 
         case 'B'
 
-            if contains(caseID, ["Run_Test", "Windsor"])
+            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
                 xLimsPlot = [0.31875; 2.73575];
                 yLimsPlot = [-0.522; 0.522];
-                zLimsPlot = [0; 0.6264];
+                zLimsPlot = [0; 0.522];
+            else
+                xLimsPlot = [1.275; 19.295];
+                yLimsPlot = [-2.088; 2.088];
+                zLimsPlot = [0; 2.088];
             end
 
     end
     
     if normalise
-        
-        if contains(caseID, ["Run_Test", "Windsor"])
-            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-        end
-        
+        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
+        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
+        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
     end
     
+    spatialRes = cellSize.target / 8;
     orientation = obstructData.targetPlane.orientation;
     positionData = obstructData.positionGrid;
     mapPerim = [];
@@ -665,12 +684,13 @@ if plotMean
     scalarData = obstructData.mean.areaDensity;
     figName = 'Time_Averaged_Obstruction_Map';
     figSubtitle = ' ';
-    cLims = [0; 0.012]; % cLims = [0; max(scalarData)];
+    cLims = [0; max(scalarData)];
     
-    [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                           mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                           xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                           yLimsPlot, zLimsPlot, normalise, figSave);
     
     disp(' ');
 end
@@ -678,13 +698,13 @@ end
 if plotInst
     disp('    Presenting Instantaneous Obstruction Map(s)...');
     
-    cLims = [0; 0.018]; % cLims = [0; max(cellfun(@max, obstructData.inst.areaDensity))];
+    cLims = [0; max(cellfun(@max, obstructData.inst.areaDensity))];
     
     figHold = fig;
     
-    for i = 1:nFrames
+    for i = startFrame:endFrame
         
-        if i ~= 1
+        if i ~= startFrame
             clf(fig);
             fig = figHold;
         end
@@ -694,10 +714,11 @@ if plotInst
         figName = ['Instantaneous_Obstruction_Map_T_', erase(figTime, '.')];
         figSubtitle = [figTime, ' \it{s}'];
 
-        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                               yLimsPlot, zLimsPlot, normalise, figSave);
     end
     clear i;
     
@@ -739,14 +760,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearField/', dataID], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearField/', dataID]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearWake/', dataID], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearWake/', dataID]);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farField/', dataID], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farField/', dataID]);
+                if ~exist([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farWake/', dataID], 'dir')
+                    mkdir([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farWake/', dataID]);
                 end
                 
         end
@@ -754,15 +775,19 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearField/', dataID, '/', fileID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearField/', dataID, '/', fileID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearWake/', dataID, '/', fileID, '.mat']);
+                
+                save([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/nearWake/', dataID, '/', fileID, '.mat'], ...
                       'caseID', 'dataID', 'fileID', 'obstructData', 'cellSize', 'dL', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farField/', dataID, '/', fileID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farField/', dataID, '/', fileID, '.mat'], ...
+                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farWake/', dataID, '/', fileID, '.mat']);
+                
+                save([saveLocation, '/Numerical/MATLAB/volumeObstruction/', caseID, '/farWake/', dataID, '/', fileID, '.mat'], ...
                       'caseID', 'dataID', 'fileID', 'obstructData', 'cellSize', 'dL', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                
                 disp('        Success');
         
         end
@@ -789,13 +814,14 @@ function pos = inputPos(orientation)
 end
 
 
-function nFrames = inputFrames(Nt)
+function frameNo = inputFrames(Nt, type)
 
-    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    frameNo = str2double(input(['    Input Desired ', type, ' Frame [1-', num2str(Nt), ']: '], 's'));
     
-    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+    if isnan(frameNo) || frameNo < 1 || frameNo > Nt
         disp('        WARNING: Invalid Entry');
-        nFrames = -1;
+        
+        frameNo = -1;
     end
 
 end

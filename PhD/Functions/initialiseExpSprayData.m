@@ -1,8 +1,8 @@
-%% Experimental Spray Data Initialisation v1.1
+%% Experimental Spray Data Initialisation v2.0
 % ----
 % Initialisation of Experimental Spray Data for Further Processing
 % ----
-% Usage: [] = [caseFolder, caseID, ...
+% Usage: [] = [campaignID, caseID, planeID, ...
 %              expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc)
 %
 %        'saveLocation'  -> Start of File Path, Stored as a String
@@ -13,16 +13,18 @@
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
+% v2.0 - Update To Support Changes to DaVis Data Format
 
 
 %% Main Function
 
-function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc) %#ok<INUSD>
+function [campaignID, caseID, planeID, ...
+          expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, nProc) %#ok<INUSD>
 
     % Load Previously Collated Data (If Desired/Possible)
     disp('Experimental Spray Data Load');
     disp('-----------------------------');
-    
+
     valid = false;
     while ~valid
         disp(' ');
@@ -31,28 +33,34 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
         if selection == 'n' | selection == 'N' %#ok<OR2>
             break;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/*.mat'], ...
+            [fileName, filePath] = uigetfile([saveLocation, '/Experimental/MATLAB/experimentalSprayData/*.mat'], ...
                                              'Select Experimental Data');
 
-            if contains(filePath, '/planarExperimentalSpray/')
-                disp(['    Loading ''', fileName, '''...']);
-                
-                caseFolder = load([filePath, fileName], 'caseFolder').caseFolder;
-                caseID = load([filePath, fileName], 'caseID').caseID;
-                expSprayData = load([filePath, fileName], 'expSprayData').expSprayData;
-                samplingFrequency = load([filePath, fileName], 'samplingFrequency').samplingFrequency;
-                
-                disp('        Success');
-                
-                return;
+            if ~isnumeric(filePath)
+
+                if contains(filePath, '/experimentalSprayData/')
+                    disp(['    Loading ''', fileName, '''...']);
+
+                    campaignID = load([filePath, fileName], 'campaignID').campaignID;
+                    caseID = load([filePath, fileName], 'caseID').caseID;
+                    planeID = load([filePath, fileName], 'planeID').planeID;
+                    expSprayData = load([filePath, fileName], 'expSprayData').expSprayData;
+                    sampleFreq = load([filePath, fileName], 'sampleFreq').sampleFreq;
+
+                    disp('        Success');
+
+                    return;
+                else
+                    disp('    WARNING: Invalid File Selection');
+                    clear fileName filePath;
+                end
+
             else
-                disp('    WARNING: Invalid File Selection');
-                clear fileName filePath;
+                error('No File Selected');
             end
 
         else
             disp('    WARNING: Invalid Entry');
-            clear fileName filePath;
         end
 
     end
@@ -64,36 +72,54 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
     % Acquire Experimental Spray Data
     disp('Experimental Spray Data Acquisition');
     disp('------------------------------------');
-    
-    caseFolder = uigetdir('~/Data', 'Select Case');
-    
-    namePos = max(strfind(caseFolder, '/')) + 1;
-    caseID = caseFolder(namePos:end);
-    
+
+    valid = false;
+    while ~valid
+        disp(' ');
+        disp('Select DaVis Results Folder...');
+
+        caseFolder = uigetdir([saveLocation, '/Experimental/DaVis/Results'], 'Select DaVis Results Folder');
+
+        if ~isnumeric(caseFolder)
+
+            % Confirm Support
+            if contains(caseFolder, 'Far_Field_Soiling_07_22')
+                dataFiles = dir([caseFolder, '/*.csv']);
+            else
+                disp('    WARNING: Invalid Case Directory (Unsupported Case Type)');
+
+                continue;
+            end
+
+        else
+            error('No Results Folder Selected');
+        end
+
+        % Confirm Data Availability
+        if isempty(dataFiles)
+            disp('    WARNING: Invalid Case Directory (No Spray Data Found)');
+
+            continue;
+        else
+            valid = true;
+        end
+
+    end
+    clear valid
+
+    campaignID = caseFolder((strfind(caseFolder, 'Results/') + 8):(max(strfind(caseFolder, '/')) - 1));
+    caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
+
     disp(' ');
 
-    disp(['Case: ', caseID]);
-
-    % Confirm Support
-    if ~contains(caseFolder, 'Far_Field_Soiling_07_22')
-        error('Invalid Case Directory (Unsupported Case Type)');
-    end
+    disp(['Case: ', campaignID, ', ', caseID]);
     
-    % Confirm Data Availability
-    dataFiles = dir([caseFolder, '/*.xyz']);
-    
-    if isempty(dataFiles)
-        error('Invalid Case Directory (No Spray Data Found)');
-    end
-
     disp(' ');
-
+    
     disp('***********');
     disp(' COLLATING ');
     
     tic;
-    
-    evalc('parpool(nProc);');
     
     %%%%
     
@@ -101,24 +127,26 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
     
     disp('    Initialising...');
     
-    % Specify Sampling Frequency
-    samplingFrequency = str2double(caseID((max(strfind(caseID, '_')) + 1):(end - 2)));
+    evalc('parpool(nProc);');
+    
+    % Identify Sampling Frequency
+    sampleFreq = str2double(caseID((strfind(caseID, 's_') + 2):(strfind(caseID, 'Hz') - 1)));
     
     % Identify Plane Position
-    planePos = str2double(caseID((min(strfind(caseID, '_')) + 1):(strfind(caseID, 'L_') - 1)));
+    planeID = caseID((min(strfind(caseID, '_')) + 1):(strfind(caseID, 'L_')));
     
     % Initialise Position Grid
     fileID = fopen([caseFolder, '/', dataFiles(1).name]);
-    content = cell2mat(textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', '\n'));
+    content = cell2mat(textscan(fileID, '%f32;%f32;%f32', 'headerLines', 1, 'delimiter', '\n'));
     fclose(fileID);
 
     % Convert to Metres and Adjust Origin
-    expSprayData.positionGrid = zeros([height(content),3]);
-    expSprayData.positionGrid(:,1) = 0.48325 + (planePos * 1.044);
+    expSprayData.positionGrid = zeros([height(content),3], 'single');
+    expSprayData.positionGrid(:,1) = 0.48325 + (str2double(planeID(1:(end-1))) * 1.044); % Offset Due to Plane Position
     expSprayData.positionGrid(:,(2:3)) = content(:,(1:2)) / 1000;
-    expSprayData.positionGrid(:,3) = expSprayData.positionGrid(:,3) + 0.1545;
+    expSprayData.positionGrid(:,3) = expSprayData.positionGrid(:,3) + (0.309 / 2); % Offset Due to 309-15-3 Calibration Board
     
-    % Sort Position Grid for Compatibility
+    % Sort Position Grid for 'ndgrid' Compatibility
     [expSprayData.positionGrid, index] = sortrows(expSprayData.positionGrid,3);
     
     disp(' ');
@@ -134,16 +162,16 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
 
     parforWaitBar(wB, height(dataFiles));
     
-    time = zeros([height(dataFiles),1]);
-    seedingDensity = cell(height(dataFiles),1);
+    time = zeros([height(dataFiles),1], 'single');
+    density = cell(height(dataFiles),1);
 
     parfor i = 1:height(dataFiles)
         fileID = fopen([caseFolder, '/', dataFiles(i).name]);
-        content = cell2mat(textscan(fileID, '%f %f %f', 'headerLines', 0, 'delimiter', '\n'));
+        content = cell2mat(textscan(fileID, '%f32;%f32;%f32', 'headerLines', 1, 'delimiter', '\n'));
         fclose(fileID);
 
-        time(i) = i * (1 / samplingFrequency);
-        seedingDensity{i} = content(index,3);
+        time(i) = i * (1 / sampleFreq);
+        density{i} = content(index,3);
         
         % Update Waitbar
         send(dQ, []);
@@ -151,7 +179,7 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
     clear i;
     
     expSprayData.time = time;
-    expSprayData.seedingDensity = seedingDensity;
+    expSprayData.density = density;
     clear time seedingDensity;
     
     delete(wB);
@@ -181,13 +209,13 @@ function [caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSp
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray'], 'dir')
-                mkdir([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray']);
+            if ~exist([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID], 'dir')
+                mkdir([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID]);
             end
             
-            disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseID, '.mat']);
-            save([saveLocation, '/Experimental/MATLAB/planarExperimentalSpray/', caseID, '.mat'], ...
-                 'caseFolder', 'caseID', 'expSprayData', 'samplingFrequency', '-v7.3', '-noCompression');
+            disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat']);
+            save([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat'], ...
+                 'campaignID', 'caseID', 'planeID', 'expSprayData', 'sampleFreq', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

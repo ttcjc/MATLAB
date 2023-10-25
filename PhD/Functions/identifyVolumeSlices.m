@@ -1,8 +1,12 @@
 %% Volume Slice Identifier v1.0
 % ----
-% 
+% Extract 2D Planes From an Existing 3D Grid
 % ----
-% Usage:
+% Usage: volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice)
+% 
+%        'positionData'   -> 
+%        'spacePrecision' -> 
+%        'multiSlice'     -> 
 
 
 %% Changelog
@@ -226,6 +230,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     disp('    INFO: Requested Slice Unavailable');
                     disp(['        Shifting X: ', num2str(volumeSlice.(['s', num2str(i)]).xLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
                                                   num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    
                     volumeSlice.(['s', num2str(i)]).xLims = allPlanes(index);
                 end
                 
@@ -240,6 +245,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     disp('    INFO: Requested Slice Unavailable');
                     disp(['        Shifting Y: ', num2str(volumeSlice.(['s', num2str(i)]).yLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
                                                   num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    
                     volumeSlice.(['s', num2str(i)]).yLims = allPlanes(index);
                 end
                 
@@ -254,6 +260,7 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                     disp('    INFO: Requested Slice Unavailable');
                     disp(['        Shifting Z: ', num2str(volumeSlice.(['s', num2str(i)]).zLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
                                                   num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    
                     volumeSlice.(['s', num2str(i)]).zLims = allPlanes(index);
                 end
                 
@@ -290,6 +297,7 @@ function pos = inputPos(type, plane)
     
     if isnan(pos) || length(pos) > 1
         disp('        WARNING: Invalid Entry');
+        
         pos = -1;
     end
     

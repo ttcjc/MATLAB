@@ -1,9 +1,9 @@
-%% Geometry Selection Tool v1.2
+%% Geometry Selection Tool v1.3
 % ----
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
-% Usage: [geometry, xDims, yDims, zDims, precision, normalise, normLength] = selectGeometry(normalise);
-%        'normalise' -> Normalise Dimensions [True/False]
+% Usage: [geometry, xDims, yDims, zDims, precision, normDims, normLength] = selectGeometry(normDims);
+%        'normDims' -> Normalise Dimensions [True/False]
 
 
 %% Changelog
@@ -11,17 +11,18 @@
 % v1.0 - Initial Commit
 % v1.1 - Minor Formatting Updates
 % v1.2 - Added Support for Full-Scale Windsor Model Geometries
+% v1.3 - Fixed a Bug Preventing the Normalisation of the Quarter-Scale Windsor Model
 
 
 %% Supported Geometries
 
 % Test Block
-% Windsor Model
+% Windsor Model (Quarter-Scale & Full-Scale)
 
 
 %% Main Function
 
-function [geometry, xDims, yDims, zDims, spacePrecision, normalise, normLength] = selectGeometry(normalise)
+function [geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims)
 
     disp('Geometry Selection');
     disp('-------------------');
@@ -84,20 +85,26 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normalise, normLength] 
     spacePrecision = max([xPre, yPre, zPre]);
     
     % Normalise Geometry Dimensions
-    if normalise
+    if normDims
         disp(' ');
         
         disp('Normalising Dimensions...');
         
-        if contains(path, 'Run_Test') || (contains(path, 'Windsor') && contains(path, 'Upstream'))
+        if contains(path, 'Run_Test')
             normLength = 1.044;
-        elseif contains(path, 'Windsor') && contains(path, 'Full-Scale')
-            normLength = 4.176;
+        elseif contains(path, 'Windsor')
+            
+            if contains(path, 'Full-Scale')
+                normLength = 4.176;
+            else
+                normLength = 1.044;
+            end
+            
         else
             disp('    WARNING: Dimension Normalisation for This Geometry Not Supported');
             
             normLength = [];
-            normalise = false;
+            normDims = false;
             return;
         end
         

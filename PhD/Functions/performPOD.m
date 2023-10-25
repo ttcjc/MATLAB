@@ -1,4 +1,4 @@
-%% Snapshot POD Calculator v1.1
+%% Snapshot POD Calculator v1.2
 % ----
 % Performs Shapshot POD on Fluctuating Scalar or Vector Fields
 %
@@ -21,7 +21,7 @@
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Formatting Updates
-
+% v1.2 - Further Formatting Updates
 
 %% Supported Field Types
 
@@ -47,10 +47,10 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     switch fieldType
 
         case 'scalar'
-            snapshotMatrix = zeros(Nt,Ns);
+            PODdata.snapshotMatrix = zeros(Nt,Ns);
             
             for i = 1:Nt
-                snapshotMatrix(i,:) = PODdata.(PODvar).prime{i};
+                PODdata.snapshotMatrix(i,:) = PODdata.(PODvar).prime{i};
                 
                 % Update Waitbar
                 waitbar((i / Nt), wB);
@@ -72,7 +72,7 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
             end
             clear i;
     
-            snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
+            PODdata.snapshotMatrix = [uSnapshotMatrix, vSnapshotMatrix, wSnapshotMatrix];
     
     end
     
@@ -83,21 +83,21 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     disp('    Performing POD Using the Snapshot Method...');
     
     % Generate Correlation Matrix
-    C = (snapshotMatrix * snapshotMatrix') / (Nt - 1);
+    PODdata.C = (PODdata.snapshotMatrix * PODdata.snapshotMatrix') / (Nt - 1);
     
     % Solve Eigenvalue Problem
-    [A_mode, lambda] = eig(C, 'vector');
+    [A_mode, lambda] = eig(PODdata.C, 'vector');
     
     % Sort Eigenvalues and Eigenvalues in Descending Order
     [lambda, index] = sort(lambda, 'descend');
     A_mode = A_mode(:,index); % Temporal Modes
     
     % Calculate Spatial Coefficients
-    phi_coeff = snapshotMatrix' * A_mode;
+    phi_coeff = PODdata.snapshotMatrix' * A_mode;
     
     % Normalisation to Match Direct Method
     PODdata.phi_mode = normc(phi_coeff); % Spatial Modes
-    PODdata.A_coeff = snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
+    PODdata.A_coeff = PODdata.snapshotMatrix * PODdata.phi_mode; % Temporal Coefficients
     
     % Identify Mode Energy Content
     PODdata.modeEnergy = (lambda / sum(lambda)) * 100;
@@ -107,7 +107,7 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     disp(' ');
     
     disp(['    First ', num2str(modesEnergetic), ' Modes Each Contain Greater Than 1% of Total Energy']);
-    disp(['    First ', num2str(modes80percent), ' Modes Contain Approximately 80% of Total Energy']);
+    disp(['    First ', num2str(modes80percent), ' Modes Contain Approximately 90% of Total Energy']);
     
     % Initialise Figure
     fig = fig + 1;
@@ -123,17 +123,21 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     end
     
     set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                     'outerPosition', [25, 25, 650, 650], 'units', 'pixels')
+                     'units', 'pixels', 'outerPosition', [50, 50, 795, 880])
     set(gca, 'positionConstraint', 'outerPosition', ...
-             'lineWidth', 2, 'fontName', 'LM Mono 12', 'fontSize', 16, 'layer', 'top');
+             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
     hold on;
     
     % Plot Modes
-    cMap = viridis(3);
     bar(PODdata.modeEnergy, 0.75, ...
-        'lineWidth', 2, 'faceColor', cMap(1,:));
+        'lineWidth', 2, 'faceColor', graphColours(1));
+    
+    figTitle = '.';
+    figSubtitle = ' ';
     
     % Format Figure
+    title(figTitle, 'color', ([254, 254, 254] / 255));
+    subtitle(figSubtitle);
     axis on;
     box on;
     grid off;
@@ -143,13 +147,21 @@ function [fig, PODdata, modesEnergetic, modes80percent, Ns, Nt] = performPOD(fig
     xticks(tickData);
     tickData = (4:4:16);
     yticks(tickData);
-    xlabel('{\bf{Mode}}', 'fontName', 'LM Roman 12');
-    ylabel('{\bf{Energy Content ({\it{%}})}}', 'fontName', 'LM Roman 12');
+    xlabel('{Mode}', 'interpreter', 'latex');
+    ylabel('{Energy Content (\%)}', 'interpreter', 'latex');
     hold off;
 
+    tightInset = get(gca, 'TightInset');
+    set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                               (tightInset(2) + 0.00625), ...
+                               (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                               (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+    hold off;
+
+    pause(1);
+
     % Save Figure
-    pause(2);
-    exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+    print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
 
     if figSave
         savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);

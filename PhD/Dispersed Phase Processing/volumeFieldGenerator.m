@@ -477,7 +477,7 @@ parfor i = 1:nTimes
                                (nParticle{i}(j) * (d{i}(j)^3));
             
             d20(index{i}(j)) = d20(index{i}(j)) + ...
-                               (nParticle{i}(j) * (d{i}(j)^3));
+                               (nParticle{i}(j) * (d{i}(j)^2));
             
             d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
                                   (nParticle{i}(j) * d{i}(j));

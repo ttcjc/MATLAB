@@ -1,4 +1,4 @@
-%% Planar Scalar Field Plotter v2.1
+%% Planar Scalar Field Plotter v2.2
 % ----
 % Plots Previously Processed Planar Scalar Fields
 % ----
@@ -36,6 +36,7 @@
 % v2.0 - Shifted to Using 'griddedInterpolant' and Added Support for Multi-Plane Figures)
 % v2.1 - Rename and Minor Formatting Updates
 % v2.1 - Added Spatial Resolution as an Input Variable
+% v2.2 - Update To Ensure Consistent Figure Sizes
 
 
 %% Main Function
@@ -155,38 +156,40 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             end
             
     end
+    
+    % Initialise Figure
+    if planeNo == 1                
+        fig = fig + 1;
+        set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                         'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+        pause(0.5);
+        hold on;
+        set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+                 'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+        lighting gouraud;
+        colormap(cMap);
 
+        % Plot Geometry
+        if ~isempty(geometry)
+            parts = fieldnames(geometry);
+
+            for i = 1:height(parts)
+                patch('faces', geometry.(parts{i}).faces, ...
+                      'vertices', geometry.(parts{i}).vertices, ...
+                      'faceColor', [0.5, 0.5, 0.5], ...
+                      'edgeColor', [0.5, 0.5, 0.5], ...
+                      'lineStyle', 'none');
+            end
+            clear i;
+
+        end
+
+    end
+    
     % Present Data
     switch orientation
         
         case 'YZ'
-            % Initialise Figure
-            if planeNo == 1
-                fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 18, 'layer', 'top');
-                lighting gouraud;
-                colormap(cMap);
-                hold on;
-                
-                % Plot Geometry
-                if ~isempty(geometry)
-                    parts = fieldnames(geometry);
-    
-                    for i = 1:height(parts)
-                        patch('faces', geometry.(parts{i}).faces, ...
-                              'vertices', geometry.(parts{i}).vertices, ...
-                              'faceColor', [0.5, 0.5, 0.5], ...
-                              'edgeColor', [0.5, 0.5, 0.5], ...
-                              'lineStyle', 'none');
-                    end
-                    clear i;
-                    
-                end
-
-            end
-            
             % Plot Scalar Field
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -225,20 +228,20 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
                     tickData = [];
                     xticks(tickData);
-                    tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
+                    tickData = (yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2));
                     yticks(tickData(2:(end-1)));
-                    tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
+                    tickData = (zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2));
                     zticks(tickData(2:(end-1)));
-                    xtickformat('%+.2f');
-                    ytickformat('%+.2f');
-                    ztickformat('%+.2f');
+                    xtickformat('%+.2g');
+                    ytickformat('%+.2g');
+                    ztickformat('%+.2g');
                     
                     if normalise
-                        ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                        zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        ylabel('{$y_{\ell}$}', 'interpreter', 'latex')
+                        zlabel('{$z_{\ell}$}', 'interpreter', 'latex');
                     else
-                        ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                        zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        ylabel('{$y$ ($m$)}', 'interpreter', 'latex');
+                        zlabel('{$z$ ($m$)}', 'interpreter', 'latex');
                     end
                 
                 else
@@ -260,13 +263,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     zticks(tickData);
                 end
                 
+                tightInset = get(gca, 'TightInset');
+                set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                                           (tightInset(2) + 0.00625), ...
+                                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+                pause(0.5);
                 hold off;
                 
                 % Save Figure
-                set(figure(fig), 'position', [25, 25, 650, 650]);
-                pause(1);
-                
-                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+                print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
                 
                 if figSave
                     savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
@@ -276,34 +282,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                 planeNo = planeNo + 1;
             end
             
-        case 'XZ'
-            % Initialise Figure
-            if planeNo == 1
-                fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 18, 'layer', 'top');
-                lighting gouraud;
-                colormap(cMap);
-                hold on;
-                
-                % Plot Geometry
-                if ~isempty(geometry)
-                    parts = fieldnames(geometry);
-    
-                    for i = 1:height(parts)
-                        patch('faces', geometry.(parts{i}).faces, ...
-                              'vertices', geometry.(parts{i}).vertices, ...
-                              'faceColor', [0.5, 0.5, 0.5], ...
-                              'edgeColor', [0.5, 0.5, 0.5], ...
-                              'lineStyle', 'none');
-                    end
-                    clear i;
-                    
-                end
-
-            end
-            
+        case 'XZ'            
             % Plot Scalar Field
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -346,16 +325,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     yticks(tickData);
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
                     zticks(tickData(2:5));
-                    xtickformat('%+.2f');
-                    ytickformat('%+.2f');
-                    ztickformat('%+.2f');
+                    xtickformat('%+.2g');
+                    ytickformat('%+.2g');
+                    ztickformat('%+.2g');
                     
                     if normalise
-                        xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                        zlabel('{\bf{z}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        xlabel('{$x_{\ell}$}', 'interpreter', 'latex')
+                        zlabel('{$z_{\ell}$}', 'interpreter', 'latex');
                     else
-                        xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                        zlabel('{\bf{z}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        xlabel('{$x$ ($m$)}', 'interpreter', 'latex');
+                        zlabel('{$z$ ($m$)}', 'interpreter', 'latex');
                     end
 
                 else
@@ -377,13 +356,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     zticks(tickData);
                 end
                 
+                tightInset = get(gca, 'TightInset');
+                set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                                           (tightInset(2) + 0.00625), ...
+                                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+                pause(0.5);
                 hold off;
                 
                 % Save Figure
-                set(figure(fig), 'position', [25, 25, 650, 650]);
-                pause(1);
-                
-                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+                print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
                 
                 if figSave
                     savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
@@ -394,33 +376,6 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             end
             
         case 'XY'
-            % Initialise Figure
-            if planeNo == 1
-                fig = fig + 1;
-                set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
-                set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
-                         'fontSize', 18, 'layer', 'top');
-                lighting gouraud;
-                colormap(cMap);
-                hold on;
-                
-                % Plot Geometry
-                if ~isempty(geometry)
-                    parts = fieldnames(geometry);
-    
-                    for i = 1:height(parts)
-                        patch('faces', geometry.(parts{i}).faces, ...
-                              'vertices', geometry.(parts{i}).vertices, ...
-                              'faceColor', [0.5, 0.5, 0.5], ...
-                              'edgeColor', [0.5, 0.5, 0.5], ...
-                              'lineStyle', 'none');
-                    end
-                    clear i;
-                    
-                end
-
-            end
-            
             % Plot Scalar Field
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -463,16 +418,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);
-                    xtickformat('%+.2f');
-                    ytickformat('%+.2f');
-                    ztickformat('%+.2f');
+                    xtickformat('%+.2g');
+                    ytickformat('%+.2g');
+                    ztickformat('%+.2g');
                     
                     if normalise
-                        xlabel('{\bf{x}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
-                        ylabel('{\bf{y}}_{{\it{l}}}', 'fontName', 'LM Roman 12');
+                        xlabel('{$x_{\ell}$}', 'interpreter', 'latex')
+                        ylabel('{$y_{\ell}$}', 'interpreter', 'latex');
                     else
-                        xlabel('{\bf{x}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
-                        ylabel('{\bf{y}}_{{\it{m}}}', 'fontName', 'LM Roman 12');
+                        xlabel('{$x$ ($m$)}', 'interpreter', 'latex');
+                        ylabel('{$y$ ($m$)}', 'interpreter', 'latex');
                     end
 
                 else
@@ -494,11 +449,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     zticks(tickData);
                 end
                 
-                % Save Figure
-                set(figure(fig), 'position', [25, 25, 650, 650]);
-                pause(1);
+                tightInset = get(gca, 'TightInset');
+                set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                                           (tightInset(2) + 0.00625), ...
+                                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+                pause(0.5);
+                hold off;
                 
-                exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+                % Save Figure
+                print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
                 
                 if figSave
                     savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);

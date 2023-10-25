@@ -312,7 +312,7 @@ switch format
             mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
-        xLimsData = xDims(2)
+        xLimsData = xDims(2);
         yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
@@ -342,7 +342,7 @@ disp(' ');
 disp('    Collating Particles of Interest...');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
+wB = waitbar(0, 'Collating Particles of Interest', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 index = cell(nTimes,1);
@@ -640,6 +640,20 @@ mapData.mean.CoM(1) = mapData.positionGrid(1,1);
 mapData.mean.CoM(2) = sum(mapData.mean.density .* mapData.positionGrid(:,2)) / sum(mapData.mean.density);
 mapData.mean.CoM(3) = sum(mapData.mean.density .* mapData.positionGrid(:,3)) / sum(mapData.mean.density);
 
+% Offset Particles From Surface to Improve Visibility
+switch format
+    
+    case 'A'
+        mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
+        
+        for i = 1:nTimes
+            mapData.inst.CoM{i}(1) = mapData.inst.CoM{i}(1) + 1e-3;
+        end
+        
+        mapData.mean.CoM(1) = mapData.mean.CoM(1) + 1e-3;
+        
+end
+
 %%%%
 
 evalc('delete(gcp(''nocreate''));');
@@ -674,7 +688,6 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
-        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');

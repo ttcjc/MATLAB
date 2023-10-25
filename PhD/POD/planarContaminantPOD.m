@@ -55,12 +55,15 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
+        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
+        
         valid = true;
     elseif selection == 'c' | selection == 'C' %#ok<OR2>
         format = 'C';
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -98,10 +101,10 @@ switch format
                         caseID = load([filePath, fileName], 'caseID').caseID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
-                        sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
-                        normalise = load([filePath, fileName], 'normalise').normalise;
+                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
                         
@@ -120,10 +123,10 @@ switch format
                         planeID = load([filePath, fileName], 'planeID').planeID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
-                        sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                        sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
-                        normalise = load([filePath, fileName], 'normalise').normalise;
+                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
 
@@ -152,9 +155,9 @@ switch format
                 planeID = load([filePath, fileName], 'planeID').planeID;
                 dataID = load([filePath, fileName], 'dataID').dataID;
                 mapData = load([filePath, fileName], 'mapData').mapData;
-                sampleInterval = load([filePath, fileName], 'sampleInterval').sampleInterval;
+                sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                 timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
-                normalise = load([filePath, fileName], 'normalise').normalise;
+                normDims = load([filePath, fileName], 'normDims').normDims;
                 
                 disp('    Success');
                 
@@ -175,7 +178,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
+[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
 
 disp(' ');
 disp(' ');
@@ -187,7 +190,7 @@ disp('POD Options');
 disp('------------');
 
 % Select Variable of Interest
-PODvar = fieldnames(mapData.inst);
+PODvar = fieldnames(mapData.prime);
 
 valid = false;
 while ~valid
@@ -282,29 +285,9 @@ PODdata.positionGrid = mapData.positionGrid;
 PODdata.time = mapData.time;
 PODdata.(PODvar).inst = mapData.inst.(PODvar);
 PODdata.(PODvar).mean = mapData.mean.(PODvar);
+PODdata.(PODvar).prime = mapData.prime.(PODvar);
 
 clear mapData;
-
-disp(' ');
-
-disp('    Calculating Instantaneous Field Fluctuations...');
-
-% Initialise Progress Bar
-wB = waitbar(0, ['Calculating Instantaneous ''', PODvar, ''' Fluctuations'], 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-
-% Calculate Instantaneous Variable Fluctuations
-PODdata.(PODvar).prime = cell(height(PODdata.time),1);
-
-for i = 1:height(PODdata.time)
-    PODdata.(PODvar).prime{i} = PODdata.(PODvar).inst{i} - PODdata.(PODvar).mean;
-    
-    % Update Waitbar
-    waitbar((i / height(PODdata.time)), wB);
-end
-clear i;
-
-delete(wB);
 
 disp(' ');
 
@@ -411,18 +394,29 @@ if plotModes
             
             xLimsPlot = [0.31875; 2.73575];
             yLimsPlot = [-0.522; 0.522];
-            zLimsPlot = [0; 0.6264];
+            zLimsPlot = [0; 0.522];
             
     end
 
-    if normalise
+    if normDims
+        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
+        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
+        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+    end
+    
+    switch format
         
-%         if contains(caseID, ["Run_Test", "Windsor"])
-            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-%         end
-        
+        case {'A', 'B'}
+            
+            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+                spatialRes = 0.5e-3;
+            else
+                spatialRes = 2e-3;
+            end
+            
+        case 'C'
+            spatialRes = 0.5e-3;
+            
     end
 
     positionData = PODdata.positionGrid;
@@ -431,7 +425,7 @@ if plotModes
     cMap = cool2warm(32);
     contourlines = [];
     refPoint = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    figTitle = '.'; % Leave Blank ('-') for Formatting Purposes
     cLims = [-1; 1];
 
     for i = nModes
@@ -452,12 +446,13 @@ if plotModes
 
         end
 
-        figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '\it{%}'];
+        figSubtitle = [num2str(round(PODdata.modeEnergy(i), 2), '%.2f'), '%'];
 
-        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                               yLimsPlot, zLimsPlot, normDims, figSave);
     end
     clear i;
     
@@ -510,19 +505,19 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar, '/', dataID, '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/base/', PODvar, '/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
+                      'caseID', 'dataID', 'PODdata', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar, '/', dataID, '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/planarContaminantPOD/', caseID, '/', planeID, '/', PODvar, '/', dataID, '.mat'], ...
-                      'caseID', 'planeID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
+                      'caseID', 'planeID', 'dataID', 'PODdata', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
             
             case 'C'
                 disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '.mat']);
                 save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'PODdata', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
+                      'caseID', 'planeID', 'dataID', 'PODdata', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -592,10 +587,9 @@ disp('    Initialising...');
 reconData.positionGrid = PODdata.positionGrid;
 reconData.time = PODdata.time;
 reconData.(PODvar).inst = cell(Nt,1);
-reconData.(PODvar).mean = PODdata.(PODvar).mean;
 
 for i = 1:Nt
-    reconData.(PODvar).inst{i} = reconData.(PODvar).mean;
+    reconData.(PODvar).inst{i} = PODdata.(PODvar).mean;
 end
 clear i;
 
@@ -608,7 +602,47 @@ else
     reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 'scalar', false);
 end
 
-if any(strcmp(PODvar, {'mass', 'massNorm'}))
+disp(' ');
+
+% Calculate Calculate Reconstructed Time Average
+disp('    Calculating Reconstructed Time Average');
+
+reconData.(PODvar).mean = zeros([Ns,1]);
+
+for i = 1:Nt
+    reconData.(PODvar).mean = reconData.(PODvar).mean + reconData.(PODvar).inst{i};
+end
+clear i;
+
+reconData.(PODvar).mean = reconData.(PODvar).mean / Nt;
+
+disp(' ');
+
+% Calculate Instantaneous Spray Density Fluctuations
+disp('    Calculating Reconstructed Instantaneous Fluctuations');
+
+reconData.(PODvar).prime = reconData.(PODvar).inst;
+
+for i = 1:Nt
+    reconData.(PODvar).prime{i} = reconData.(PODvar).inst{i} - reconData.(PODvar).mean;
+end
+clear i;
+
+disp(' ');
+
+% Calculate RMS of Reconstructed Field
+disp('    Calculating RMS of Reconstructed Field');
+
+reconData.(PODvar).RMS = zeros([Ns,1]);
+
+for i = 1:Nt
+    reconData.(PODvar).RMS  = reconData.(PODvar).RMS + reconData.(PODvar).prime{i}.^2;
+end
+clear i;
+
+reconData.(PODvar).RMS = sqrt((1 / Nt) * reconData.(PODvar).RMS);
+
+if (any(strcmp(format, {'A', 'B'})) && any(strcmp(PODvar, {'mass', 'massNorm'}))) || strcmp(format, 'C')
     disp(' ');
 
     disp('    Calculating Reconstructed Centre of Mass...');
@@ -618,14 +652,12 @@ if any(strcmp(PODvar, {'mass', 'massNorm'}))
     wB.Children.Title.Interpreter = 'none';
     
     % Calculate Reconstructed CoM
-    reconData.(PODvar).CoM = cell(Nt,1);
+    reconData.CoM.inst = cell(Nt,1); reconData.CoM.inst(:) = {zeros([1,3])};
     
     for i = 1:Nt
-        reconData.(PODvar).CoM{i} = zeros(1,3);
-    
-        reconData.(PODvar).CoM{i}(1) = reconData.positionGrid(1,1);
-        reconData.(PODvar).CoM{i}(2) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,2)) / sum(reconData.(PODvar).inst{i});
-        reconData.(PODvar).CoM{i}(3) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,3)) / sum(reconData.(PODvar).inst{i});
+        reconData.CoM.inst{i}(1) = reconData.positionGrid(1,1);
+        reconData.CoM.inst{i}(2) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,2)) / sum(reconData.(PODvar).inst{i});
+        reconData.CoM.inst{i}(3) = sum(reconData.(PODvar).inst{i} .* reconData.positionGrid(:,3)) / sum(reconData.(PODvar).inst{i});
         
         % Update Waitbar
         waitbar((i / Nt), wB);
@@ -633,6 +665,17 @@ if any(strcmp(PODvar, {'mass', 'massNorm'}))
     clear i;
     
     delete(wB);
+    
+    disp(' ');
+
+    % Calculate Time-Averaged Centre of Spray
+    disp('    Calculating Time-Averaged Centre of Spray');
+
+    reconData.CoM.mean = zeros([1,3]);
+
+    reconData.CoM.mean(1) = mapData.positionGrid(1,1);
+    reconData.CoM.mean(2) = sum(reconData.(PODvar).mean .* reconData.positionGrid(:,2)) / sum(reconData.(PODvar).mean);
+    reconData.CoM.mean(3) = sum(reconData.(PODvar).mean .* reconData.positionGrid(:,3)) / sum(reconData.(PODvar).mean);
 end
 
 %%%%
@@ -660,16 +703,68 @@ disp('------------------------------------');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Reconstructed Field? [y/n]: ', 's');
+    selection = input('Plot Average Reconstructed Field? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotRecon = false;
+        plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotRecon = true;
-        nFrames = inputFrames(Nt);
+        plotMean = true;
         
-        if nFrames == -1
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot RMS of Reconstructed Field? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotRMS = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotRMS = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot Instantaneous Reconstructed Fields? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotInst = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotInst = true;
+        
+        startFrame = inputFrames(Nt, 'Start');
+        
+        if startFrame == -1
+            continue;
+        end
+        
+        endFrame = inputFrames(Nt, 'End');
+        
+        if endFrame == -1
+            continue;
+        elseif endFrame < startFrame
+            disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
+            
             continue;
         end
         
@@ -693,9 +788,7 @@ disp('----------------------------');
 
 disp(' ');
 
-if plotRecon
-    disp('    Presenting Reconstructed Field...');
-
+if plotMean || plotRMS || plotInst
     % Define Plot Limits
     switch format
 
@@ -722,41 +815,111 @@ if plotRecon
             
             xLimsPlot = [0.31875; 2.73575];
             yLimsPlot = [-0.522; 0.522];
-            zLimsPlot = [0; 0.6264];
+            zLimsPlot = [0; 0.522];
             
     end
 
-    if normalise
+    if normDims
+        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
+        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
+        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+    end
+    
+    switch format
         
-        if contains(caseID, ["Run_Test", "Windsor"])
-            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-        end
-        
+        case {'A', 'B'}
+            
+            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+                spatialRes = 0.5e-3;
+            else
+                spatialRes = 2e-3;
+            end
+            
+        case 'C'
+            spatialRes = 0.5e-3;
+            
     end
 
     positionData = PODdata.positionGrid;
     nPlanes = 1;
     planeNo = 1;
-    cMap = cool2warm(32);
-    contourlines = [];
+    cMap = flipud(viridis(32));
     refPoint = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    figTitle = '.'; % Leave Blank ('-') for Formatting Purposes
     
-    if any(strcmp(PODvar, {'d10', 'd20', 'd30', 'd32', 'd43'}))
-        cLims = [0; 150];
-    elseif strcmp(PODvar, 'massNorm')
-        cLims = [0; 1.2];
-    else
-        cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
+    % Remove Geometry From Empty Tunnel
+    if contains(caseID, 'ET')
+        geometry = [];
+    end
+
+end
+
+if plotMean
+    disp('    Presenting Average Reconstructed  Field...');
+
+    scalarData = reconData.(PODvar).mean;
+    figName = ['Recon_Average_', caseID];
+    figSubtitle = ' ';
+    
+    switch format
+        
+        case {'A', 'B'}
+            cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
+            contourlines = [];
+            
+        case 'C'
+            cLims = [0; 1.05];
+            contourlines = [0.02; 0.02];
+            
+    end
+
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                           yLimsPlot, zLimsPlot, normDims, figSave);
+    
+    disp(' ');
+end
+
+if plotRMS
+    disp('    Presenting RMS of Reconstructed Field...');
+    
+    scalarData = reconData.(PODvar).RMS;
+    figName = ['Recon_RMS_', caseID];
+    contourlines = [];
+    figSubtitle = ' ';
+    cLims = 'auto';
+
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                           yLimsPlot, zLimsPlot, normDims, figSave);
+    
+    disp(' ');
+end
+
+if plotInst
+    disp('    Presenting Instantaneous Reconstructed Field...');
+    
+    switch format
+        
+        case {'A', 'B'}
+            cLims = [0; max(cellfun(@max, reconData.(PODvar).inst))];
+            contourlines = [];
+            
+        case 'C'
+            cLims = [0; 3.6];
+            contourlines = [0.02; 0.02];
+            
     end
 
     figHold = fig;
 
-    for i = 1:nFrames
+    for i = startFrame:endFrame
         
-        if i ~= 1
+        if i ~= startFrame
             clf(fig);
             fig = figHold;
         end
@@ -779,18 +942,23 @@ if plotRecon
         
         figSubtitle = [figTime, ' \it{s}'];
         
-        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                               yLimsPlot, zLimsPlot, normDims, figSave);
     end
     clear i;
     
-else
-    disp('    Skipping Reconstruction Presentation');
+    disp(' ');
 end
 
-disp(' ');
+if ~plotMean && ~plotRMS && ~plotInst
+    disp('    Skipping Map Presentation');
+    
+    disp(' ');
+end
+
 disp(' ');
 
 
@@ -835,19 +1003,19 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/base/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
-                     'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                     'caseID', 'dataID', 'reconData', 'nModes', 'sampleInt', 'dLims', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
                 disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
                 save([saveLocation, '/Numerical/MATLAB/planarContaminantReconstruction/', caseID, '/', planeID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
-                     'dataID', 'reconData', 'nModes', 'sampleInterval', 'dLims', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                     'caseID', 'planeID', 'dataID', 'reconData', 'nModes', 'sampleInt', 'dLims', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                 
             case 'C'
                 disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantReconstruction/', caseID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat']);
                 save([saveLocation, '/Experimental/MATLAB/planarContaminantPOD/', caseID, '/', PODvar, '/', dataID, '_', mat2str(nModes), '.mat'], ...
-                     'dataID', 'reconData', 'nModes', 'sampleInterval', 'normalise', 'timePrecision', '-v7.3', '-noCompression');
+                     'caseID', 'planeID', 'dataID', 'reconData', 'nModes', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -869,19 +1037,21 @@ function modes = inputModes(Nt)
     
     if isempty(modes) || any(isnan(modes)) || ~isrow(modes) > 1 || any(modes <= 0) || any(modes > Nt)
         disp('        WARNING: Invalid Entry');
+        
         modes = -1;
     end
 
 end
 
 
-function nFrames = inputFrames(Nt)
+function frameNo = inputFrames(Nt, type)
 
-    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    frameNo = str2double(input(['    Input Desired ', type, ' Frame [1-', num2str(Nt), ']: '], 's'));
     
-    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+    if isnan(frameNo) || frameNo < 1 || frameNo > Nt
         disp('        WARNING: Invalid Entry');
-        nFrames = -1;
+        
+        frameNo = -1;
     end
 
 end

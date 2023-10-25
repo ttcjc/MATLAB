@@ -11,22 +11,23 @@ else
     saveLocation = '~/Data';
 end
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
+nProc = 4; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
 
 
-%% Planar Experimental Spray Mapper v1.1
+%% Planar Experimental Spray Mapper v2.0
 
 figSave = false; % Save .fig File(s);
 
-normalise = true;
+normDims = true; % Normalise Spatial Dimensions?
 
-normalisationValue = 0.031814910694444; % Value Used to Normalise Spray (SB, 1.0 L, 15 Hz)
+normDensity = true; % Normalise Spray Density?
+    normValue = 0.0052442; % (SB_1.0L_120s_15Hz_03)
 
 disp('=====================================');
-disp('Planar Experimental Spray Mapper v1.1');
+disp('Planar Experimental Spray Mapper v2.0');
 disp('=====================================');
 
 disp(' ');
@@ -37,33 +38,22 @@ disp(' ');
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
+% v2.0 - Update To Support Changes to DaVis Data Format
 
 
 %% Initialise Case
 
 % Select Relevant Geometry and Define Bounding Box
-[geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
+[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
 
 disp(' ');
 disp(' ');
 
 
 %% Initialise Experimental Spray Data
-[caseFolder, caseID, expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc);
 
-nameDelimiter = strfind(caseID, '_');
-planeUnit = strfind(caseID, 'L_');
-planeDelimeter = max(nameDelimiter(nameDelimiter < planeUnit));
-
-if contains(caseFolder, 'Far_Field_Soiling_07_22')
-    
-    if normalise
-        planeID = caseID((planeDelimeter + 1):(planeUnit - 1));
-    else
-        planeID = num2str(str2double(caseID((planeDelimeter + 1):(planeUnit - 1))) * 1.044);
-    end
-    
-end
+[campaignID, caseID, planeID, ...
+ expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, nProc);
 
 disp(' ');
 disp(' ');
@@ -95,9 +85,11 @@ while ~valid
             continue;
         elseif endTime < startTime
             disp('        WARNING: Invalid Time Format (''endTime'' Precedes ''startTime'')');
+            
             continue;
         elseif endTime < expSprayData.time(1) || startTime > expSprayData.time(end)
             disp('        WARNING: No Lagrangian Data in Selected Time Range');
+            
             continue;
         end
 
@@ -106,7 +98,7 @@ while ~valid
 
             if expSprayData.time(i) < startTime || expSprayData.time(i) > endTime
                 expSprayData.time(i) = [];
-                expSprayData.seedingDensity(i) = [];
+                expSprayData.density(i) = [];
             else
                 i = i + 1;
             end
@@ -126,21 +118,21 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
-    disp(['Default Sampling Frequency: ', num2str(samplingFrequency), ' Hz']);
+    disp(['Default Sampling Frequency: ', num2str(sampleFreq), ' Hz']);
     selection = input('    Reduce Recording Frequency? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        sampleInterval = 1;
+        sampleInt = 1;
 
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        sampleInterval = inputFreq(samplingFrequency);
+        sampleInt = inputFreq(sampleFreq);
 
-        if sampleInterval == -1
+        if sampleInt == -1
             continue;
         end
 
-        if sampleInterval >= (floor(height(expSprayData.time) / 2))
+        if sampleInt >= (floor(height(expSprayData.time) / 2))
             disp('            WARNING: Sampling Interval Must Fall Within Data Range');
         else
             valid = true;
@@ -153,9 +145,9 @@ while ~valid
 end
 clear valid;
 
-if sampleInterval ~= 1
-    expSprayData.time = expSprayData.time(1:sampleInterval:end);
-    expSprayData.seedingDensity = expSprayData.seedingDensity(1:sampleInterval:end);
+if sampleInt ~= 1
+    expSprayData.time = expSprayData.time(1:sampleInt:end);
+    expSprayData.density = expSprayData.density(1:sampleInt:end);
 end
 
 % Define Data ID
@@ -164,12 +156,23 @@ timePrecision = 3;
 startInst = erase(num2str(expSprayData.time(1), ['%.', num2str(timePrecision), 'f']), '.');
 endInst = erase(num2str(expSprayData.time(end), ['%.', num2str(timePrecision), 'f']), '.');
 
-samplingFrequency = num2str(samplingFrequency / sampleInterval);
+sampleFreq = num2str(sampleFreq / sampleInt);
 
-if normalise
-    dataID = ['T', startInst, '_T', endInst, '_F', samplingFrequency, '_Norm'];
+if normDims
+    dataID = ['T', startInst, '_T', endInst, '_F', sampleFreq, '_Norm'];
 else
-    dataID = ['T', startInst, '_T', endInst, '_F', samplingFrequency];
+    dataID = ['T', startInst, '_T', endInst, '_F', sampleFreq];
+end
+
+% Identify Plane Position
+planePos = str2double(planeID(1:(end-1)));
+
+if ~normDims
+    
+    if strcmp(campaignID, 'Far_Field_Soiling_07_22')
+        planePos = planePos * 1.044;
+    end
+    
 end
 
 disp(' ');
@@ -190,60 +193,144 @@ tic;
 
 %%%%
 
-disp(' ');
-
-disp('    Initialising...');
-
 nTimes = height(expSprayData.time);
 
-mapData.positionGrid = expSprayData.positionGrid;
+disp(' ');
+
+% Map Raw Data Onto Adjusted Grid
+disp('    Mapping Raw Data Onto Adjusted Grid...');
+
+gridShape = [height(unique(expSprayData.positionGrid(:,2))), ...
+             height(unique(expSprayData.positionGrid(:,3)))];
+
+xLimsData = planePos;
+yLimsData = [-0.43; 0.25];
+zLimsData = [0.01; 0.4995];
+
+cellSize.DaVis = double(min(abs(unique(diff(expSprayData.positionGrid(:,2))))));
+
+cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.DaVis));
+cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.DaVis));
+
+[y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
+
+mapData.positionGrid = zeros([height(y(:)),3]);
+mapData.positionGrid(:,1) = xLimsData;
+mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
+
 mapData.time = expSprayData.time;
-mapData.inst.seedingDensity = expSprayData.seedingDensity;
-clear expSprayData;
+
+% Initialise Progress Bar
+wB = waitbar(0, 'Mapping Raw Data Onto Adjusted Grid', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
+
+% Perform Mapping Operation
+mapData.density.inst = cell(nTimes,1);
+
+yOrig = reshape(expSprayData.positionGrid(:,2), gridShape);
+zOrig = reshape(expSprayData.positionGrid(:,3), gridShape);
+for i = 1:nTimes
+    density = reshape(expSprayData.density{i}, gridShape);
+    
+    interp = griddedInterpolant(yOrig, zOrig, density, 'linear', 'none');
+    
+    mapData.density.inst{i} = interp(y, z);
+    mapData.density.inst{i} = mapData.density.inst{i}(:);
+    
+    mapData.density.inst{i}(mapData.density.inst{i} < 1e-6) = 0;
+    
+    % Update Waitbar
+    waitbar((i / nTimes), wB);
+end
+clear i yOrig zOrig density expSprayData;
+
+delete(wB);
 
 % Normalise Position Data
-if normalise
+if normDims
+    mapData.positionGrid(:,(2:3)) = round((mapData.positionGrid(:,(2:3)) / normLength), spacePrecision);
+
+    yLimsData = round((yLimsData / normLength), spacePrecision);
+    zLimsData = round((zLimsData / normLength), spacePrecision);
+end
+
+disp(' ');
+
+% Normalise Contaminant Maps
+if normDensity
+    disp('    Normalising Instantaneous Spray Density...');
     
-    if contains(caseFolder, 'Far_Field_Soiling_07_22')
-        mapData.positionGrid = round((mapData.positionGrid / 1.044), spacePrecision);
+    for i = 1:nTimes %#ok<*UNRCH>
+        mapData.density.inst{i} = mapData.density.inst{i} / normValue;
     end
+    clear i;
     
 end
 
 disp(' ');
 
-% Calculate Time-Averaged Contaminant Map
-disp('    Generating Time-Averaged Contaminant Map...');
+% Calculate Time-Averaged Spray Density
+disp('    Calculating Time-Averaged Spray Density...');
 
-mapData.mean.seedingDensity = zeros([height(mapData.positionGrid),1]);
+mapData.density.mean = zeros([height(mapData.positionGrid),1], 'single');
 
 for i = 1:nTimes
-    mapData.mean.seedingDensity = mapData.mean.seedingDensity + mapData.inst.seedingDensity{i};
+    mapData.density.mean = mapData.density.mean + mapData.density.inst{i};
 end
 clear i;
 
-mapData.mean.seedingDensity = mapData.mean.seedingDensity / nTimes;
+mapData.density.mean = mapData.density.mean / nTimes;
 
-% Normalise Contaminant Maps
-mapData.inst.seedingDensityNorm = mapData.inst.seedingDensity;
+disp(' ');
 
-for i = 1:nTimes
-    mapData.inst.seedingDensityNorm{i} = mapData.inst.seedingDensityNorm{i} / normalisationValue;
-end
+% Calculate Instantaneous Spray Density Fluctuations
+disp('    Calculating Instantaneous Density Fluctuations...');
 
-mapData.mean.seedingDensityNorm = mapData.mean.seedingDensity / normalisationValue;
-
-% Calculate Standard Deviation
-mapData.std.seedingDensity = zeros([height(mapData.positionGrid),1]);
-mapData.std.seedingDensityNorm = mapData.std.seedingDensity;
+mapData.density.prime = mapData.density.inst;
 
 for i = 1:nTimes
-    mapData.std.seedingDensity = mapData.std.seedingDensity + (mapData.inst.seedingDensity{i} - mapData.mean.seedingDensity).^2;
-    mapData.std.seedingDensityNorm = mapData.std.seedingDensityNorm + (mapData.inst.seedingDensityNorm{i} - mapData.mean.seedingDensityNorm).^2;
+    mapData.density.prime{i} = mapData.density.prime{i} - mapData.density.mean;
 end
+clear i;
 
-mapData.std.seedingDensity = sqrt((1 / nTimes) * mapData.std.seedingDensity);
-mapData.std.seedingDensityNorm = sqrt((1 / nTimes) * mapData.std.seedingDensityNorm);
+disp(' ');
+
+% Calculate RMS of Spray Density
+disp('    Calculating RMS of Spray Density...');
+
+mapData.density.RMS = zeros([height(mapData.positionGrid),1]);
+
+for i = 1:nTimes
+    mapData.density.RMS = mapData.density.RMS + mapData.density.prime{i}.^2;
+end
+clear i;
+
+mapData.density.RMS = sqrt((1 / nTimes) * mapData.density.RMS);
+
+disp(' ');
+
+% Calculate Instantaneous Centre of Spray
+disp('    Calculating Instantaneous Centre of Spray...');
+
+mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')};
+
+for i = 1:nTimes
+    mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
+    mapData.CoM.inst{i}(2) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / sum(mapData.density.inst{i});
+    mapData.CoM.inst{i}(3) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / sum(mapData.density.inst{i});
+end
+clear i;
+
+disp(' ');
+
+% Calculate Time-Averaged Centre of Spray
+disp('    Calculating Time-Averaged Centre of Spray...');
+
+mapData.CoM.mean = zeros([1,3], 'single');
+
+mapData.CoM.mean(1) = mapData.positionGrid(1,1);
+mapData.CoM.mean(2) = sum(mapData.density.mean .* mapData.positionGrid(:,2)) / sum(mapData.density.mean);
+mapData.CoM.mean(3) = sum(mapData.density.mean .* mapData.positionGrid(:,3)) / sum(mapData.density.mean);
 
 %%%%
 
@@ -270,7 +357,7 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Time-Averaged Contamination? [y/n]: ', 's');
+    selection = input('Plot Time-Averaged Map? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
@@ -285,37 +372,48 @@ while ~valid
 end
 clear valid;
 
-% valid = false;
-% while ~valid
-%     disp(' ');
-%     selection = input('Plot Standard Deviation of Contamination? [y/n]: ', 's');
-% 
-%     if selection == 'n' | selection == 'N' %#ok<OR2>
-%         plotStd = false;
-%         valid = true;
-%     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-%         plotStd = true;
-%         valid = true;
-%     else
-%         disp('    WARNING: Invalid Entry');
-%     end
-% 
-% end
-% clear valid;
+valid = false;
+while ~valid
+    disp(' ');
+    selection = input('Plot RMS Map? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotRMS = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotRMS = true;
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
 
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Instantaneous Contamination? [y/n]: ', 's');
+    selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
-        nFrames = inputFrames(nTimes);
         
-        if nFrames == -1
+        startFrame = inputFrames(nTimes, 'Start');
+        
+        if startFrame == -1
+            continue;
+        end
+        
+        endFrame = inputFrames(nTimes, 'End');
+        
+        if endFrame == -1
+            continue;
+        elseif endFrame < startFrame
+            disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
+            
             continue;
         end
         
@@ -333,45 +431,40 @@ disp(' ');
 
 %% Present Contaminant Maps
 
+close all;
+clc;
+
 disp('Map Presentation');
 disp('-----------------');
 
 disp(' ');
 
-if plotMean || plotInst
+if plotMean || plotRMS || plotInst
+    orientation = 'YZ';
     
-    % Define Plot Limits
-    xLimsData = mapData.positionGrid(1,1);
-    yLimsData = [min(mapData.positionGrid(:,2)); max(mapData.positionGrid(:,2))];
-    zLimsData = [min(mapData.positionGrid(:,3)); max(mapData.positionGrid(:,3))];
-    
-    if contains(caseFolder, 'Far_Field_Soiling_07_22')
+    if strcmp(campaignID, 'Far_Field_Soiling_07_22')
         xLimsPlot = [0.31875; 2.73575];
         yLimsPlot = [-0.522; 0.522];
-        zLimsPlot = [0; 0.6264];
-%         xLimsPlot = [0.31875; 4.65925];
-%         yLimsPlot = [-0.399; 0.218];
-%         zLimsPlot = [0.0105; 0.4985];
+        zLimsPlot = [0; 0.522];
     end
 
-    if normalise
-        
-        if contains(caseFolder, 'Far_Field_Soiling_07_22')
-            xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-        end
-        
+    if normDims
+        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
+        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
+        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
     end
     
-    orientation = 'YZ';
+    if strcmp(campaignID, 'Far_Field_Soiling_07_22')
+        spatialRes = 0.5e-3;
+    end
+    
     positionData = mapData.positionGrid;
     mapPerim = [];
     nPlanes = 1;
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    figTitle = '.'; % Leave Blank ('.') for Formatting Purposes
 end
 
 % Remove Geometry From Empty Tunnel
@@ -382,67 +475,71 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Seeding Density...');
 
-    scalarData = mapData.mean.seedingDensityNorm;
-    figName = 'Time_Averaged_Experimental_Seeding_Density';
+    scalarData = mapData.density.mean;
+    figName = ['Time_Average_', caseID];
     contourlines = [0.02; 0.02];
     figSubtitle = ' ';
-    cLims = [0; 1.2];
+    cLims = [0; 1.05];
 
-    [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                           mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                           xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                           xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                           yLimsPlot, zLimsPlot, normDims, figSave);
     
     disp(' ');
 end
 
-% if plotStd
-%     disp('    Presenting Standard Deviation of Seeding Density...');
-% 
-%     scalarData = mapData.std.seedingDensityNorm;
-%     figName = 'Standard_Deviation_Experimental_Seeding_Density';
-%     contourlines = [0.012; 0.012];
-%     figSubtitle = ' ';
-%     cLims = [0; 0.6];
-% 
-%     [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                            mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-%                                            xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-%                                            xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
-%     
-%     disp(' ');
-% end
+if plotRMS
+    disp('    Presenting RMS of Seeding Density...');
+    
+    scalarData = mapData.density.RMS / mean(mapData.density.mean);
+    figName = ['RMS_', caseID];
+    contourlines = [];
+    figSubtitle = ' ';
+    cLims = [0; 5];
+
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                           yLimsPlot, zLimsPlot, normDims, figSave);
+    
+    disp(' ');
+end
 
 if plotInst
     disp('    Presenting Instantaneous Seeding Density...');
     
-    contourlines = [0.02; 0.02];
-    cLims = [0; 2.2];
+    contourlines = [];
+    cLims = [0; 3.6];
 
     figHold = fig;
 
-    for i = 1:nFrames
+    for i = startFrame:endFrame
 
-        if i ~= 1
+        if i ~= startFrame
             clf(fig);
             fig = figHold;
         end
 
-        scalarData = mapData.inst.seedingDensityNorm{i};
-        figTime = num2str(mapData.time(i), '%.2f');
-        figName = ['Instantaneous_Experimental_Seeding_Density_T', erase(figTime, '.')];
+        scalarData = mapData.density.inst{i};
+        figTime = num2str(mapData.time(i), '%.3f');
+        figName = ['Instantaneous_T', erase(figTime, '.'), '_', caseID];
         figSubtitle = [figTime, ' \it{s}'];
         
-        [fig, planeNo] = plotPlanarScalarField(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               xDims, yDims, zDims, refPoint, figTitle, figSubtitle, cLims, ...
-                                               xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
+                                               yLimsPlot, zLimsPlot, normDims, figSave);
     end
+    clear i;
     
     disp(' ');
 end
 
-if ~plotMean && ~plotInst
+if ~plotMean && ~plotRMS && ~plotInst
     disp('    Skipping Map Presentation');
     
     disp(' ');
@@ -471,7 +568,7 @@ while ~valid
         
         disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat']);
         save([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat'], ...
-             'caseID', 'planeID', 'dataID', 'mapData', 'sampleInterval', 'timePrecision', 'normalise', '-v7.3', '-noCompression');
+             'caseID', 'planeID', 'dataID', 'mapData', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
         disp('        Success');
         
         valid = true;
@@ -491,6 +588,7 @@ function time = inputTime(type)
     
     if isnan(time) || length(time) > 1 || time <= 0
         disp('        WARNING: Invalid Entry');
+        
         time = -1;
     end
 
@@ -503,9 +601,11 @@ function sampleInterval = inputFreq(origFreq)
     
     if isnan(newFreq) || newFreq <= 0 || newFreq > origFreq
         disp('            WARNING: Invalid Entry');
+        
         sampleInterval = -1;
     elseif mod(origFreq, newFreq) ~= 0
         disp(['            WARNING: New Frequency Must Be a Factor of ', num2str(origFreq),' Hz']);
+        
         sampleInterval = -1;
     else
         sampleInterval = origFreq / newFreq;
@@ -514,13 +614,14 @@ function sampleInterval = inputFreq(origFreq)
 end
 
 
-function nFrames = inputFrames(Nt)
+function frameNo = inputFrames(Nt, type)
 
-    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    frameNo = str2double(input(['    Input Desired ', type, ' Frame [1-', num2str(Nt), ']: '], 's'));
     
-    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+    if isnan(frameNo) || frameNo < 1 || frameNo > Nt
         disp('        WARNING: Invalid Entry');
-        nFrames = -1;
+        
+        frameNo = -1;
     end
 
 end

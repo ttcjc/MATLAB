@@ -1,4 +1,4 @@
-%% Snapshot POD Field Reconstruction Tool v1.1
+%% Snapshot POD Field Reconstruction Tool v2.0
 % ----
 % Reconstructs Field Using POD Data Produced Using 'performPOD'
 %
@@ -6,11 +6,11 @@
 % "A Tutorial on the Proper Orthogonal Decomposition"
 % 2019 AIAA Aviation Forum, 17-21 June 2019, Dallas, Texas, United States
 % ----
-% Usage: reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
+% Usage: reconData = reconstructPOD(reconData, PODdata, field, nModes, Ns, Nt, fieldType, saveModes)
 %
 %        'reconData' -> Structure Containing Position and Field Data
 %        'PODdata'   -> Structure Containing Previously Processed POD Data
-%        'PODvar'    -> Field Variable Used to Perform POD Stored as String
+%        'field'     -> Field Variable Used to Perform POD Stored as String
 %        'Ns'        -> Number of Spatial Points
 %        'Nt'        -> Number of Temporal Points
 %        'fieldType' -> Desired Field Type Stored as String
@@ -21,6 +21,8 @@
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Formatting Updates
+% v1.2 - Further Formatting Updates
+% v2.0 - Update To Support Format of Separated Reconstruction Scripts
 
 
 %% Supported Field Types
@@ -31,7 +33,7 @@
 
 %% Main Function
 
-function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, fieldType, saveModes)
+function reconData = reconstructPOD(reconData, field, nModes, Ns, Nt, fieldType, saveModes)
     
     disp(['    Performing Field Reconstruction Using ' num2str(width(nModes)), ' Mode(s)...']);
     
@@ -46,27 +48,27 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
         switch fieldType
 
             case 'scalar'
-                modeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(:,i)';
-                reconData.(mode).prime = cell(Nt,1);
+                modeMatrix = reconData.POD.alpha(:,i) * reconData.POD.phi(:,i)';
+                reconData.POD.(mode).prime = cell(Nt,1);
                 
                 for j = 1:Nt
-                    reconData.(mode).prime{j} = modeMatrix(j,:)';
+                    reconData.POD.(mode).prime{j} = modeMatrix(j,:)';
                 end
                 clear j;
 
             case 'vector'
-                uModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((1:Ns),i)';
-                vModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode(((Ns + 1):(2 * Ns)),i)';
-                wModeMatrix = PODdata.A_coeff(:,i) * PODdata.phi_mode((((2 * Ns) + 1):end),i)';
+                uModeMatrix = reconData.POD.alpha(:,i) * reconData.POD.phi((1:Ns),i)';
+                vModeMatrix = reconData.POD.alpha(:,i) * reconData.POD.phi(((Ns + 1):(2 * Ns)),i)';
+                wModeMatrix = reconData.POD.alpha(:,i) * reconData.POD.phi((((2 * Ns) + 1):end),i)';
                 
-                reconData.(mode).u.prime = cell(Nt,1);
-                reconData.(mode).v.prime = reconData.(mode).u.prime;
-                reconData.(mode).w.prime = reconData.(mode).u.prime;
+                reconData.POD.(mode).u.prime = cell(Nt,1);
+                reconData.POD.(mode).v.prime = reconData.(mode).u.prime;
+                reconData.POD.(mode).w.prime = reconData.(mode).u.prime;
                 
                 for j = 1:Nt
-                    reconData.(mode).u.prime{j} = uModeMatrix(j,:)';
-                    reconData.(mode).v.prime{j} = vModeMatrix(j,:)';
-                    reconData.(mode).w.prime{j} = wModeMatrix(j,:)';
+                    reconData.POD.(mode).u.prime{j} = uModeMatrix(j,:)';
+                    reconData.POD.(mode).v.prime{j} = vModeMatrix(j,:)';
+                    reconData.POD.(mode).w.prime{j} = wModeMatrix(j,:)';
                 end
                 clear j;
         
@@ -78,22 +80,26 @@ function reconData = reconstructPOD(reconData, PODdata, PODvar, nModes, Ns, Nt, 
             case 'scalar'
                 
                 for j = 1:Nt
-                    reconData.(PODvar).inst{j} = reconData.(PODvar).inst{j} + reconData.(mode).prime{j};
+                    reconData.(field).recon.inst{j} = reconData.(field).recon.inst{j} + ...
+                                                                reconData.POD.(mode).prime{j};
                 end
 
             case 'vector'
                 
                 for j = 1:Nt
-                    reconData.(PODvar{1}).inst{j} = reconData.(PODvar{1}).inst{j} + reconData.(mode).u.prime{j};
-                    reconData.(PODvar{2}).inst{j} = reconData.(PODvar{2}).inst{j} + reconData.(mode).v.prime{j};
-                    reconData.(PODvar{3}).inst{j} = reconData.(PODvar{3}).inst{j} + reconData.(mode).w.prime{j};
+                    reconData.(field{1}).recon.inst{j} = reconData.(field{1}).recon.inst{j} + ...
+                                                          reconData.POD.(mode).u.prime{j};
+                    reconData.(field{2}).recon.inst{j} = reconData.(field{2}).recon.inst{j} + ...
+                                                          reconData.POD.(mode).v.prime{j};
+                    reconData.(field{3}).recon.inst{j} = reconData.(field{3}).recon.inst{j} + ...
+                                                          reconData.POD.(mode).w.prime{j};
                 end
                 clear j;
         
         end
         
         if ~saveModes
-            reconData = rmfield(reconData, mode);
+            reconData.POD = rmfield(reconData.POD, mode);
         end
         
         % Update Waitbar

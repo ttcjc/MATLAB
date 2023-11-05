@@ -11,6 +11,12 @@ else
     saveLocation = '~/Data';
 end
 
+if exist('/media/ttcjc/B418689', 'dir')
+    dataLocation = '/media/ttcjc/B418689/Data';
+else
+    dataLocation = '/mnt/Processing/Data';
+end
+
 nProc = 4; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
@@ -24,7 +30,7 @@ figSave = false; % Save .fig File(s);
 normDims = true; % Normalise Spatial Dimensions?
 
 normDensity = true; % Normalise Spray Density?
-    normValue = 0.0052442; % (SB_1.0L_120s_15Hz_03)
+    normValue = 0.0052140; % (SB_1.0L_120s_15Hz_02)
 
 disp('=====================================');
 disp('Planar Experimental Spray Mapper v2.0');
@@ -53,7 +59,7 @@ disp(' ');
 %% Initialise Experimental Spray Data
 
 [campaignID, caseID, planeID, ...
- expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, nProc);
+ expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, dataLocation, nProc);
 
 disp(' ');
 disp(' ');
@@ -68,6 +74,7 @@ disp('----------------');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Restrict Data Range? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -118,6 +125,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
     disp(['Default Sampling Frequency: ', num2str(sampleFreq), ' Hz']);
     selection = input('    Reduce Recording Frequency? [y/n]: ', 's');
 
@@ -209,8 +217,12 @@ zLimsData = [0.01; 0.4995];
 
 cellSize.DaVis = double(min(abs(unique(diff(expSprayData.positionGrid(:,2))))));
 
-cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.DaVis));
-cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.DaVis));
+if strcmp(campaignID, 'Far_Field_Soiling_07_22')
+    cellSize.target = 0.8e-3;
+end
+
+cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
+cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
 
 [y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
 
@@ -357,6 +369,7 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot Time-Averaged Map? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -375,6 +388,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot RMS Map? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -393,6 +407,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -431,9 +446,6 @@ disp(' ');
 
 %% Present Contaminant Maps
 
-close all;
-clc;
-
 disp('Map Presentation');
 disp('-----------------');
 
@@ -464,7 +476,6 @@ if plotMean || plotRMS || plotInst
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-    figTitle = '.'; % Leave Blank ('.') for Formatting Purposes
 end
 
 % Remove Geometry From Empty Tunnel
@@ -476,16 +487,16 @@ if plotMean
     disp('    Presenting Time-Averaged Seeding Density...');
 
     scalarData = mapData.density.mean;
-    figName = ['Time_Average_', caseID];
+    figName = ['Average_', caseID];
     contourlines = [0.02; 0.02];
-    figSubtitle = ' ';
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     cLims = [0; 1.05];
 
     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                            xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                            planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                           yLimsPlot, zLimsPlot, normDims, figSave);
+                                           refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                           zLimsPlot, normDims, figSave);
     
     disp(' ');
 end
@@ -496,14 +507,14 @@ if plotRMS
     scalarData = mapData.density.RMS / mean(mapData.density.mean);
     figName = ['RMS_', caseID];
     contourlines = [];
-    figSubtitle = ' ';
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     cLims = [0; 5];
 
     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                            xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                            planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                           refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                           yLimsPlot, zLimsPlot, normDims, figSave);
+                                           refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                           zLimsPlot, normDims, figSave);
     
     disp(' ');
 end
@@ -526,13 +537,13 @@ if plotInst
         scalarData = mapData.density.inst{i};
         figTime = num2str(mapData.time(i), '%.3f');
         figName = ['Instantaneous_T', erase(figTime, '.'), '_', caseID];
-        figSubtitle = [figTime, ' \it{s}'];
+        figTitle = ['{', figTime, ' \it{s}}'];
         
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                                xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                               yLimsPlot, zLimsPlot, normDims, figSave);
+                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                               zLimsPlot, normDims, figSave);
     end
     clear i;
     
@@ -556,19 +567,20 @@ disp('------------------');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Save Data for Future Use? [y/n]: ', 's');
     
     if selection == 'n' | selection == 'N' %#ok<OR2>
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID], 'dir')
-            mkdir([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID]);
+        if ~exist([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID], 'dir')
+            mkdir([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID]);
         end
         
-        disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat']);
-        save([saveLocation, '/Experimental/MATLAB/planarContaminantMap/', caseID, '/', dataID '.mat'], ...
-             'caseID', 'planeID', 'dataID', 'mapData', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+        disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID, '/', dataID '.mat']);
+        save([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID, '/', dataID '.mat'], ...
+             'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
         disp('        Success');
         
         valid = true;

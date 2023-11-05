@@ -5,8 +5,8 @@
 % Usage: [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
 %                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
 %                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
-%                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-%                                               yLimsPlot, zLimsPlot, normalise, figSave);
+%                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+%                                               zLimsPlot, normalise, figSave);
 % 
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        'positionData' -> Cartesian Positions of Data Points
@@ -22,8 +22,7 @@
 %        'geometry'     -> STL(s) to Include in Plot
 %        'contourlines' -> Contour Lines at the Corresponding Values
 %        'refPoint'     -> Reference Point (CoM, CoP etc.) [Dimensions of 'positionData']
-%        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
-%        'figSubtitle'  -> Figure Title
+%        'figTitle'     -> Figure Title
 %        'cLims'        -> Colour Map Limits
 %        '*LimsPlot'    -> 3D Axes Limits [Dimensions of 'positionData']
 %        'normalise'    -> Normalise Dimensions [True/False]
@@ -44,8 +43,8 @@
 function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                                 xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                 planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                                refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                                yLimsPlot, zLimsPlot, normalise, figSave)
+                                                refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                zLimsPlot, normalise, figSave)
     
     % Format Data
     switch orientation
@@ -215,8 +214,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             if planeNo == nPlanes
 
                 if nPlanes == 1
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(90, 45);
                     axis on;
                     box on;
@@ -237,16 +236,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normalise
-                        ylabel('{$y_{\ell}$}', 'interpreter', 'latex')
-                        zlabel('{$z_{\ell}$}', 'interpreter', 'latex');
+                        ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
                     else
-                        ylabel('{$y$ ($m$)}', 'interpreter', 'latex');
-                        zlabel('{$z$ ($m$)}', 'interpreter', 'latex');
+                        ylabel({'{$y$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
                     end
                 
                 else
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(0, 45);
                     axis on;
                     box on;
@@ -308,8 +307,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             if planeNo == nPlanes
 
                 if nPlanes == 1
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(0, 45);
                     axis on;
                     box on;
@@ -330,16 +329,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normalise
-                        xlabel('{$x_{\ell}$}', 'interpreter', 'latex')
-                        zlabel('{$z_{\ell}$}', 'interpreter', 'latex');
+                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
                     else
-                        xlabel('{$x$ ($m$)}', 'interpreter', 'latex');
-                        zlabel('{$z$ ($m$)}', 'interpreter', 'latex');
+                        xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
                     end
 
                 else
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(0, 45);
                     axis on;
                     box on;
@@ -401,8 +400,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             if planeNo == nPlanes
 
                 if nPlanes == 1
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(0, 45);
                     axis on;
                     box on;
@@ -423,16 +422,16 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normalise
-                        xlabel('{$x_{\ell}$}', 'interpreter', 'latex')
-                        ylabel('{$y_{\ell}$}', 'interpreter', 'latex');
+                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
+                        ylabel({'{-----}'; '{$y_{\ell}$}'}, 'interpreter', 'latex');
                     else
-                        xlabel('{$x$ ($m$)}', 'interpreter', 'latex');
-                        ylabel('{$y$ ($m$)}', 'interpreter', 'latex');
+                        xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
+                        ylabel({'{-----}'; '{$y$ ($m$)}'}, 'interpreter', 'latex');
                     end
 
                 else
-                    title(figTitle, 'color', ([254, 254, 254] / 255));
-                    subtitle(figSubtitle);
+                    title('{-----}', 'interpreter', 'latex');
+                    subtitle(figTitle);
                     lightangle(0, 45);
                     axis on;
                     box on;

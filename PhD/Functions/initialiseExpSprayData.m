@@ -2,9 +2,10 @@
 % ----
 % Initialisation of Experimental Spray Data for Further Processing
 % ----
-% Usage: [] = [campaignID, caseID, planeID, ...
-%              expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, nProc)
+% Usage: [campaignID, caseID, planeID, ...
+%         expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, dataLocation, nProc)
 %
+%        'saveLocation'  -> Start of File Path, Stored as a String
 %        'saveLocation'  -> Start of File Path, Stored as a String
 %        'nProc'         -> Number of Processors Used for Parallel Collation
 
@@ -19,7 +20,7 @@
 %% Main Function
 
 function [campaignID, caseID, planeID, ...
-          expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, nProc) %#ok<INUSD>
+          expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, dataLocation, nProc) %#ok<INUSD>
 
     % Load Previously Collated Data (If Desired/Possible)
     disp('Experimental Spray Data Load');
@@ -28,6 +29,7 @@ function [campaignID, caseID, planeID, ...
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Load Previously Collated Spray Data? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -76,9 +78,10 @@ function [campaignID, caseID, planeID, ...
     valid = false;
     while ~valid
         disp(' ');
+        
         disp('Select DaVis Results Folder...');
 
-        caseFolder = uigetdir([saveLocation, '/Experimental/DaVis/Results'], 'Select DaVis Results Folder');
+        caseFolder = uigetdir([dataLocation, '/Experimental'], 'Select DaVis Results Folder');
 
         if ~isnumeric(caseFolder)
 
@@ -107,7 +110,7 @@ function [campaignID, caseID, planeID, ...
     end
     clear valid
 
-    campaignID = caseFolder((strfind(caseFolder, 'Results/') + 8):(max(strfind(caseFolder, '/')) - 1));
+    campaignID = caseFolder((strfind(caseFolder, 'Experimental/') + 13):(strfind(caseFolder, '/Results') - 1));
     caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
     disp(' ');
@@ -203,6 +206,7 @@ function [campaignID, caseID, planeID, ...
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Save Data for Future Use? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>

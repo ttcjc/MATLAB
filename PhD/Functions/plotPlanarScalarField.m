@@ -6,7 +6,7 @@
 %                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
 %                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
 %                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-%                                               zLimsPlot, normalise, figSave);
+%                                               zLimsPlot, normDims, figSave);
 % 
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        'positionData' -> Cartesian Positions of Data Points
@@ -25,8 +25,8 @@
 %        'figTitle'     -> Figure Title
 %        'cLims'        -> Colour Map Limits
 %        '*LimsPlot'    -> 3D Axes Limits [Dimensions of 'positionData']
-%        'normalise'    -> Normalise Dimensions [True/False]
-%        'figSave'     -> Save .fig File [True/False]
+%        'normDims'     -> Normalise Dimensions [True/False]
+%        'figSave'      -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -44,7 +44,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                                                 xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                 planeNo, fig, figName, cMap, geometry, contourlines, ...
                                                 refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-                                                zLimsPlot, normalise, figSave)
+                                                zLimsPlot, normDims, figSave)
     
     % Format Data
     switch orientation
@@ -164,7 +164,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
         pause(0.5);
         hold on;
         set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-                 'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+                 'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
         lighting gouraud;
         colormap(cMap);
 
@@ -235,7 +235,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ytickformat('%+.2g');
                     ztickformat('%+.2g');
                     
-                    if normalise
+                    if normDims
                         ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
                     else
@@ -328,7 +328,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ytickformat('%+.2g');
                     ztickformat('%+.2g');
                     
-                    if normalise
+                    if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
                     else
@@ -421,7 +421,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ytickformat('%+.2g');
                     ztickformat('%+.2g');
                     
-                    if normalise
+                    if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
                         ylabel({'{-----}'; '{$y_{\ell}$}'}, 'interpreter', 'latex');
                     else

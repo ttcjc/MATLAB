@@ -1,4 +1,4 @@
-%% Pressure Probe Data Initialisation v1.0
+%% Pressure Probe Data Initialisation v1.1
 % ----
 % Initialisation of OpenFOAM v7 Surface Pressure Probe Data for Further Processing
 % ----
@@ -13,12 +13,15 @@
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Minor Update To Improve Consistency of Structures Across Repository
 
 
 %% Supported OpenFOAM Cases
 
 % Run_Test
 % Windsor_2022
+% Windsor_Upstream_2023
+% Windsor_fullscale
 
 
 %% Main Function

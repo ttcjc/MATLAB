@@ -291,16 +291,16 @@ end
 
 % Initialise Reconstruction Variables
 reconData = PODdata;
-reconData.(field) = []; reconData.(field).raw = PODdata.(field);
+reconData.(field) = []; reconData.(field).true = PODdata.(field);
 
 if (any(strcmp(format, {'A', 'B'})) && any(strcmp(field, 'mass'))) || strcmp(format, 'C')
-    reconData.CoM = []; reconData.CoM.raw = PODdata.CoM;
+    reconData.CoM = []; reconData.CoM.true = PODdata.CoM;
 end
 
 clear PODdata;
 
 for i = 1:Nt
-    reconData.(field).recon.inst{i} = reconData.(field).raw.mean;
+    reconData.(field).recon.inst{i} = reconData.(field).true.mean;
 end
 clear i;
 
@@ -598,7 +598,7 @@ if plotRMS
     scalarData = reconData.(field).recon.RMS;
     figName = ['Recon_RMS_', caseID];
     contourlines = [];
-    figTitle = '{ }'; % Leave Blank ('-') for Formatting Purposes
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     cLims = 'auto';
 
     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...

@@ -4,7 +4,7 @@
 % ----
 % Usage: [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
 %         xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise);
-%        'normalise' -> Normalise Dimensions [True/False]
+%        'normDims' -> Normalise Dimensions [True/False]
 
 
 %% Changelog
@@ -25,7 +25,7 @@
 %% Main Function
 
 function [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise)
+          xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normDims)
 
     % Select Case
     disp('Case Selection');
@@ -54,6 +54,6 @@ function [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
     disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, spacePrecision, normalise, normLength] = selectGeometry(normalise);
+    [geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
     
 end

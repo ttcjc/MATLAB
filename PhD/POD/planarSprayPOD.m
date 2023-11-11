@@ -283,7 +283,7 @@ switch format
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
         basePoly = polybuffer(basePoly, -0.005, 'jointType', 'square');
-        mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
+        mapPerim = ones([height(basePoly.Vertices),3]) * mapPerim(1,1);
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
         if ~all(mapPerim(1,:) == mapPerim(end,:))

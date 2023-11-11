@@ -1,24 +1,28 @@
-%% ParaView Data Initialisation v1.1
+%% ParaView Data Initialisation v2.0
 % ----
 % Initialisation of Exported ParaView Planar Field Data for Further Processing
 % ----
 % Usage: [caseID, PVdata, geometry, ...
-%         xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
-%
-%        'field'     -> Desired Field Stored as String
-%        'normalise' -> Normalise Dimensions [True/False]
+%         xDims, yDims, zDims, spacePrecision, ...
+%         normDims, normLength] = initialisePVdata(field, normDims)
+%        'saveLocation' -> Start of File Path, Stored as a String
+%        'field'        -> Desired Field Stored as String
+%        'normDims'     -> Normalise Dimensions [True/False]
 
 
 %% Changelog
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Update to Support Additional Versatility of 'velocityProcessing.m'
+% v2.0 - Update To Improve Consistency of Structures Across Repository
 
 
 %% Supported OpenFOAM Cases
 
 % Run_Test
 % Windsor_2022
+% Windsor_Upstream_2023
+% Windsor_fullscale
 
 
 %% Supported Fields
@@ -29,17 +33,16 @@
 
 %% Main Function
 
-function [caseID, PVdata, geometry, ...
-          xDims, yDims, zDims, spacePrecision] = initialisePVdata(field, normalise)
+function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
 
     % Select Case
     disp('Case Selection');
     disp('---------------');
 
-    caseFolder = uigetdir('/mnt/Processing/Data/Numerical', 'Select Case');
+    caseFolder = uigetdir([saveLocation, '/Numerical/ParaView'], 'Select Case');
     
-    namePos = max(strfind(caseFolder, '/')) + 1;
-    caseID = caseFolder(namePos:end);
+    campaignID = caseFolder((strfind(caseFolder, 'ParaView/') + 9):(max(strfind(caseFolder, '/')) - 1));
+    caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
     disp(' ');
 
@@ -71,6 +74,23 @@ function [caseID, PVdata, geometry, ...
         error(['Invalid Case Directory (No ', fieldLabel, ' Data Found)']);
     end
     
+    % Confirm Valid Data Orientation
+    for i = 1:height(dataFiles)
+        plane = dataFiles(i).name(1:(end - 4)); % Ignore .csv
+        
+        if contains(plane, 'Base') || contains(plane, '_X_')
+            orientation = 'YZ';
+        elseif contains(plane, '_Y_')
+            orientation = 'XZ';
+        elseif contains(plane, '_Z_')
+            orientation = 'XY';
+        else
+            error(['''', plane, ''' Is an Invalid Data File (Unexpected Naming Convention)']);
+        end
+        
+    end
+            
+    
     disp(' ');
     disp(' ');
 
@@ -83,7 +103,8 @@ function [caseID, PVdata, geometry, ...
     disp('Formatting:');
 
     for i = 1:height(dataFiles)
-        plane = dataFiles(i).name(1:(end - 4)); % Ignore .csv
+        plane = dataFiles(i).name(1:(end - 4));
+        
         disp(['    ', plane]);
     
         % Load Data
@@ -93,98 +114,96 @@ function [caseID, PVdata, geometry, ...
         switch field
 
             case 'p'
-                PVdata.(plane).position = content(:,[1,2,3]);
-                PVdata.(plane).pMean = content(:,4);
+                PVdata.(plane).positionGrid = content(:,[1,2,3]);
+                PVdata.(plane).p.mean = content(:,4);
 
             case 'U'
-                PVdata.(plane).position = content(:,[1,2,3]);
-                PVdata.(plane).uMean = content(:,4);
-                PVdata.(plane).vMean = content(:,5);
-                PVdata.(plane).wMean = content(:,6);
+                PVdata.(plane).positionGrid = content(:,[1,2,3]);
+                PVdata.(plane).u.mean = content(:,4);
+                PVdata.(plane).v.mean = content(:,5);
+                PVdata.(plane).w.mean = content(:,6);
 
         end
         
-        % Check for Unwanted Planar Deviations
-        uniqueX = unique(PVdata.(plane).position(:,1));
-        uniqueY = unique(PVdata.(plane).position(:,2));
-        uniqueZ = unique(PVdata.(plane).position(:,3));
-        
-        if height(uniqueX) > 1 && (height(uniqueX) / height(PVdata.(plane).position) < 0.01)
-            [count, value] = groupcounts(PVdata.(plane).position(:,1));
-            [~, index] = max(count);
-            PVdata.(plane).position(:,1) = value(index);
-            uniqueX = unique(PVdata.(plane).position(:,1));
-        elseif height(uniqueY) > 1 && (height(uniqueY) / height(PVdata.(plane).position) < 0.01)
-            [count, value] = groupcounts(PVdata.(plane).position(:,2));
-            [~, index] = max(count);
-            PVdata.(plane).position(:,2) = value(index);
-            uniqueY = unique(PVdata.(plane).position(:,2));
-        elseif height(uniqueZ) > 1 && (height(uniqueZ) / height(PVdata.(plane).position) < 0.01)
-            [count, value] = groupcounts(PVdata.(plane).position(:,3));
-            [~, index] = max(count);
-            PVdata.(plane).position(:,3) = value(index);
-            uniqueZ = unique(PVdata.(plane).position(:,3));
+        % Remove Unwanted Planar Deviations
+        switch orientation
+            
+            case 'YZ'
+                [count, value] = groupcounts(PVdata.(plane).positionGrid(:,1));
+                [~, index] = max(count);
+                
+                if height(index) == 1
+                    index = find(PVdata.(plane).positionGrid(:,1) == value(index));
+                else
+                    error(['''', plane, ''' Has an Ambiguous Position']);
+                end
+                
+            case 'XZ'
+                [count, value] = groupcounts(PVdata.(plane).positionGrid(:,2));
+                [~, index] = max(count);
+                
+                if height(index) == 1
+                    index = find(PVdata.(plane).positionGrid(:,2) == value(index));
+                else
+                    error(['''', plane, ''' Has an Ambiguous Position']);
+                end
+                
+            case 'XY'
+                [count, value] = groupcounts(PVdata.(plane).positionGrid(:,3));
+                [~, index] = max(count);
+                
+                if height(index) == 1
+                    index = find(PVdata.(plane).positionGrid(:,3) == value(index));
+                else
+                    error(['''', plane, ''' Has an Ambiguous Position']);
+                end
+                
         end
         
-        % Identify Plane Orientation
-        if height(uniqueX) == 1
-            PVdata.(plane).planeOrientation = 'YZ';
-            PVdata.(plane).planePosition = uniqueX;
-        elseif height(uniqueY) == 1
-            PVdata.(plane).planeOrientation = 'XZ';
-            PVdata.(plane).planePosition = uniqueY;
-        elseif height(uniqueZ) == 1
-            PVdata.(plane).planeOrientation = 'XY';
-            PVdata.(plane).planePosition = uniqueZ;
-        else
-            error('Invalid Dataset (Unsupported Plane Orientation)');
-        end
-        
-    end
-    clear i;
-    
-    disp(' ');
-    disp(' ');
-    
-    % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, spacePrecision, normalise] = selectGeometry(normalise);
-
-    % Normalise Data Dimensions
-    if normalise
-        
-        if contains(caseID, ["Run_Test", "Windsor"])
-
-            for i = 1:height(dataFiles)
-                plane = dataFiles(i).name(1:(end - 4));
-
-                PVdata.(plane).position = round((PVdata.(plane).position / 1.044), spacePrecision);
-                PVdata.(plane).planePosition = round((PVdata.(plane).planePosition / 1.044), spacePrecision);
-            end
-            clear i;
-
-        end
-        
-    end
-    
-    % Remove Duplicate Entries
-    for i = 1:height(dataFiles)
-        plane = dataFiles(i).name(1:(end - 4));
-        
-        [PVdata.(plane).position, index] = unique(PVdata.(plane).position, 'rows', 'stable');
+        PVdata.(plane).positionGrid = PVdata.(plane).positionGrid(index,:);
         
         switch field
             
             case 'p'
-                PVdata.(plane).pMean = PVdata.(plane).pMean(index);
+                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
 
             case 'U'
-                PVdata.(plane).uMean = PVdata.(plane).uMean(index);
-                PVdata.(plane).vMean = PVdata.(plane).vMean(index);
-                PVdata.(plane).wMean = PVdata.(plane).wMean(index);
+                PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
+                PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
+                PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);
         
         end
         
-        PVdata.(plane) = orderfields(PVdata.(plane));
+        % Remove Duplicate Entries
+        [PVdata.(plane).positionGrid, index] = unique(PVdata.(plane).positionGrid, 'rows', 'stable');
+        
+        switch field
+            
+            case 'p'
+                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
+
+            case 'U'
+                PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
+                PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
+                PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);
+        
+        end
+        
+        % Sort Position Grid for 'ndgrid' Compatibility
+        [PVdata.(plane).positionGrid, index] = sortrows(PVdata.(plane).positionGrid, [3, 2, 1]);
+        
+        switch field
+            
+            case 'p'
+                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
+
+            case 'U'
+                PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
+                PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
+                PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);
+        
+        end
+        
     end
     clear i;
     

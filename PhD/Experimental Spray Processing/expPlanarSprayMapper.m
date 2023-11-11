@@ -27,9 +27,9 @@ figHold = 0; % Enable Overwriting of Figures
 
 figSave = false; % Save .fig File(s);
 
-normDims = true; % Normalise Spatial Dimensions?
+normDims = true; % Normalise Spatial Dimensions
 
-normDensity = true; % Normalise Spray Density?
+normDensity = true; % Normalise Spray Density
     normValue = 0.0052140; % (SB_1.0L_120s_15Hz_02)
 
 disp('=====================================');
@@ -254,7 +254,7 @@ for i = 1:nTimes
     % Update Waitbar
     waitbar((i / nTimes), wB);
 end
-clear i yOrig zOrig density expSprayData;
+clear i yOrig zOrig y z density expSprayData;
 
 delete(wB);
 

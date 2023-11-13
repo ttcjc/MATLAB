@@ -73,22 +73,6 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
     if isempty(dataFiles)
         error(['Invalid Case Directory (No ', fieldLabel, ' Data Found)']);
     end
-    
-    % Confirm Valid Data Orientation
-    for i = 1:height(dataFiles)
-        plane = dataFiles(i).name(1:(end - 4)); % Ignore .csv
-        
-        if contains(plane, 'Base') || contains(plane, '_X_')
-            orientation = 'YZ';
-        elseif contains(plane, '_Y_')
-            orientation = 'XZ';
-        elseif contains(plane, '_Z_')
-            orientation = 'XY';
-        else
-            error(['''', plane, ''' Is an Invalid Data File (Unexpected Naming Convention)']);
-        end
-        
-    end
             
     
     disp(' ');
@@ -104,8 +88,19 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
 
     for i = 1:height(dataFiles)
         plane = dataFiles(i).name(1:(end - 4));
-        
+
         disp(['    ', plane]);
+        
+        % Confirm Valid Data Orientation
+        if contains(plane, 'Base') || contains(plane, '_X_')
+            orientation = 'YZ';
+        elseif contains(plane, '_Y_')
+            orientation = 'XZ';
+        elseif contains(plane, '_Z_')
+            orientation = 'XY';
+        else
+            error(['''', plane, ''' Is an Invalid Data File (Unexpected Naming Convention)']);
+        end
     
         % Load Data
         content = readmatrix([caseFolder, '/', dataFiles(i).name]);

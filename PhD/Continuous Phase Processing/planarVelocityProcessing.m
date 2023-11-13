@@ -21,7 +21,7 @@ figHold = 0; % Enable Overwriting of Figures
 
 figSave = false; % Save .fig File(s)
 
-normalise = true; % Normalisation of Dimensions
+normDims = true; % Normalise Spatial Dimensions
 
 disp('===============================');
 disp('Planar Velocity Processing v5.0');
@@ -180,8 +180,14 @@ if normDims
             
             for i = 1:height(planes)
                 uData.(planes{i}).positionGrid = round((uData.(planes{i}).positionGrid / normLength), spacePrecision);
-            end
+                
+                [uData.(planes{i}).positionGrid, index] = unique(uData.(planes{i}).positionGrid, 'rows', 'stable');
 
+                uData.(planes{i}).u.mean = uData.(planes{i}).u.mean(index);
+                uData.(planes{i}).v.mean = uData.(planes{i}).v.mean(index);
+                uData.(planes{i}).w.mean = uData.(planes{i}).w.mean(index);
+            end
+    
     end
 
 end
@@ -308,9 +314,9 @@ switch format
 
         for i = 1:height(planes)
         
-            if contains(plane, '_X_')
+            if contains(planes{i}, '_X_')
                 orientation = 'YZ';
-            elseif contains(plane, '_Y_')
+            elseif contains(planes{i}, '_Y_')
                 orientation = 'XZ';
             else
                 orientation = 'XY';
@@ -324,9 +330,9 @@ switch format
                     zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); max(uData.(planes{i}).positionGrid(:,3))];
         
                     cellSize.(planes{i}).x = cellSize.target;
-                    cellSize.(planes{i}).y = (yLimsData (2) - yLimsData(1)) / ...
+                    cellSize.(planes{i}).y = (yLimsData(2) - yLimsData(1)) / ...
                              round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
-                    cellSize.(planes{i}).z = (zLimsData (2) - zLimsData(1)) / ...
+                    cellSize.(planes{i}).z = (zLimsData(2) - zLimsData(1)) / ...
                              round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
         
                     cellSize.(planes{i}).area = cellSize.(planes{i}).y * cellSize.(planes{i}).z;
@@ -357,10 +363,10 @@ switch format
                     yLimsData = uData.(planes{i}).positionGrid(1,2);
                     zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); max(uData.(planes{i}).positionGrid(:,3))];
         
-                    cellSize.(planes{i}).x = (xLimsData (2) - xLimsData(1)) / ...
+                    cellSize.(planes{i}).x = (xLimsData(2) - xLimsData(1)) / ...
                              round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
                     cellSize.(planes{i}).y = cellSize.target;
-                    cellSize.(planes{i}).z = (zLimsData (2) - zLimsData(1)) / ...
+                    cellSize.(planes{i}).z = (zLimsData(2) - zLimsData(1)) / ...
                              round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
         
                     cellSize.(planes{i}).area = cellSize.(planes{i}).x * cellSize.(planes{i}).z;
@@ -391,9 +397,9 @@ switch format
                     yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); max(uData.(planes{i}).positionGrid(:,2))];
                     zLimsData = uData.(planes{i}).positionGrid(1,3);
 
-                    cellSize.(planes{i}).x = (xLimsData (2) - xLimsData(1)) / ...
+                    cellSize.(planes{i}).x = (xLimsData(2) - xLimsData(1)) / ...
                              round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
-                    cellSize.(planes{i}).y = (yLimsData (2) - yLimsData(1)) / ...
+                    cellSize.(planes{i}).y = (yLimsData(2) - yLimsData(1)) / ...
                              round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
                     cellSize.(planes{i}).z = cellSize.target;
         
@@ -432,44 +438,99 @@ end
 
 
 
-%% Data Presentation
+%% Select Presentation Options
 
-disp('Data Presentation');
-disp('------------------');
+disp('Presentation Options');
+disp('---------------------');
 
-% Select Plane(s) of Interest
 valid = false;
 while ~valid
-    [index, valid] = listdlg('listSize', [300, 300], ...
-                             'selectionMode', 'multiple', ...
-                             'name', 'Select Variable(s) to Plot', ...
-                             'listString', planes);
+    disp(' ');
+    
+    selection = input('Plot Time-Averaged Map(s)? [y/n]: ', 's');
 
-    if ~valid
-        disp(' ');
-        disp('WARNING: No Planes Selected');
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMean = false;
+
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMean = true;
+
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
     end
+
 end
 clear valid;
 
-plotPlanes = planes(index);
-
 switch format
+
+    case 'A'
+        % Select Plane(s) of Interest
+        valid = false;
+        while ~valid
+            [index, valid] = listdlg('listSize', [300, 300], ...
+                                     'selectionMode', 'multiple', ...
+                                     'name', 'Select Variable(s) to Plot', ...
+                                     'listString', planes);
+        
+            if ~valid
+                disp(    'WARNING: No Planes Selected');
+            end
+        end
+        clear valid;
+        
+        plotPlanes = planes(index);
     
     case 'B'
         valid = false;
         while ~valid
             disp(' ');
-            selection = input('Plot Instantaneous Data? [y/n]: ', 's');
+
+            selection = input('Plot RMS Map? [y/n]: ', 's');
+
+            if selection == 'n' | selection == 'N' %#ok<OR2>
+                plotRMS = false;
+
+                valid = true;
+            elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+                plotRMS = true;
+
+                valid = true;
+            else
+                disp('    WARNING: Invalid Entry');
+            end
+
+        end
+        clear valid;
+
+        valid = false;
+        while ~valid
+            disp(' ');
+
+            selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotInst = false;
+
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotInst = true;
-                nFrames = inputFrames(height(uData.(planes{1}).time));
 
-                if nFrames == -1
+                startFrame = inputFrames(nTimes, 'Start');
+
+                if startFrame == -1
+                    continue;
+                end
+
+                endFrame = inputFrames(nTimes, 'End');
+
+                if endFrame == -1
+                    continue;
+                elseif endFrame < startFrame
+                    disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
+
                     continue;
                 end
 
@@ -480,155 +541,186 @@ switch format
 
         end
         clear valid;
-
+        
+    otherwise
+        plotRMS = false;
+        plotInst = false;
+        
 end
 
 disp(' ');
+disp(' ');
 
-for i = 1:height(plotPlanes)
-    disp(['    Presenting ', plotPlanes{i}, '...']);
-    
-    orientation = uData.(plotPlanes{i}).planeOrientation;
-    
-    % Specify Default Axes Limits
-    switch orientation
 
-        case 'YZ'
+%% Present Velocity Data
 
-            if contains(caseName, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 4.65925];
-                yLimsPlot = [-0.5945; 0.5945];
-                zLimsPlot = [0; 0.739];
-            end
-
-        case {'XZ', 'XY'}
-
-            if contains(caseName, ["Run_Test", "Windsor", "Varney"])
-                xLimsPlot = [0.31875; 1.08325];
-                yLimsPlot = [-0.3445; 0.3445];
-                zLimsPlot = [0; 0.489];
-            end
-
-    end
-
-    if normalise
-        xLimsPlot = round((xLimsPlot / 1.044), spacePrecision);
-        yLimsPlot = round((yLimsPlot / 1.044), spacePrecision);
-        zLimsPlot = round((zLimsPlot / 1.044), spacePrecision);
-    end
-    
-    % Modify Axes and Data Limits Based on Format
-    switch format
-        
-        case 'A'
-            xLimsData = xLimsPlot;
-            yLimsData = yLimsPlot;
-            zLimsData = zLimsPlot;
-            
-        case 'B'
-            xLimsData = uData.(plotPlanes{i}).xLims;
-            yLimsData = uData.(plotPlanes{i}).yLims;
-            zLimsData = uData.(plotPlanes{i}).zLims;
-            
-            xLimsPlot = [min(min(xLimsPlot), min(xLimsData)); max(max(xLimsPlot), max(xLimsData))];
-            yLimsPlot = [min(min(yLimsPlot), min(yLimsData)); max(max(yLimsPlot), max(yLimsData))];
-            zLimsPlot = [min(min(zLimsPlot), min(zLimsData)); max(max(zLimsPlot), max(zLimsData))];
-        
-        case 'C'
-            xLimsData = [min(uData.(planes{i}).position(:,1)); max(uData.(planes{i}).position(:,1))];
-            yLimsData = [min(uData.(planes{i}).position(:,2)); max(uData.(planes{i}).position(:,2))];
-%             zLimsData = [min(velData.(planes{i}).position(:,3)); max(velData.(planes{i}).position(:,3))];
-            
-            zLimsData = [0.035; 0.345];
-            
-    end
-    
-    % Restrict Data Limits to Plane Position
-    switch orientation
-        
-        case 'YZ'
-            xLimsData = uData.(plotPlanes{i}).planePosition;
-            
-        case 'XZ'
-            yLimsData = uData.(plotPlanes{i}).planePosition;
-            
-        case 'XY'
-            zLimsData = uData.(plotPlanes{i}).planePosition;
-            
-    end
-    
-    positionData = uData.(plotPlanes{i}).position;
-    vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
-    
-    if strcmp(orientation, 'YZ')
-        nComponents = 3;
-    else
-        nComponents = 2;
-    end
-    
-    component = [];
-    mapPerim = [];
-    nPlanes = 1;
-    planeNo = 1;
-    figName = [caseName, '_', plotPlanes{i}];
-    cMap = viridis(32);
-    streamlines = true;
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
-    figSubtitle = ' ';
-    cLims = [0, 1];
-                        
-    [fig, planeNo] = plotPlanarVectorField_legacy(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-                                                  vectorData, nComponents, component, mapPerim, ...
-                                                  nPlanes, planeNo, fig, figName, cMap, geometry, ...
-                                                  streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
-                                                  cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
-end
+disp('Map Presentation');
+disp('-----------------');
 
 disp(' ');
 
 switch format
 
-    case 'B'
+    case 'A'
+        
+        if plotMean
 
-        if plotInst
             for i = 1:height(plotPlanes)
-                figHold = fig;
+                disp(['    Presenting ', plotPlanes{i}, '...']);
                 
-                for j = 1:nFrames
-                    
-                    if j ~= 1
-                        clf(fig)
-                        fig = figHold;
-                    end
-
-                    vectorData = [uData.(plotPlanes{i}).u{j}, uData.(plotPlanes{i}).v{j}, uData.(plotPlanes{i}).w{j}];
-                    figTime = num2str(uData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
-                    figName = [caseName, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
-                    figSubtitle = [figTime, ' \it{s}'];
-                    
-                    [fig, planeNo] = plotPlanarVectorField_legacy(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-                                                                  vectorData, nComponents, component, mapPerim, ...
-                                                                  nPlanes, planeNo, fig, figName, cMap, geometry, ...
-                                                                  streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
-                                                                  cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+                if contains(plotPlanes{i}, '_X_')
+                    orientation = 'YZ';
+                elseif contains(plotPlanes{i}, '_Y_')
+                    orientation = 'XZ';
+                else
+                    orientation = 'XY';
                 end
+        
+                positionData = uData.(plotPlanes{i}).positionGrid;
+                vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
                 
+                if normDims
+                    spatialRes = 0.5e-3;
+                else
+                    
+                    if strcmp(campaignID, 'Windsor_fullScale')
+                        spatialRes = 2e-3;
+                    else
+                        spatialRes = 0.5e-3;
+                    end
+                    
+                end
+        
+                switch orientation
+        
+                    case 'YZ'
+                        
+                        if normDims
+                            xLimsPlot = [0.3; 5.5];
+                            yLimsPlot = [-0.4; 0.4];
+                            zLimsPlot = [0; 0.6];
+                        else
+                            
+                            if strcmp(campaignID, 'Windsor_fullScale')
+                                xLimsPlot = [1.2528; 22.968];
+                                yLimsPlot = [-2.088 2.088];
+                                zLimsPlot = [0; 2.5056];
+                            else
+                                xLimsPlot = [0.3132; 5.742];
+                                yLimsPlot = [-0.522; 0.522];
+                                zLimsPlot = [0; 0.6264];
+                            end
+                        
+                        end
+        
+                    case {'XZ', 'XY'}
+                
+                        if normDims
+                            xLimsPlot = [0.3; 1.3];
+                            yLimsPlot = [-0.4; 0.4];
+                            zLimsPlot = [0; 0.6];
+                        else
+                            
+                            if strcmp(campaignID, 'Windsor_fullScale')
+                                xLimsPlot = [1.2528; 5.4288];
+                                yLimsPlot = [-2.088 2.088];
+                                zLimsPlot = [0; 2.5056];
+                            else
+                                xLimsPlot = [0.3132; 1.3572];
+                                yLimsPlot = [-0.522; 0.522];
+                                zLimsPlot = [0; 0.6264];
+                            end
+                        
+                        end
+        
+                end
+        
+                switch orientation
+        
+                    case 'YZ'
+                        xLimsData = uData.(plotPlanes{i}).positionGrid(1,1);
+                        yLimsData = yLimsPlot;
+                        zLimsData = zLimsPlot;
+        
+                    case 'XZ'
+                        xLimsData = xLimsPlot;
+                        yLimsData = uData.(plotPlanes{i}).positionGrid(1,2);
+                        zLimsData = zLimsPlot;
+        
+                    case 'XY'
+                        xLimsData = xLimsPlot;
+                        yLimsData = yLimsPlot;
+                        zLimsData = uData.(plotPlanes{i}).positionGrid(1,3);
+        
+                end
+
+                nComponents = 3;
+                component = [];
+                mapPerim = [];
+                nPlanes = 1;
+                planeNo = 1;
+                figName = [plotPlanes{i}, '_', caseID];
+                cMap = viridis(32);
+                streamlines = true;
+                figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+                cLims = [0, 1];
+                                    
+                [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
+                                                       xLimsData, yLimsData, zLimsData, nComponents, component, ...
+                                                       mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
+                                                       streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                       zLimsPlot, normDims, figSave);
             end
             
+            disp(' ');
         end
-        
+
 end
+
+% switch format
+% 
+%     case 'B'
+% 
+%         if plotInst
+%             for i = 1:height(plotPlanes)
+%                 figHold = fig;
+%                 
+%                 for j = 1:nFrames
+%                     
+%                     if j ~= 1
+%                         clf(fig)
+%                         fig = figHold;
+%                     end
+% 
+%                     vectorData = [uData.(plotPlanes{i}).u{j}, uData.(plotPlanes{i}).v{j}, uData.(plotPlanes{i}).w{j}];
+%                     figTime = num2str(uData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
+%                     figName = [caseName, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
+%                     figSubtitle = [figTime, ' \it{s}'];
+%                     
+%                     [fig, planeNo] = plotPlanarVectorField_legacy(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
+%                                                                   vectorData, nComponents, component, mapPerim, ...
+%                                                                   nPlanes, planeNo, fig, figName, cMap, geometry, ...
+%                                                                   streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
+%                                                                   cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
+%                 end
+%                 
+%             end
+%             
+%         end
+%         
+% end
 
 
 %% Local Functions
 
-function nFrames = inputFrames(Nt)
+function frameNo = inputFrames(Nt, type)
 
-    nFrames = str2double(input(['    Input Desired Frame Count [1-', num2str(Nt), ']: '], 's'));
+    frameNo = str2double(input(['    Input Desired ', type, ' Frame [1-', num2str(Nt), ']: '], 's'));
     
-    if isnan(nFrames) || nFrames <= 0 || nFrames > Nt
+    if isnan(frameNo) || frameNo < 1 || frameNo > Nt
         disp('        WARNING: Invalid Entry');
-        nFrames = -1;
+        
+        frameNo = -1;
     end
 
 end

@@ -96,7 +96,7 @@ end
 %     case 'B'
 %         [caseID, dataID, pData, sampleInterval, timePrecision, geometry, ...
 %          xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLocation, normalise, nProc);    
-% 
+
 %     case 'C'
 %         [caseID, pData, geometry, ...
 %          xDims, yDims, zDims, spacePrecision] = initialiseExpData('p', normalise);
@@ -179,7 +179,6 @@ yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
 zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
 
 % Map Raw Data Onto Adjusted Grid
-
 if normDims
     cellSize.target = 1e-3;
 else
@@ -193,8 +192,8 @@ else
 end
 
 cellSize.x = cellSize.target;
-cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
-cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
+cellSize.y = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
+cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
 
 cellSize.area = cellSize.y * cellSize.z;
 
@@ -205,23 +204,18 @@ zOrig = pData.positionGrid(:,3);
 
 pData.positionGrid = zeros([height(y(:)),3]);
 pData.positionGrid(:,1) = xLimsData;
-pData.positionGrid(:,(2:3)) = [y(:), z(:)];
+pData.positionGrid(:,[2,3]) = [y(:), z(:)];
 
 switch format
     
-    case {'A', 'C'}
-        interp = scatteredInterpolant(yOrig, zOrig, pData.p.mean, ...
+    case 'A'
+        pInterp = scatteredInterpolant(yOrig, zOrig, pData.p.mean, ...
                                       'linear', 'none');
         
-%         pData.p.mean = interp(y, z);
-%         pData.p.mean = pData.p.mean(:);
-        pData.p.mean=interp(pData.positionGrid(:,2), pData.positionGrid(:,3));
-
-    case 'B'
-        error('NYI');
+        pData.p.mean = pInterp(pData.positionGrid(:,2), pData.positionGrid(:,3));
         
 end
-clear yOrig zOrig y z;
+clear yOrig zOrig y z pInterp;
 
 
 %% Pressure Calculations
@@ -333,9 +327,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -355,9 +351,11 @@ switch format
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotRMS = false;
+                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotRMS = true;
+                
                 valid = true;
             else
                 disp('    WARNING: Invalid Entry');
@@ -374,6 +372,7 @@ switch format
 
             if selection == 'n' | selection == 'N' %#ok<OR2>
                 plotInst = false;
+                
                 valid = true;
             elseif selection == 'y' | selection == 'Y' %#ok<OR2>
                 plotInst = true;
@@ -421,7 +420,6 @@ disp(' ');
 
 if plotMean || plotRMS || plotInst
     orientation = 'YZ';
-    positionData = pData.positionGrid; positionData(:,1) = xLimsData;
     
     if normDims
         spatialRes = 0.5e-3;
@@ -436,6 +434,7 @@ if plotMean || plotRMS || plotInst
     end
     
     xLimsData = xLimsData + spatialRes;
+    positionData = pData.positionGrid; positionData(:,1) = xLimsData;
     nPlanes = 1;
     planeNo = 1;
     cMap = viridis(32);
@@ -465,7 +464,7 @@ if plotMean || plotRMS || plotInst
 
         scalarData = pData.Cp.mean;
         refPoint = [];
-        figTitle = '{ }'; % Leave Blank ('-') for Formatting Purposes
+        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         figName = ['Average_Cp_', caseID];
 
         if strcmp(campaignID, 'Windsor_fullScale')
@@ -482,7 +481,6 @@ if plotMean || plotRMS || plotInst
     end
 
     disp(' ');
-
 end
 
 % switch format

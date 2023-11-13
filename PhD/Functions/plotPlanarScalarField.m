@@ -1,4 +1,4 @@
-%% Planar Scalar Field Plotter v2.2
+%% Planar Scalar Field Plotter v2.3
 % ----
 % Plots Previously Processed Planar Scalar Fields
 % ----
@@ -34,8 +34,8 @@
 % v1.0 - Initial Commit (Expanded Functionality of 'contaminantPlots')
 % v2.0 - Shifted to Using 'griddedInterpolant' and Added Support for Multi-Plane Figures)
 % v2.1 - Rename and Minor Formatting Updates
-% v2.1 - Added Spatial Resolution as an Input Variable
-% v2.2 - Update To Ensure Consistent Figure Sizes
+% v2.2 - Added Spatial Resolution as an Input Variable
+% v2.3 - Update To Ensure Consistent Figure Sizes
 
 
 %% Main Function
@@ -312,7 +312,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     lightangle(0, 45);
                     axis on;
                     box on;
-                    grid off
+                    grid off;
                     caxis(cLims);
                     view([0, 0]);
                     xlim([xLimsPlot(1), xLimsPlot(2)]);

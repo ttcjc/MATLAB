@@ -3,6 +3,7 @@
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
 % Usage: [geometry, xDims, yDims, zDims, precision, normDims, normLength] = selectGeometry(normDims);
+%
 %        'normDims' -> Normalise Dimensions [True/False]
 
 

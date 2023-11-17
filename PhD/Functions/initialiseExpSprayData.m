@@ -3,11 +3,11 @@
 % Initialisation of Experimental Spray Data for Further Processing
 % ----
 % Usage: [campaignID, caseID, planeID, ...
-%         expSprayData, samplingFrequency] = initialiseExpSprayData(saveLocation, dataLocation, nProc)
+%         expSprayData, samplingFrequency] = initialiseExpSprayData(saveLoc, dataLoc, nProc)
 %
-%        'saveLocation'  -> Start of File Path, Stored as a String
-%        'saveLocation'  -> Start of File Path, Stored as a String
-%        'nProc'         -> Number of Processors Used for Parallel Collation
+%        'saveLoc' -> Start of File Path, Stored as a String
+%        'dataLoc' -> Start of File Path, Stored as a String
+%        'nProc'   -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -20,7 +20,7 @@
 %% Main Function
 
 function [campaignID, caseID, planeID, ...
-          expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, dataLocation, nProc) %#ok<INUSD>
+          expSprayData, sampleFreq] = initialiseExpSprayData(saveLoc, dataLoc, nProc) %#ok<INUSD>
 
     % Load Previously Collated Data (If Desired/Possible)
     disp('Experimental Spray Data Load');
@@ -35,7 +35,7 @@ function [campaignID, caseID, planeID, ...
         if selection == 'n' | selection == 'N' %#ok<OR2>
             break;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2> 
-            [fileName, filePath] = uigetfile([saveLocation, '/Experimental/MATLAB/experimentalSprayData/*.mat'], ...
+            [fileName, filePath] = uigetfile([saveLoc, '/Experimental/MATLAB/experimentalSprayData/*.mat'], ...
                                              'Select Experimental Data');
 
             if ~isnumeric(filePath)
@@ -81,7 +81,7 @@ function [campaignID, caseID, planeID, ...
         
         disp('Select DaVis Results Folder...');
 
-        caseFolder = uigetdir([dataLocation, '/Experimental'], 'Select DaVis Results Folder');
+        caseFolder = uigetdir([dataLoc, '/Experimental'], 'Select DaVis Results Folder');
 
         if ~isnumeric(caseFolder)
 
@@ -213,12 +213,12 @@ function [campaignID, caseID, planeID, ...
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID], 'dir')
-                mkdir([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID]);
+            if ~exist([saveLoc, '/Experimental/MATLAB/experimentalSprayData/', campaignID], 'dir')
+                mkdir([saveLoc, '/Experimental/MATLAB/experimentalSprayData/', campaignID]);
             end
             
-            disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat']);
-            save([saveLocation, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat'], ...
+            disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat']);
+            save([saveLoc, '/Experimental/MATLAB/experimentalSprayData/', campaignID, '/', caseID, '.mat'], ...
                  'campaignID', 'caseID', 'planeID', 'expSprayData', 'sampleFreq', '-v7.3', '-noCompression');
             disp('        Success');
             

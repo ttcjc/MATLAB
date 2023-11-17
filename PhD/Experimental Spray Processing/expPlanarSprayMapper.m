@@ -6,15 +6,9 @@ clc;
 evalc('delete(gcp(''nocreate''));');
 
 if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
+    saveLoc = '/mnt/Processing/Data';
 else
-    saveLocation = '~/Data';
-end
-
-if exist('/media/ttcjc/B418689', 'dir')
-    dataLocation = '/media/ttcjc/B418689/Data';
-else
-    dataLocation = '/mnt/Processing/Data';
+    saveLoc = '~/Data';
 end
 
 nProc = 4; % Number of Processors Used for Process-Based Parallelisation
@@ -58,8 +52,16 @@ disp(' ');
 
 %% Initialise Experimental Spray Data
 
+if exist('/media/ttcjc/B418689', 'dir')
+    dataLoc = '/media/ttcjc/B418689/Data';
+else
+    dataLoc = '/mnt/Processing/Data';
+end
+
+maxNumCompThreads(nProc);
+
 [campaignID, caseID, planeID, ...
- expSprayData, sampleFreq] = initialiseExpSprayData(saveLocation, dataLocation, nProc);
+ expSprayData, sampleFreq] = initialiseExpSprayData(saveLoc, dataLoc, maxNumCompThreads);
 
 disp(' ');
 disp(' ');
@@ -205,8 +207,8 @@ nTimes = height(expSprayData.time);
 
 disp(' ');
 
-% Map Raw Data Onto Adjusted Grid
-disp('    Mapping Raw Data Onto Adjusted Grid...');
+% Map Raw Data Onto Uniform Grid
+disp('    Mapping Raw Data Onto Uniform Grid...');
 
 gridShape = [height(unique(expSprayData.positionGrid(:,2))), ...
              height(unique(expSprayData.positionGrid(:,3)))];
@@ -233,7 +235,7 @@ mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
 mapData.time = expSprayData.time;
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Mapping Raw Data Onto Adjusted Grid', 'name', 'Progress');
+wB = waitbar(0, 'Mapping Raw Data Onto Uniform Grid', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Mapping Operation
@@ -455,15 +457,16 @@ if plotMean || plotRMS || plotInst
     orientation = 'YZ';
     
     if strcmp(campaignID, 'Far_Field_Soiling_07_22')
-        xLimsPlot = [0.31875; 2.73575];
-        yLimsPlot = [-0.522; 0.522];
-        zLimsPlot = [0; 0.522];
-    end
+        xLimsPlot = [0.3; 4.7128831];
+        yLimsPlot = [-0.5; 0.5];
+        zLimsPlot = [0; 0.5];
 
-    if normDims
-        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+        if ~normDims
+            xLimsPlot = xLimsPlot * 1.044;
+            yLimsPlot = yLimsPlot * 1.044;
+            zLimsPlot = zLimsPlot * 1.044;
+        end
+        
     end
     
     if strcmp(campaignID, 'Far_Field_Soiling_07_22')
@@ -574,13 +577,13 @@ while ~valid
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         
-        if ~exist([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID], 'dir')
-            mkdir([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID]);
+        if ~exist([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID], 'dir')
+            mkdir([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID]);
         end
         
-        disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID, '/', dataID '.mat']);
-        save([saveLocation, '/Experimental/MATLAB/planarSprayMap/', caseID, '/', dataID '.mat'], ...
-             'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+        disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat']);
+        save([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat'], ...
+             'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
         disp('        Success');
         
         valid = true;

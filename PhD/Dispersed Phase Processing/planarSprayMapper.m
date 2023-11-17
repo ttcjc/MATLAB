@@ -1,35 +1,24 @@
+%% Planar Lagrangian Spray Mapper v4.0
+% ----
+% Load, Process and Present Planar Lagrangian Data Acquired Using OpenFOAM v7
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Lagrangian Contaminant Mapper v3.0
+run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
 figSave = false; % Save .fig File(s)
 
-normalise = true; % Normalisation of Dimensions
+normDims = true; % Normalise Spatial Dimensions
 
-normDensity = 1;
+normDensity = true; % Normalise Spray Area Density
+    normValue = 1;
 
-disp('==============================');
-disp('Planar Contaminant Mapper v3.0');
-disp('==============================');
+disp('========================');
+disp('Planar Spray Mapper v4.0');
+disp('========================');
 
 disp(' ');
 disp(' ');
@@ -46,12 +35,14 @@ disp(' ');
 % v2.4 - Added Support for Full-Scale Windsor Model Simulations
 % v2.5 - Changed Primary Output From Mass to Area Density
 % v3.0 - Rewrite, Making Use of Sparse Arrays to Reduce Memory Requirements
+% v3.1 - Minor Update to Shift Preamble Into Separate Script
+% v4.0 - Update To Include Calculation of Fluctuating Field Variables
 
 
 %% Initialise Case
 
-[caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise);
+[caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
+ xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
 
 disp(' ');
 disp(' ');
@@ -97,17 +88,19 @@ maxNumCompThreads(nProc);
 switch format
     
     case 'A'
-        [dataID, LagProps, ~, LagData, ~, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseID, ...
-                                                                              cloudName, false, true, ...
-                                                                              false, timeDirs, deltaT, ...
-                                                                              timePrecision, maxNumCompThreads);
-                                                                                
+        [dataID, LagProps, LagData, ~, ...
+         ~, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                       caseID, cloudName, true, false, ...
+                                                       false, timeDirs, deltaT, ...
+                                                       timePrecision, nProc);
+        
     case 'B'
-        [dataID, LagProps, LagData, ~, ~, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseID, ...
-                                                                              cloudName, true, false, ...
-                                                                              false, timeDirs, deltaT, ...
-                                                                              timePrecision, maxNumCompThreads);
-
+        [dataID, LagProps, ~, LagData, ...
+         ~, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                       caseID, cloudName, false, true, ...
+                                                       false, timeDirs, deltaT, ...
+                                                       timePrecision, nProc);
+        
         % Select Plane of Interest
         planes = fieldnames(LagData);
         
@@ -143,10 +136,10 @@ disp(' ');
 disp('Mapping Options');
 disp('----------------');
 
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-    dLimsDefault = [1; 147];
+if strcmp(campaignID, 'Windsor_fullScale')
+    dLimsDefault = [20; 400]; % um
 else
-    dLimsDefault = [20; 400];
+    dLimsDefault = [1; 147];
 end
 
 valid = false;
@@ -192,7 +185,7 @@ end
 clear valid dLimsDefault;
 
 % Generate Dataset ID
-if normalise
+if normDims
     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_Norm'];
 else
     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
@@ -202,10 +195,10 @@ disp(' ');
 disp(' ');
 
 
-%% Generate Contaminant Maps
+%% Generate Spray Maps
 
-disp('Contaminant Mapping');
-disp('--------------------');
+disp('Spray Mapping');
+disp('--------------');
 
 disp(' ');
 
@@ -240,7 +233,7 @@ if ~isempty(suspectTimes)
 end
 
 % Shift Data Origin
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+if contains(caseID, 'Run_Test') || strcmp(campaignID, 'Windsor_Upstream_2023')
     
     for i = 1:nTimes
         
@@ -254,7 +247,7 @@ if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(case
 end
 
 % Normalise Coordinate System
-if normalise
+if normDims
     disp('        Normalising Coordinate System');
     
     % Initialise Progress Bar
@@ -301,10 +294,21 @@ switch format
         geoPoints = geometry.(parts).vertices;
         basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
         
-        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 1);
+        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-        basePoly = polybuffer(basePoly, -0.005, 'jointType', 'square');
+
+        if normDims
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+        else
+            
+            if strcmp(campaignID, 'Windsor_fullScale')
+                basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+            else
+                basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+            end
+        end
+        
         mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
@@ -318,20 +322,23 @@ switch format
         
     case 'B'
         mapPerim = [];
-    
-        if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-            xLimsData = double(LagData.positionCartesian{end}(1,1));
-            yLimsData = [-0.6264; 0.6264];
-            zLimsData = [0; 0.6264];
-        else
-            xLimsData = double(LagData.positionCartesian{end}(1,1));
-            yLimsData = [-2.5056; 2.5056];
-            zLimsData = [0; 2.5056];
-        end
         
-        if normalise
-            yLimsData = round((yLimsData / normLength), spacePrecision);
-            zLimsData = round((zLimsData / normLength), spacePrecision);
+        xLimsPlot = [0.3; 4.6257662];
+        yLimsPlot = [-0.5; 0.5];
+        zLimsPlot = [0; 0.5];
+        
+        if ~normDims
+
+            if strcmp(campaignID, 'Windsor_fullScale')
+                xLimsPlot = xLimsPlot * 4.176;
+                yLimsPlot = yLimsPlot * 4.176;
+                zLimsPlot = zLimsPlot * 4.176;
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                xLimsPlot = xLimsPlot * 1.044;
+                yLimsPlot = yLimsPlot * 1.044;
+                zLimsPlot = zLimsPlot * 1.044;
+            end
+
         end
         
 end
@@ -423,7 +430,7 @@ else
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-if normalise
+if normDims
     cellSize.target = round((cellSize.target / normLength), spacePrecision);
 end
 
@@ -490,8 +497,8 @@ delete(wB);
 
 disp(' ');
 
-% Generate Instantaneous Contaminant Maps
-disp('    Generating Instantaneous Contaminant Maps...');
+% Generate Instantaneous Spray Maps
+disp('    Generating Instantaneous Spray Maps...');
 
 mapData.time = LagData.time;
 
@@ -568,10 +575,10 @@ clear index nParticle d d_tmp;
 
 delete(wB);
 
-mapData.inst.nParticles = nParticles; clear nParticles;
-mapData.inst.density = density; clear density;
-mapData.inst.d32 = d32; clear d32;
-mapData.inst.d10 = d10; clear d10;
+mapData.nParticles.inst = nParticles; clear nParticles;
+mapData.density.inst = density; clear density;
+mapData.d32.inst = d32; clear d32;
+mapData.d10.inst = d10; clear d10;
 
 % Calculate Instantaneous Centre of Mass
 disp('        Calculating Instantaneous Centre of Mass');
@@ -581,12 +588,14 @@ wB = waitbar(0, 'Calculating Instantaneous Centre of Mass', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
-mapData.inst.CoM = cell(nTimes,1); mapData.inst.CoM(:) = {zeros([1,3], 'single')};
+mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')};
 
 for i = 1:nTimes
-    mapData.inst.CoM{i}(1) = mapData.positionGrid(1,1);
-    mapData.inst.CoM{i}(2) = sum(mapData.inst.density{i} .* mapData.positionGrid(:,2)) / sum(mapData.inst.density{i});
-    mapData.inst.CoM{i}(3) = sum(mapData.inst.density{i} .* mapData.positionGrid(:,3)) / sum(mapData.inst.density{i});
+    mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
+    mapData.CoM.inst{i}(2) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / ...
+                             sum(mapData.density.inst{i}));
+    mapData.CoM.inst{i}(3) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / ...
+                             sum(mapData.density.inst{i}));
     
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -597,27 +606,27 @@ delete(wB);
 
 disp(' ');
 
-% Generate Time-Averaged Contaminant Map
-disp('    Generating Time-Averaged Contaminant Maps...');
+% Generate Time-Averaged Spray Map
+disp('    Generating Time-Averaged Spray Maps...');
 
 % Calculate Time-Averaged Field Variables
-disp('        Calculating Instantaneous Field Variables');
+disp('        Calculating Time-Averaged Field Variables');
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
-mapData.mean.nParticles = zeros([nCells,1]);
-mapData.mean.density = mapData.mean.nParticles;
-mapData.mean.d32 = mapData.mean.nParticles;
-mapData.mean.d10 = mapData.mean.nParticles;
+mapData.nParticles.mean = sparse(nCells,1);
+mapData.density.mean = mapData.nParticles.mean;
+mapData.d32.mean = mapData.nParticles.mean;
+mapData.d10.mean = mapData.nParticles.mean;
 
 for i = 1:nTimes
-    mapData.mean.nParticles = mapData.mean.nParticles + mapData.inst.nParticles{i};
-    mapData.mean.density = mapData.mean.density + mapData.inst.density{i};
-    mapData.mean.d32 = mapData.mean.d32 + mapData.inst.d32{i};
-    mapData.mean.d10 = mapData.mean.d10 + mapData.inst.d10{i};
+    mapData.nParticles.mean = mapData.nParticles.mean + mapData.nParticles.inst{i};
+    mapData.density.mean = mapData.density.mean + mapData.density.inst{i};
+    mapData.d32.mean = mapData.d32.mean + mapData.d32.inst{i};
+    mapData.d10.mean = mapData.d10.mean + mapData.d10.inst{i};
     
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -626,35 +635,83 @@ clear i;
 
 delete(wB);
 
-mapData.mean.nParticles = sparse(mapData.mean.nParticles / nTimes);
-mapData.mean.density = sparse(mapData.mean.density / nTimes);
-mapData.mean.d32 = sparse(mapData.mean.d32 / nTimes);
-mapData.mean.d10 = sparse(mapData.mean.d10 / nTimes);
+mapData.nParticles.mean = mapData.nParticles.mean / nTimes;
+mapData.density.mean = mapData.density.mean / nTimes;
+mapData.d32.mean = mapData.d32.mean / nTimes;
+mapData.d10.mean = mapData.d10.mean / nTimes;
 
 % Calculate Time-Averaged Centre of Mass
 disp('        Calculating Time-Averaged Centre of Mass');
 
-mapData.mean.CoM = zeros([1,3], 'single');
+mapData.CoM.mean = zeros([1,3], 'single');
     
-mapData.mean.CoM(1) = mapData.positionGrid(1,1);
-mapData.mean.CoM(2) = sum(mapData.mean.density .* mapData.positionGrid(:,2)) / sum(mapData.mean.density);
-mapData.mean.CoM(3) = sum(mapData.mean.density .* mapData.positionGrid(:,3)) / sum(mapData.mean.density);
+mapData.CoM.mean(1) = mapData.positionGrid(1,1);
+mapData.CoM.mean(2) = full(sum(mapData.density.mean .* mapData.positionGrid(:,2)) / ...
+                      sum(mapData.density.mean));
+mapData.CoM.mean(3) = full(sum(mapData.density.mean .* mapData.positionGrid(:,3)) / ...
+                      sum(mapData.density.mean));
 
-% Offset Particles From Surface to Improve Visibility
-switch format
+disp(' ');
+
+% Generate Time-Averaged Spray Map
+disp('    Generating Fluctuating Spray Maps...');
+
+% Calculate Instantaneous Field Fluctuations
+disp('        Calculating Instantaneous Field Fluctuations...');
+
+% Initialise Progress Bar
+wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
+
+% Perform Calculation
+mapData.nParticles.prime = mapData.nParticles.inst;
+mapData.density.prime = mapData.density.inst;
+mapData.d32.prime = mapData.d32.inst;
+mapData.d10.prime = mapData.d10.inst;
+
+for i = 1:nTimes
+    mapData.nParticles.prime{i} = mapData.nParticles.prime{i} - mapData.nParticles.mean;
+    mapData.density.prime{i} = mapData.density.prime{i} - mapData.density.mean;
+    mapData.d32.prime{i} = mapData.d32.prime{i} - mapData.d32.mean;
+    mapData.d10.prime{i} = mapData.d10.prime{i} - mapData.d10.mean;
     
-    case 'A'
-        mapData.positionGrid(:,1) = mapData.positionGrid(:,1) + 1e-3;
-        
-        for i = 1:nTimes
-            mapData.inst.CoM{i}(1) = mapData.inst.CoM{i}(1) + 1e-3;
-        end
-        
-        mapData.mean.CoM(1) = mapData.mean.CoM(1) + 1e-3;
-        
+    % Update Waitbar
+    waitbar((i / nTimes), wB);
 end
+clear i;
 
-%%%%
+delete(wB);
+
+% Calculate RMS of Field Variables
+disp('        Calculating RMS of Field Variables');
+
+% Initialise Progress Bar
+wB = waitbar(0, 'Calculating RMS of Field Variables', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
+
+% Perform Calculation
+mapData.nParticles.RMS = sparse(nCells,1);
+mapData.density.RMS = mapData.nParticles.mean;
+mapData.d32.RMS = mapData.nParticles.mean;
+mapData.d10.RMS = mapData.nParticles.mean;
+
+for i = 1:nTimes
+    mapData.nParticles.RMS = mapData.nParticles.RMS + mapData.nParticles.prime{i}.^2;
+    mapData.density.RMS = mapData.density.RMS + mapData.density.prime{i}.^2;
+    mapData.d32.RMS = mapData.d32.RMS + mapData.d32.prime{i}.^2;
+    mapData.d10.RMS = mapData.d10.RMS + mapData.d10.prime{i}.^2;
+    
+    % Update Waitbar
+    waitbar((i / nTimes), wB);
+end
+clear i;
+
+delete(wB);
+
+mapData.nParticles.RMS = sqrt((1 / nTimes) * mapData.nParticles.RMS);
+mapData.density.RMS = sqrt((1 / nTimes) * mapData.density.RMS);
+mapData.d32.RMS = sqrt((1 / nTimes) * mapData.d32.RMS);
+mapData.d10.RMS = sqrt((1 / nTimes) * mapData.d10.RMS);
 
 evalc('delete(gcp(''nocreate''));');
 
@@ -681,7 +738,8 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Plot Time-Averaged Map(s)? [y/n]: ', 's');
+    
+    selection = input('Plot Time-Averaged Map? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
@@ -699,6 +757,26 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
+    selection = input('Plot RMS Map? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotRMS = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotRMS = true;
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    
     selection = input('Plot Instantaneous Maps? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -731,28 +809,32 @@ while ~valid
 end
 clear valid;
 
-if plotInst || plotMean
+if plotMean || plotRMS || plotInst
+    disp(' ');
     
     % Select Variable(s) of Interest
-    plotVars = fieldnames(mapData.mean);
-    plotVars = plotVars(1:(end - 1));
+    disp('Select Variable(s) to Plot...');
+
+    mapDataVars = fieldnames(mapData);
+    nonFieldVars = {'positionGrid'; 'time'; 'CoM'};
+    fieldVars = setdiff(mapDataVars, nonFieldVars);
+    clear mapDataVars nonFieldVars;
 
     valid = false;
     while ~valid
-        disp(' ');
         [index, valid] = listdlg('listSize', [300, 300], ...
                                  'selectionMode', 'multiple', ...
                                  'name', 'Select Variable(s) to Plot', ...
-                                 'listString', plotVars);
+                                 'listString', fieldVars);
 
         if ~valid
-            disp('WARNING: No Mapping Variables Selected');
+            disp('    WARNING: No Mapping Variable Selected');
         end
-        
+
     end
     clear valid;
 
-    plotVars = plotVars(index);
+    plotVars = fieldVars(index); clear fieldVars;
     
     disp(['Plotting ', num2str(height(plotVars)), ' Variable(s) of Interest']);
 end
@@ -761,60 +843,72 @@ disp(' ');
 disp(' ');
 
 
-%% Present Contaminant Maps
+%% Present Spray Maps
 
 disp('Map Presentation');
 disp('-----------------');
 
 disp(' ');
 
-if plotInst || plotMean
-    
-    % Define Plot Limits
-    switch format
-
-        case 'A'
-            orientation = 'YZ';
-
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; 1.43075];
-                yLimsPlot = [-0.2445; 0.2445];
-                zLimsPlot = [0; 0.389];
-            else
-                xLimsPlot = [1.275; 1.43075];
-                yLimsPlot = [-0.978; 0.978];
-                zLimsPlot = [0; 1.538];
-            end
-
-        case 'B'
-            orientation = 'YZ';
-
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; 2.73575];
-                yLimsPlot = [-0.522; 0.522];
-                zLimsPlot = [0; 0.522];
-            else
-                xLimsPlot = [1.275; 19.295];
-                yLimsPlot = [-2.088; 2.088];
-                zLimsPlot = [0; 2.088];
-            end
-
-    end
-    
-    if normalise
-        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
-    end
-    
-    spatialRes = cellSize.target / 8;
+if plotMean || plotRMS || plotInst
+    orientation = 'YZ';
     positionData = mapData.positionGrid;
+    
+    if normDims
+        spatialRes = 1e-3;
+    else
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            spatialRes = 4e-3;
+        else
+            spatialRes = 1e-3;
+        end
+
+    end
+    
+    % Offset Particles From Surface to Improve Visibility
+    switch format
+        
+        case 'A'
+            xLimsData = xLimsData + spatialRes;
+            positionData(:,1) = xLimsData;
+            
+    end
+    
     nPlanes = 1;
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    
+    switch format
 
+        case 'A'
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.25; 0.25];
+            zLimsPlot = [0; 0.4];
+            
+        case 'B'
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
+            
+    end
+    
+    if ~normDims
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            xLimsPlot = xLimsPlot * 4.176;
+            yLimsPlot = yLimsPlot * 4.176;
+            zLimsPlot = zLimsPlot * 4.176;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            xLimsPlot = xLimsPlot * 1.044;
+            yLimsPlot = yLimsPlot * 1.044;
+            zLimsPlot = zLimsPlot * 1.044;
+        end
+
+    end
+    
 end
 
 if plotMean
@@ -822,7 +916,7 @@ if plotMean
     for i = 1:height(plotVars)
         disp(['    Presenting Time-Averaged ''', plotVars{i}, ''' Data...']);
         
-        scalarData = full(mapData.mean.(plotVars{i}));
+        scalarData = full(mapData.(plotVars{i}).mean);
         
         switch format
             
@@ -865,8 +959,8 @@ if plotMean
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                                xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                               yLimsPlot, zLimsPlot, normalise, figSave);
+                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                               zLimsPlot, normDims, figSave);
     end
     clear i;
     
@@ -931,7 +1025,7 @@ if plotInst
                                                    xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                    planeNo, fig, figName, cMap, geometry, contourlines, ...
                                                    refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                                   yLimsPlot, zLimsPlot, normalise, figSave);
+                                                   yLimsPlot, zLimsPlot, normDims, figSave);
         end
         clear j;
         
@@ -968,14 +1062,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/base'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/base']);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base']);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/', planeID], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/', planeID]);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID]);
                 end
                 
         end
@@ -983,14 +1077,14 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/base/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/base/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base/', dataID, '.mat'], ...
                       'caseID', 'dataID', 'mapData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/', planeID, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarContaminantMap/', caseID, '/', planeID, '/', dataID, '.mat'], ...
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID, '/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID, '/', dataID, '.mat'], ...
                       'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
                 disp('        Success');
         

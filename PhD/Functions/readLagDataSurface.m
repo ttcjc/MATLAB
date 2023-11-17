@@ -2,16 +2,18 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Surface Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataSurface(saveLocation, caseFolder, caseID, dataID, LagProps, ...
-%                                     timeDirs, sampleInterval, format);
-%        'saveLocation'   -> Start of File Path, Stored as a String
-%        'caseFolder'     -> Case Path, Stored as s String
-%        'caseID'         -> Case Name, Stored as a String
-%        'dataID'         -> Data ID, Stored as a String
-%        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
-%        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
-%        'sampleInterval' -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
-%        'format'         -> Data Collation Format, Stored as a String
+% Usage: LagData = readLagDataSurface(saveLoc, caseFolder, caseID, dataID, LagProps, ...
+%                                     timeDirs, sampleInt, dataFormat);
+%
+%        'saveLoc'    -> Start of File Path, Stored as a String
+%        'caseFolder' -> Case Path, Stored as s String
+%        'campaignID' -> Campaign ID, Stored as a String
+%        'caseID'     -> Case Name, Stored as a String
+%        'dataID'     -> Data ID, Stored as a String
+%        'LagProps'   -> Lagrangian Properties to Be Collated, Stored as a Cell Array
+%        'timeDirs'   -> Time Directories, Obtained With 'timeDirectories.m'
+%        'sampleInt'  -> Data Binning Interval, Must Be a Factor of Original Recording Frequency
+%        'dataFormat' -> Data Collation Format, Stored as a String
 
 
 %% Changelog
@@ -29,8 +31,8 @@
 
 %% Main Function
 
-function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distributedFiles, dataID, ...
-                                      LagProps, timeDirs, sampleInterval, format)
+function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, distributedFiles, dataID, ...
+                                      LagProps, timeDirs, sampleInt, dataFormat)
     
     % Collate Planar Lagrangian Data
     disp('============');
@@ -107,13 +109,13 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
     end
     
     % Reduce Time Instances to Desired Sampling Frequency
-    sampleTimes = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
+    sampleTimes = zeros([ceil(height(timeDirs) / sampleInt),1], 'single');
     nTimes = height(sampleTimes);
 
     j = height(timeDirs);
     for i = nTimes:-1:1
         sampleTimes(i) = str2double(timeDirs(j).name);
-        j = j - sampleInterval;
+        j = j - sampleInt;
     end
     clear i k;
 
@@ -135,7 +137,7 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
     wB.Children.Title.Interpreter = 'none';
 
     % Perform Collation
-    switch format
+    switch dataFormat
 
         case 'cumulative'
             
@@ -157,7 +159,6 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
                     LagData.d{i} = contentFloat(index,2);
                     LagData.nParticle{i} = contentFloat(index,3);
                     LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
-                    LagData.U{i} = contentFloat(index,[7,8,9]);
                     LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
                 
@@ -179,7 +180,6 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
                     LagData.d{i} = contentFloat(index,2);
                     LagData.nParticle{i} = contentFloat(index,3);
                     LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
-                    LagData.U{i} = contentFloat(index,[7,8,9]);
                     LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
         
@@ -243,21 +243,21 @@ function LagData = readLagDataSurface(saveLocation, caseFolder, caseID, distribu
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface'], 'dir')
-                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface']);
+            if ~exist([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface'], 'dir')
+                mkdir([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface']);
             end
 
-            switch format
+            switch dataFormat
 
                 case 'cumulative'
-                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface/', dataID, '_cumulative.mat']);
-                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface/', dataID, '_cumulative.mat'], ...
-                    'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
+                    disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface/', dataID, '_cumulative.mat']);
+                    save([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface/', dataID, '_cumulative.mat'], ...
+                         'campaignID', 'caseID', 'dataID', 'LagProps', 'LagData', 'sampleInt', 'dataFormat', '-v7.3', '-noCompression');
 
                 case 'snapshot'
-                    disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface/', dataID, '_snapshot.mat']);
-                    save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/surface/', dataID, '_snapshot.mat'], ...
-                    'dataID', 'LagProps', 'LagData', 'sampleInterval', 'format', '-v7.3', '-noCompression');
+                    disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface/', dataID, '_snapshot.mat']);
+                    save([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/surface/', dataID, '_snapshot.mat'], ...
+                         'campaignID', 'caseID', 'dataID', 'LagProps', 'LagData', 'sampleInt', 'dataFormat', '-v7.3', '-noCompression');
 
             end
             

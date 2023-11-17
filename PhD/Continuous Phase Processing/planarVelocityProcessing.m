@@ -11,7 +11,7 @@ else
     saveLocation = '~/Data';
 end
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
+nProc = 4; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -87,17 +87,30 @@ switch format
     case 'A'
         [campaignID, caseID, uData] = initialisePVdata(saveLocation, 'U');
         
-    case {'B', 'C'}
+        planes = fieldnames(uData);
+        
+    case 'B'
         error('NYI');
+        
+    case 'C'
+        [campaignID, caseID, uData] = initialiseExpFlowData(saveLocation, 'U');
+        
+        planes = fieldnames(uData);
+        
+        for i = 1:height(planes)
+            uData.(planes{i}).u = rmfield(uData.(planes{i}).u, 'RMS');
+            uData.(planes{i}).v = rmfield(uData.(planes{i}).v, 'RMS');
+            uData.(planes{i}).w = rmfield(uData.(planes{i}).w, 'RMS');
+        end
         
 end
 
 %     case 'B'
-%         [caseName, dataID, velData, sampleInterval, timePrecision, geometry, ...
+%         [caseName, dataID, uData, sampleInterval, timePrecision, geometry, ...
 %          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, 'planar', normalise, nProc);    
 
 %     case 'C'
-%         [caseName, velData, geometry, ...
+%         [caseName, uData, geometry, ...
 %          xDims, yDims, zDims, spacePrecision] = initialiseExpData('U', normalise);
 
 disp(' ');
@@ -112,11 +125,25 @@ disp(' ');
 disp(' ');
 
 
-%% Data Formatting
+%% Generate Velocity Profiles
 
-planes = fieldnames(uData);
+disp('Velocity Profile Generation');
+disp('----------------------------');
+
+disp(' ');
+
+disp('***********');
+disp('  RUNNING ');
+
+tic;
+
+%%%%
+
+disp(' ');
 
 % Adjust Data Origin
+disp('    Adjusting Data Origin...');
+
 switch format
 
     case 'A'
@@ -126,6 +153,7 @@ switch format
             for i = 1:height(planes)
                 uData.(planes{i}).positionGrid(:,1) = uData.(planes{i}).positionGrid(:,1) + 1.325;
             end
+            clear i;
 
         end
 
@@ -138,30 +166,30 @@ end
 %             for i = 1:height(planes)
 %                 
 %                 if normalise
-%                     velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
+%                     uData.(planes{i}).position(:,1) = uData.(planes{i}).position(:,1) + round((1.325 / 1.044), spacePrecision);
 %                     
-%                     switch velData.(planes{i}).planeOrientation
+%                     switch uData.(planes{i}).planeOrientation
 %                         
 %                         case 'YZ'
-%                             velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + round((1.325 / 1.044), spacePrecision);
-%                             velData.(planes{i}).xLims = velData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
+%                             uData.(planes{i}).planePosition = uData.(planes{i}).planePosition + round((1.325 / 1.044), spacePrecision);
+%                             uData.(planes{i}).xLims = uData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
 %                             
 %                         case {'XZ', 'XY'}
-%                             velData.(planes{i}).xLims = velData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
+%                             uData.(planes{i}).xLims = uData.(planes{i}).xLims + round((1.325 / 1.044), spacePrecision);
 %                             
 %                     end
 %                     
 %                 else
-%                     velData.(planes{i}).position(:,1) = velData.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
+%                     uData.(planes{i}).position(:,1) = uData.(planes{i}).position(:,1) + 1.325; %#ok<*UNRCH>
 %                     
-%                     switch velData.(planes{i}).planeOrientation
+%                     switch uData.(planes{i}).planeOrientation
 %                         
 %                         case 'YZ'
-%                             velData.(planes{i}).planePosition = velData.(planes{i}).planePosition + 1.325;
-%                             velData.(planes{i}).xLims = velData.(planes{i}).xLims + 1.325;
+%                             uData.(planes{i}).planePosition = uData.(planes{i}).planePosition + 1.325;
+%                             uData.(planes{i}).xLims = uData.(planes{i}).xLims + 1.325;
 %                         
 %                         case {'XZ', 'XY'}
-%                             velData.(planes{i}).xLims = velData.(planes{i}).xLims + 1.325;
+%                             uData.(planes{i}).xLims = uData.(planes{i}).xLims + 1.325;
 %                     
 %                     end
 %                     
@@ -171,12 +199,16 @@ end
 %             
 %         
 
+disp(' ');
+
 % Normalise Coordinate System
+disp('    Normalising Spatial Dimensions...');
+
 if normDims
 
     switch format
 
-        case 'A'
+        case {'A', 'C'}
             
             for i = 1:height(planes)
                 uData.(planes{i}).positionGrid = round((uData.(planes{i}).positionGrid / normLength), spacePrecision);
@@ -187,115 +219,17 @@ if normDims
                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean(index);
                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean(index);
             end
+            clear i;
     
     end
 
 end
 
-% Normalise Velocity
-switch format
-    
-    case 'A'
-        
-        if strcmp(campaignID, 'Windsor_fullScale')
-            U = 22.22;
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            U = 40;
-        else
-            U = 1;
-        end
-        
-        for i = 1:height(planes)
-            uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
-            uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
-            uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
-        end
+disp(' ');
 
-end
-        
-%     case 'B'
-%         
-%         if contains(caseName, ["Run_Test", "Windsor"])
-%             U = 40; % m/s
-%             
-%             for i = 1:height(planes)
-%                 velData.(planes{i}).u.mean = velData.(planes{i}).u.mean / U;
-%                 velData.(planes{i}).v.mean = velData.(planes{i}).v.mean / U;
-%                 velData.(planes{i}).w.mean = velData.(planes{i}).w.mean / U;
-%                 
-%                 for j = 1:height(velData.(planes{i}).time)
-%                     velData.(planes{i}).u{j} = velData.(planes{i}).u{j} / U;
-%                     velData.(planes{i}).v{j} = velData.(planes{i}).v{j} / U;
-%                     velData.(planes{i}).w{j} = velData.(planes{i}).w{j} / U;
-%                     velData.(planes{i}).uPrime{j} = velData.(planes{i}).uPrime{j} / U;
-%                     velData.(planes{i}).vPrime{j} = velData.(planes{i}).vPrime{j} / U;
-%                     velData.(planes{i}).wPrime{j} = velData.(planes{i}).wPrime{j} / U;
-%                 end
-%                 
-%             end
-%             
-%         end
-        
-%     case 'C'
-%         
-%         if strcmp(caseName, 'Varney')
-%             U = 40; % m/s
-%             
-%             for i = 1:height(planes)
-%                     velData.(planes{i}).u.mean = velData.(planes{i}).u.mean / U;
-%                     velData.(planes{i}).v.mean = velData.(planes{i}).v.mean / U;
-%                     velData.(planes{i}).w.mean = velData.(planes{i}).w.mean / U;
-%                     velData.(planes{i}).uRMS = velData.(planes{i}).uRMS / U;
-%                     velData.(planes{i}).vRMS = velData.(planes{i}).vRMS / U;
-%                     velData.(planes{i}).wRMS = velData.(planes{i}).wRMS / U;
-%             end
-%             
-%         end
+% Map Raw Data Onto UniformGrid
+disp('    Mapping Raw Data Onto Uniform Grid...');
 
-% Perform Blockage Correction
-switch format
-    
-    case 'A'
-        
-        if strcmp(campaignID, 'Windsor_Upstream_2023')
-            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-            
-            for i = 1:height(planes)
-                uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
-                uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
-                uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
-            end
-            
-        end
-
-end
-
-%     case 'B'
-%         
-%         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-%             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-%             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-%             
-%             for i = 1:height(planes)
-%                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
-%                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
-%                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
-%                 
-%                 for j = 1:height(uData.(planes{i}).time)
-%                     uData.(planes{i}).u{j} = uData.(planes{i}).u{j} * (At / (At - Am));
-%                     uData.(planes{i}).v{j} = uData.(planes{i}).v{j} * (At / (At - Am));
-%                     uData.(planes{i}).w{j} = uData.(planes{i}).w{j} * (At / (At - Am));
-%                     uData.(planes{i}).uPrime{j} = uData.(planes{i}).uPrime{j} * (At / (At - Am));
-%                     uData.(planes{i}).vPrime{j} = uData.(planes{i}).vPrime{j} * (At / (At - Am));
-%                     uData.(planes{i}).wPrime{j} = uData.(planes{i}).wPrime{j} * (At / (At - Am));
-%                 end
-%                 
-%             end
-%             
-%         end
-
-% Map Raw Data Onto Adjusted Grid
 if normDims
     cellSize.target = 1e-3;
 else
@@ -310,7 +244,7 @@ end
 
 switch format
 
-    case 'A'
+    case {'A', 'C'}
 
         for i = 1:height(planes)
         
@@ -430,12 +364,234 @@ switch format
             clear yOrig zOrig y z uInterp vInterp wInterp;
 
         end
+        clear i;
 
 end
 
+disp(' ');
 
-%% Vorticity Calculations
+% Normalise Velocity
+disp('    Normalising Velocity...');
 
+switch format
+    
+    case 'A'
+        
+        if strcmp(campaignID, 'Windsor_fullScale')
+            U = 22.22; % m/s
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            U = 40; % m/s
+        else
+            U = 1;
+        end
+        
+        for i = 1:height(planes)
+            uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
+            uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
+            uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
+        end
+        clear i;
+    
+    case 'C'
+        
+        if strcmp(campaignID, 'Varney')
+            U = 40; % m/s
+            
+            for i = 1:height(planes)
+                    uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
+                    uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
+                    uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
+                    uData.(planes{i}).u.RMS = uData.(planes{i}).u.RMS / U;
+                    uData.(planes{i}).v.RMS = uData.(planes{i}).v.RMS / U;
+                    uData.(planes{i}).w.RMS = uData.(planes{i}).w.RMS / U;
+            end
+            
+        end
+        
+end
+        
+%     case 'B'
+%         
+%         if contains(caseName, ["Run_Test", "Windsor"])
+%             U = 40; % m/s
+%             
+%             for i = 1:height(planes)
+%                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
+%                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
+%                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
+%                 
+%                 for j = 1:height(uData.(planes{i}).time)
+%                     uData.(planes{i}).u{j} = uData.(planes{i}).u{j} / U;
+%                     uData.(planes{i}).v{j} = uData.(planes{i}).v{j} / U;
+%                     uData.(planes{i}).w{j} = uData.(planes{i}).w{j} / U;
+%                     uData.(planes{i}).uPrime{j} = uData.(planes{i}).uPrime{j} / U;
+%                     uData.(planes{i}).vPrime{j} = uData.(planes{i}).vPrime{j} / U;
+%                     uData.(planes{i}).wPrime{j} = uData.(planes{i}).wPrime{j} / U;
+%                 end
+%                 
+%             end
+%             
+%         end
+
+disp(' ');
+
+% Perform Blockage Correction
+disp('    Performing Blockage Correction...');
+
+switch format
+    
+    case 'A'
+        
+        if strcmp(campaignID, 'Windsor_Upstream_2023')
+            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+            
+            for i = 1:height(planes)
+                uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
+                uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
+                uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
+            end
+            clear i;
+            
+        end
+
+end
+
+%     case 'B'
+%         
+%         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
+%             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+%             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+%             
+%             for i = 1:height(planes)
+%                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
+%                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
+%                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
+%                 
+%                 for j = 1:height(uData.(planes{i}).time)
+%                     uData.(planes{i}).u{j} = uData.(planes{i}).u{j} * (At / (At - Am));
+%                     uData.(planes{i}).v{j} = uData.(planes{i}).v{j} * (At / (At - Am));
+%                     uData.(planes{i}).w{j} = uData.(planes{i}).w{j} * (At / (At - Am));
+%                     uData.(planes{i}).uPrime{j} = uData.(planes{i}).uPrime{j} * (At / (At - Am));
+%                     uData.(planes{i}).vPrime{j} = uData.(planes{i}).vPrime{j} * (At / (At - Am));
+%                     uData.(planes{i}).wPrime{j} = uData.(planes{i}).wPrime{j} * (At / (At - Am));
+%                 end
+%                 
+%             end
+%             
+%         end
+
+disp(' ');
+
+% Calculate Vorticity
+disp('    Calculating Vorticity...');
+
+switch format
+
+    case {'A', 'C'}
+
+        for i = 1:height(planes)
+        
+            if contains(planes{i}, '_X_')
+                orientation = 'YZ';
+            elseif contains(planes{i}, '_Y_')
+                orientation = 'XZ';
+            else
+                orientation = 'XY';
+            end
+        
+            switch orientation
+        
+                case 'YZ'
+                    gridShape = [height(unique(uData.(planes{i}).positionGrid(:,2))), ...
+                                 height(unique(uData.(planes{i}).positionGrid(:,3)))];
+                    
+                    y = reshape(uData.(planes{i}).positionGrid(:,2), gridShape)';
+                    z = reshape(uData.(planes{i}).positionGrid(:,3), gridShape)';
+                    
+                    v = reshape(uData.(planes{i}).v.mean, gridShape)';
+                    w = reshape(uData.(planes{i}).w.mean, gridShape)';
+                    
+                    [uData.(planes{i}).vorticity.mean, ~] = curl(y, z, v, w);
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
+                    
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+                    
+                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
+                    
+                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
+                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
+                    
+                case 'XZ'
+                    gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
+                                 height(unique(uData.(planes{i}).positionGrid(:,3)))];
+                    
+                    x = reshape(uData.(planes{i}).positionGrid(:,1), gridShape)';
+                    z = reshape(uData.(planes{i}).positionGrid(:,3), gridShape)';
+                    
+                    u = reshape(uData.(planes{i}).u.mean, gridShape)';
+                    w = reshape(uData.(planes{i}).w.mean, gridShape)';
+                    
+                    [uData.(planes{i}).vorticity.mean, ~] = curl(x, z, u, w);
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
+                    
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+                    
+                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
+                    
+                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
+                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
+                    
+                case 'XY'
+                    gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
+                                 height(unique(uData.(planes{i}).positionGrid(:,2)))];
+                    
+                    x = reshape(uData.(planes{i}).positionGrid(:,1), gridShape)';
+                    y = reshape(uData.(planes{i}).positionGrid(:,2), gridShape)';
+                    
+                    u = reshape(uData.(planes{i}).u.mean, gridShape)';
+                    v = reshape(uData.(planes{i}).v.mean, gridShape)';
+                    
+                    [uData.(planes{i}).vorticity.mean, ~] = curl(x, y, u, v);
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
+                    uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
+                    
+                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
+                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
+                    
+                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
+                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
+                    
+            end
+            clear x y z u v w vortLims;
+            
+        end
+        clear i;
+        
+end
+
+%%%%
+
+executionTime = toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
+
+disp(' ');
+
+disp('  SUCCESS  ');
+disp('***********');
+
+disp(' ');
+disp(' ');
 
 
 %% Select Presentation Options
@@ -466,7 +622,7 @@ clear valid;
 
 switch format
 
-    case 'A'
+    case {'A', 'C'}
         % Select Plane(s) of Interest
         valid = false;
         while ~valid
@@ -482,6 +638,9 @@ switch format
         clear valid;
         
         plotPlanes = planes(index);
+        
+        plotRMS = false;
+        plotInst = false;
     
     case 'B'
         valid = false;
@@ -541,11 +700,32 @@ switch format
 
         end
         clear valid;
-        
-    otherwise
-        plotRMS = false;
-        plotInst = false;
-        
+
+end
+
+if plotMean || plotRMS || plotInst
+    
+    valid = false;
+    while ~valid
+        disp(' ');
+
+        selection = input('Plot Vorticity Map(s)? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            plotVort = false;
+
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            plotVort = true;
+
+            valid = true;
+        else
+            disp('    WARNING: Invalid Entry');
+        end
+
+    end
+    clear valid;
+
 end
 
 disp(' ');
@@ -561,7 +741,7 @@ disp(' ');
 
 switch format
 
-    case 'A'
+    case {'A', 'C'}
         
         if plotMean
 
@@ -580,13 +760,13 @@ switch format
                 vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
                 
                 if normDims
-                    spatialRes = 0.5e-3;
+                    spatialRes = 1e-3;
                 else
                     
                     if strcmp(campaignID, 'Windsor_fullScale')
-                        spatialRes = 2e-3;
+                        spatialRes = 4e-3;
                     else
-                        spatialRes = 0.5e-3;
+                        spatialRes = 1e-3;
                     end
                     
                 end
@@ -594,45 +774,29 @@ switch format
                 switch orientation
         
                     case 'YZ'
-                        
-                        if normDims
-                            xLimsPlot = [0.3; 5.5];
-                            yLimsPlot = [-0.4; 0.4];
-                            zLimsPlot = [0; 0.6];
-                        else
-                            
-                            if strcmp(campaignID, 'Windsor_fullScale')
-                                xLimsPlot = [1.2528; 22.968];
-                                yLimsPlot = [-2.088 2.088];
-                                zLimsPlot = [0; 2.5056];
-                            else
-                                xLimsPlot = [0.3132; 5.742];
-                                yLimsPlot = [-0.522; 0.522];
-                                zLimsPlot = [0; 0.6264];
-                            end
-                        
-                        end
+                        xLimsPlot = [0.3; 4.6257662];
+                        yLimsPlot = [-0.5; 0.5];
+                        zLimsPlot = [0; 0.5];
         
                     case {'XZ', 'XY'}
+                        xLimsPlot = [0.3; 1.2];
+                        yLimsPlot = [-0.4; 0.4];
+                        zLimsPlot = [0; 0.5];
                 
-                        if normDims
-                            xLimsPlot = [0.3; 1.3];
-                            yLimsPlot = [-0.4; 0.4];
-                            zLimsPlot = [0; 0.6];
-                        else
-                            
-                            if strcmp(campaignID, 'Windsor_fullScale')
-                                xLimsPlot = [1.2528; 5.4288];
-                                yLimsPlot = [-2.088 2.088];
-                                zLimsPlot = [0; 2.5056];
-                            else
-                                xLimsPlot = [0.3132; 1.3572];
-                                yLimsPlot = [-0.522; 0.522];
-                                zLimsPlot = [0; 0.6264];
-                            end
-                        
-                        end
-        
+                end
+                
+                if ~normDims
+                    
+                    if strcmp(campaignID, 'Windsor_fullScale')
+                        xLimsPlot = xLimsPlot * 4.176;
+                        yLimsPlot = yLimsPlot * 4.176;
+                        zLimsPlot = zLimsPlot * 4.176;
+                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                        xLimsPlot = xLimsPlot * 1.044;
+                        yLimsPlot = yLimsPlot * 1.044;
+                        zLimsPlot = zLimsPlot * 1.044;
+                    end
+                    
                 end
         
                 switch orientation
@@ -654,7 +818,16 @@ switch format
         
                 end
 
-                nComponents = 3;
+                switch orientation
+                    
+                    case 'YZ'
+                        nComponents = 3;
+                        
+                    case {'XZ', 'XY'}
+                        nComponents = 2;
+                        
+                end
+                
                 component = [];
                 mapPerim = [];
                 nPlanes = 1;
@@ -670,6 +843,22 @@ switch format
                                                        mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
                                                        streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
                                                        zLimsPlot, normDims, figSave);
+                
+                if plotVort
+                    scalarData = uData.(plotPlanes{i}).vorticity.mean;
+                    cMap = cool2warm(32);
+                    contourlines = [];
+                    refPoint = [];
+                    cLims = [-1; 1];
+                    figName = [plotPlanes{i}, '_Vorticity_', caseID];
+                    
+                    
+                    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                                           refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                           zLimsPlot, normDims, figSave);
+                end
             end
             
             disp(' ');

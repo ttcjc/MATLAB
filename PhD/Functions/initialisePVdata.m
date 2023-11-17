@@ -5,6 +5,7 @@
 % Usage: [caseID, PVdata, geometry, ...
 %         xDims, yDims, zDims, spacePrecision, ...
 %         normDims, normLength] = initialisePVdata(field, normDims)
+%
 %        'saveLocation' -> Start of File Path, Stored as a String
 %        'field'        -> Desired Field Stored as String
 %        'normDims'     -> Normalise Dimensions [True/False]
@@ -41,17 +42,17 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
 
     caseFolder = uigetdir([saveLocation, '/Numerical/ParaView'], 'Select Case');
     
+    % Confirm Support
+    if ~contains(caseFolder, ["Run_Test", "Windsor"])
+        error('Invalid Case Directory (Unsupported Case Type)');
+    end
+    
     campaignID = caseFolder((strfind(caseFolder, 'ParaView/') + 9):(max(strfind(caseFolder, '/')) - 1));
     caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
     disp(' ');
 
     disp(['Case: ', caseID]);
-    
-    % Confirm Support
-    if ~contains(caseID, ["Run_Test", "Windsor"])
-        error('Invalid Case Directory (Unsupported Case Type)');
-    end
 
     % Confirm Data Availability
     if ~strcmp(field, 'p') && ~strcmp(field, 'U')
@@ -62,6 +63,7 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
 
         case 'p'
             fieldLabel = 'Pressure';
+            
             dataFiles = dir([caseFolder, '/p_*.csv']);
 
         case 'U'
@@ -84,10 +86,10 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
     
     disp(' ');
 
-    disp('Formatting:');
+    disp('Initialising:');
 
     for i = 1:height(dataFiles)
-        plane = dataFiles(i).name(1:(end - 4));
+        plane = dataFiles(i).name(1:(end - 4)); % Ignore '.csv'
 
         disp(['    ', plane]);
         

@@ -5,7 +5,7 @@
 % Usage: fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
 %                                minColourVar, maxColourVar, figTitle, figSubtitle, ...
 %                                xLimsPlot, yLimsPlot, zLimsPlot, figSave)
-% 
+%
 %        'trackingData' -> Discrete Particle Paths in Cartesian Form
 %        'fig'          -> Figure Number
 %        'figName'      -> Figure Name

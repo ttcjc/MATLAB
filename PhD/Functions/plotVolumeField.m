@@ -5,7 +5,7 @@
 % Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
 %                              POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
 %                              figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
-% 
+%
 %        '*LimsData'    -> Contour Plot Limits [Dimensions of '*Init']
 %        'spatialRes'   -> Target Grid Spacing [Dimensions of '*Init']
 %        '*Init'        -> Initial 3D Arrays of Cartesian Positions

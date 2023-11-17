@@ -11,7 +11,7 @@ else
     saveLocation = '~/Data';
 end
 
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
+nProc = 4; % Number of Processors Used for Process-Based Parallelisation
 
 fig = 0; % Initialise Figure Tracking
 figHold = 0; % Enable Overwriting of Figures
@@ -88,20 +88,20 @@ switch format
         
         pData = pData.(cell2mat(fieldnames(pData)));
         
-    case {'B', 'C'}
+    case 'B'
         error('NYI');
         
+    case 'C'
+        [campaignID, caseID, pData] = initialiseExpFlowData(saveLocation, 'p');
+        
+        pData = pData.(cell2mat(fieldnames(pData)));
+        pData.p = rmfield(pData.p, 'RMS');
+
 end
     
 %     case 'B'
 %         [caseID, dataID, pData, sampleInterval, timePrecision, geometry, ...
 %          xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLocation, normalise, nProc);    
-
-%     case 'C'
-%         [caseID, pData, geometry, ...
-%          xDims, yDims, zDims, spacePrecision] = initialiseExpData('p', normalise);
-%         
-%         pData = pData.(cell2mat(fieldnames(pData)));
 
 disp(' ');
 disp(' ');
@@ -114,9 +114,25 @@ disp(' ');
 disp(' ');
 disp(' ');
 
-%% Data Formatting
+%% Generate Base Pressure Distributions
+
+disp('Base Pressure Distribution Generation');
+disp('--------------------------------------');
+
+disp(' ');
+
+disp('***********');
+disp('  RUNNING ');
+
+tic;
+
+%%%%
+
+disp(' ');
 
 % Adjust Data Origin
+disp('    Adjusting Data Origin...');
+
 switch format
 
     case {'A', 'B'}
@@ -127,12 +143,20 @@ switch format
         
 end
 
-% Normalise Coordinate System
+disp(' ');
+
+% Normalise Spatial Dimensions
+disp('    Normalising Spatial Dimensions...');
+
 if normDims
     pData.positionGrid = round((pData.positionGrid / normLength), spacePrecision);
 end
 
-% Specify Map Boundaries
+disp(' ');
+
+% Identify Base Boundaries
+disp('    Identifying Base Boundaries...');
+
 parts = fieldnames(geometry);
 for i = 1:height(parts)
     
@@ -156,10 +180,16 @@ mapPerim = basePoints(mapPerim,:);
 basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
 
 if normDims
-    basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+    
+    if strcmp(campaignID, 'Varney')
+        basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+    else
+        basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+    end
+    
 else
     
-    if strcmp(campaignID, 'Windsor_fullScale')
+    if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Varney')
         basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
     else
         basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
@@ -178,7 +208,11 @@ xLimsData = xDims(2);
 yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
 zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
 
-% Map Raw Data Onto Adjusted Grid
+disp(' ');
+
+% Map Raw Data Onto Uniform Grid
+disp('    Mapping Raw Data Onto Uniform Grid...');
+
 if normDims
     cellSize.target = 1e-3;
 else
@@ -214,13 +248,25 @@ switch format
         
         pData.p.mean = pInterp(pData.positionGrid(:,2), pData.positionGrid(:,3));
         
+    case 'C'
+        pInterp = scatteredInterpolant(yOrig, zOrig, pData.Cp.mean, ...
+                                      'linear', 'none');
+        
+        pData.Cp.mean = pInterp(pData.positionGrid(:,2), pData.positionGrid(:,3));
+        
+        pData.Cp.mean = reshape(pData.Cp.mean, [height(unique(pData.positionGrid(:,2))), ...
+                                                height(unique(pData.positionGrid(:,3)))]);
+        pData.Cp.mean = smooth2(pData.Cp.mean, 9);
+        pData.Cp.mean = pData.Cp.mean(:);
+        
 end
 clear yOrig zOrig y z pInterp;
 
-
-%% Pressure Calculations
+disp(' ');
 
 % Calculate Pressure Coefficient
+disp('    Calculating Pressure Coefficient...');
+
 switch format
     
     case 'A'
@@ -235,10 +281,13 @@ switch format
             pRef = 19.524 * rho; % Pa
         end
         
-        pData.Cp.mean = ((pData.p.mean * rho) - pRef) / (0.5 * rho * U^2);
+        pData.p.mean = pData.p.mean * rho;
+        pData.Cp.mean = (pData.p.mean - pRef) / (0.5 * rho * U^2);
         
-    case 'B'
+end
         
+%     case 'B'
+%         
 %         if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
 %             U = 40; % m/s
 %             rho = 1.269; % kg/m^3
@@ -254,9 +303,12 @@ switch format
 %             end
 %             
 %         end
-end
+
+disp(' ');
 
 % Perform Blockage Correction
+disp('    Performing Blockage Correction...');
+
 switch format
     
     case 'A'
@@ -264,12 +316,15 @@ switch format
         if ~strcmp(campaignID, 'Windsor_fullScale')
             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-
+            
+            pData.p.mean = (pData.p.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
             pData.Cp.mean = (pData.Cp.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
         end
         
-    case 'B'
+end
         
+%     case 'B'
+%         
 %         if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
 %             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
 %             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
@@ -282,9 +337,12 @@ switch format
 %             end
 %             
 %         end
-end
+
+disp(' ');
 
 % Calculate Centre of Pressure
+disp('    Calculating Centre of Pressure...');
+
 switch format
     
     case {'A', 'C'}
@@ -294,7 +352,9 @@ switch format
         pData.CoP.mean(2) = sum(pData.Cp.mean .* pData.positionGrid(:,2)) / sum(pData.Cp.mean);
         pData.CoP.mean(3) = sum(pData.Cp.mean .* pData.positionGrid(:,3)) / sum(pData.Cp.mean);
         
-    case 'B'
+end
+        
+%     case 'B'
 %         pData.CoPmean = zeros([1,3]);
 %         
 %         pData.CoPmean(1) = pData.position(1,1);
@@ -311,7 +371,21 @@ switch format
 %             pData.CoP{i}(3) = sum(pData.Cp{i} .* pData.position(:,3)) / sum(pData.Cp{i});
 %         end
 
-end
+%%%%
+
+executionTime = toc;
+
+disp(' ');
+
+disp(['    Run Time: ', num2str(executionTime), 's']);
+
+disp(' ');
+
+disp('  SUCCESS  ');
+disp('***********');
+
+disp(' ');
+disp(' ');
 
 
 %% Select Presentation Options
@@ -440,28 +514,27 @@ if plotMean || plotRMS || plotInst
     cMap = viridis(32);
     contourlines = [];
     
-    if normDims
-        xLimsPlot = [0.3; 1.4];
-        yLimsPlot = [-0.25; 0.25];
-        zLimsPlot = [0; 0.4];
-    else
+    xLimsPlot = [0.3; 4.6257662];
+    yLimsPlot = [-0.25; 0.25];
+    zLimsPlot = [0; 0.4];
         
+    if ~normDims
+
         if strcmp(campaignID, 'Windsor_fullScale')
-            xLimsPlot = [1.275; 5.723];
-            yLimsPlot = [-1.044; 1.044];
-            zLimsPlot = [0; 1.6704];
-        else
-            xLimsPlot = [0.31875; 1.43075];
-            yLimsPlot = [-0.261; 0.261];
-            zLimsPlot = [0; 0.4176];
+            xLimsPlot = xLimsPlot * 4.176;
+            yLimsPlot = yLimsPlot * 4.176;
+            zLimsPlot = zLimsPlot * 4.176;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            xLimsPlot = xLimsPlot * 1.044;
+            yLimsPlot = yLimsPlot * 1.044;
+            zLimsPlot = zLimsPlot * 1.044;
         end
-        
+
     end
 
     if plotMean
         disp('    Presenting Time-Averaged Pressure Data...');
-
-
+        
         scalarData = pData.Cp.mean;
         refPoint = [];
         figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
@@ -470,7 +543,7 @@ if plotMean || plotRMS || plotInst
         if strcmp(campaignID, 'Windsor_fullScale')
             cLims = 'auto';
         else
-            cLims = 'auto';
+            cLims = [-0.245; -0.09];
         end
 
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...

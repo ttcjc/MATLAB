@@ -7,7 +7,7 @@
 %                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
 %                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
 %                                               zLimsPlot, normDims, figSave);
-% 
+%
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        'positionData' -> Cartesian Positions of Data Points
 %        'scalarData'   -> Field Value @ 'positionData' Points
@@ -231,9 +231,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     yticks(tickData(2:(end-1)));
                     tickData = (zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2));
                     zticks(tickData(2:(end-1)));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -324,9 +324,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     yticks(tickData);
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
                     zticks(tickData(2:5));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -417,9 +417,9 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');

@@ -2,17 +2,19 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Volumetric Lagrangian Data Output
 % ----
-% Usage: LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, cloudName, LagProps, ...
-%                                    timeDirs, sampleInterval, nProc);
-%        'saveLocation'   -> Start of File Path, Stored as a String
-%        'caseFolder'     -> Case Path, Stored as s String
-%        'caseID'         -> Case Name, Stored as a String
-%        'dataID'         -> Data ID, Stored as a String
-%        'cloudName'      -> OpenFOAM Cloud Name, Stored as a String
-%        'LagProps'       -> Lagrangian Properties to Be Collated, Stored as a Cell Array
-%        'timeDirs'       -> Time Directories, Obtained With 'timeDirectories.m'
-%        'sampleInterval' -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
-%        'nProc'          -> Number of Processors Used for Parallel Collation
+% Usage: LagData = readLagDataVolume(saveLoc, caseFolder, caseID, dataID, cloudName, LagProps, ...
+%                                    timeDirs, sampleInt, nProc);
+%
+%        'saveLoc'    -> Start of File Path, Stored as a String
+%        'caseFolder' -> Case Path, Stored as s String
+%        'campaignID' -> Campaign ID, Stored as a String
+%        'caseID'     -> Case Name, Stored as a String
+%        'dataID'     -> Data ID, Stored as a String
+%        'cloudName'  -> OpenFOAM Cloud Name, Stored as a String
+%        'LagProps'   -> Lagrangian Properties to Be Collated, Stored as a Cell Array
+%        'timeDirs'   -> Time Directories, Obtained With 'timeDirectories.m'
+%        'sampleInt'  -> Data Sample Interval, Must Be a Factor of Original Recording Frequency
+%        'nProc'      -> Number of Processors Used for Parallel Collation
 
 
 %% Changelog
@@ -27,8 +29,8 @@
 
 %% Main Function
 
-function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, cloudName, LagProps, ...
-                                     timeDirs, sampleInterval, nProc) %#ok<INUSD>
+function LagData = readLagDataVolume(saveLoc, caseFolder, campaignID, caseID, dataID, cloudName, LagProps, ...
+                                     timeDirs, sampleInt, nProc) %#ok<INUSD>
     
     % Collate Volumetric Lagrangian Data
     disp('===============');
@@ -49,13 +51,13 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, c
     disp(' ');
     
     % Reduce Time Instances to Desired Sampling Frequency
-    LagData.time = single(zeros(ceil(height(timeDirs) / sampleInterval),1));
+    LagData.time = single(zeros(ceil(height(timeDirs) / sampleInt),1));
     nTimes = height(LagData.time);
 
     j = height(timeDirs);
     for i = nTimes:-1:1
         LagData.time(i) = str2double(timeDirs(j).name);
-        j = j - sampleInterval;
+        j = j - sampleInt;
     end
     clear i j;
     
@@ -115,6 +117,8 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, c
     
     delete(wB);
     
+    LagData.time = single(LagData.time);
+    
     %%%%
     
     evalc('delete(gcp(''nocreate''));');
@@ -140,13 +144,13 @@ function LagData = readLagDataVolume(saveLocation, caseFolder, caseID, dataID, c
             valid = true;
         elseif selection == 'y' | selection == 'Y' %#ok<OR2>
             
-            if ~exist([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume'], 'dir')
-                mkdir([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume']);
+            if ~exist([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/volume'], 'dir')
+                mkdir([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/volume']);
             end
             
-            disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume/', dataID, '.mat']);
-            save([saveLocation, '/Numerical/MATLAB/LagData/', caseID, '/volume/', dataID, '.mat'], ...
-                 'dataID', 'LagProps', 'LagData', 'sampleInterval', '-v7.3', '-noCompression');
+            disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/volume/', dataID, '.mat']);
+            save([saveLoc, '/Numerical/MATLAB/LagData/', campaignID, '/', caseID, '/volume/', dataID, '.mat'], ...
+                 'campaignID', 'caseID', 'dataID', 'LagProps', 'LagData', 'sampleInt', '-v7.3', '-noCompression');
             disp('        Success');
             
             valid = true;

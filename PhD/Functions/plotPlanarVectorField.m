@@ -7,7 +7,7 @@
 %                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
 %                                               streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
 %                                               zLimsPlot, normDims, figSave);
-% 
+%
 %        'orientation'  -> Plane Orientation ['YZ', 'XZ', 'XY']
 %        'positionData' -> Cartesian Positions of Data Points
 %        'vectorData'   -> Field Values @ 'positionData' Points
@@ -199,7 +199,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                 vector = eval(component);
                 vector = vector(:,:,2);
             elseif nComponents == 2
-                vector = sqrt(v(:,:,2).^2 + w(:,:,2).^2);
+                vector = sqrt(u(:,:,2).^2 + v(:,:,2).^2);
             elseif nComponents == 3
                 vector = sqrt(u(:,:,2).^2 + v(:,:,2).^2 + w(:,:,2).^2);
             end
@@ -257,11 +257,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);
-                v = permute(v, [2,1,3]);
-                w = permute(w, [2,1,3]);
+                v = permute(v, [2,1,3]); v(isnan(v)) = 0;
+                w = permute(w, [2,1,3]); w(isnan(w)) = 0;
                 
                 streams = streamslice(x, y, z, zeros(size(x)), v, w, xLimsData, [], [], ...
-                                      0.5, 'arrows', 'linear');
+                                      1.25, 'arrows', 'linear');
                 set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
@@ -286,9 +286,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData(2:(end-1)));
                     tickData = (zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2));
                     zticks(tickData(2:(end-1)));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -347,11 +347,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);
-                u = permute(u, [2,1,3]);
-                w = permute(w, [2,1,3]);
+                u = permute(u, [2,1,3]); u(isnan(u)) = 0;
+                w = permute(w, [2,1,3]); w(isnan(w)) = 0;
                 
                 streams = streamslice(x, y, z, u, zeros(size(x)), w, [], yLimsData, [], ...
-                                      0.5, 'arrows', 'linear');
+                                      1.25, 'arrows', 'linear');
                 set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
@@ -376,9 +376,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData);
                     tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
                     zticks(tickData(2:5));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -437,11 +437,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
                 z = permute(z, [2,1,3]);
-                u = permute(u, [2,1,3]);
-                v = permute(v, [2,1,3]);
+                u = permute(u, [2,1,3]); u(isnan(u)) = 0;
+                v = permute(v, [2,1,3]); v(isnan(v)) = 0;
                 
                 streams = streamslice(x, y, z, u, v, zeros(size(x)), [], [], zLimsData, ...
-                                      0.5, 'arrows', 'linear');
+                                      1.25, 'arrows', 'linear');
                 set(streams, 'color', 'k', 'lineStyle', '-', 'lineWidth', 2);
             end
             
@@ -466,9 +466,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');

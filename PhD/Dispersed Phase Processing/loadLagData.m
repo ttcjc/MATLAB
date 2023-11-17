@@ -1,28 +1,16 @@
+%% Lagrangian Data Load v1.2
+% ----
+% Load Lagrangian Data Acquired Using OpenFOAM v7
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Lagrangian Data Load v1.1
+run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
 disp('=========================');
-disp('Lagrangian Data Load v1.1');
+disp('Lagrangian Data Load v1.2');
 disp('=========================');
 
 disp(' ');
@@ -33,6 +21,7 @@ disp(' ');
 
 % v1.0 - Initial Commit
 % v1.1 - Minor Formatting Updates
+% v1.2 - Minor Update to Shift Preamble Into Separate Script
 
 
 %% Select Data
@@ -43,15 +32,15 @@ disp('---------------');
 
 caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
 
-namePos = max(strfind(caseFolder, '/')) + 1;
-caseName = caseFolder(namePos:end);
+campaignID = caseFolder((strfind(caseFolder, 'results/') + 8):(max(strfind(caseFolder, '/')) - 1));
+caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
 disp(' ');
 
-disp(['Case: ', caseName]);
+disp(['Case: ', caseID]);
 
 % Confirm Support
-if ~contains(caseName, ["Distribution_Test", "Run_Test", "Windsor"])
+if ~contains(caseID, ["Run_Test", "Windsor"])
     error('Invalid Case Directory (Unsupported Case Type)');
 end
 
@@ -64,13 +53,15 @@ disp(' ');
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Collate Plane Data? [y/n]: ', 's');
+    selection = input('Collate Surface Data? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plane = false;
+        surface = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plane = true;
+        surface = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -82,13 +73,15 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
-    selection = input('Collate Surface Data? [y/n]: ', 's');
+    selection = input('Collate Plane Data? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        surface = false;
+        plane = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        surface = true;
+        plane = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -104,9 +97,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         volume = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         volume = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -121,9 +116,12 @@ disp(' ');
 
 %% Collate Data
 
-if plane || surface || volume
-    [dataID, LagProps, LagDataPlane, LagDataSurface, ...
-     LagDataVolume, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseName, cloudName, ...
-                                                        plane, surface, volume, timeDirs, deltaT, ...
-                                                        timePrecision, nProc);
+if surface || plane || volume
+    maxNumCompThreads(nProc);
+    
+    [dataID, LagProps, LagDataSurface, LagDataPlane, ...
+     LagDataVolume, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                               caseID, cloudName, surface, plane, ...
+                                                               volume, timeDirs, deltaT, ...
+                                                               timePrecision, nProc);
 end

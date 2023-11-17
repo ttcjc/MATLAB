@@ -1,9 +1,10 @@
-%% OpenFOAM Case Initialisation v2.1
+%% OpenFOAM Case Initialisation v2.2
 % ----
 % Initialisation of OpenFOAM v7 Case Data for Further Processing
 % ----
-% Usage: [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-%         xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise);
+% Usage: [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
+%         xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normDims);
+%
 %        'normDims' -> Normalise Dimensions [True/False]
 
 
@@ -14,6 +15,7 @@
 % v1.2 - Added Support for Global and PODprobe Directory Identification
 % v2.0 - Substantial Rewrite to Accommodate New Data Formats
 % v2.1 - Added Support for Full-Scale Windsor Model Simulations
+% v2.2 - Added 'campaignID' Output
 
 
 %% Supported OpenFOAM Cases
@@ -24,8 +26,8 @@
 
 %% Main Function
 
-function [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normDims)
+function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
+          xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims)
 
     % Select Case
     disp('Case Selection');
@@ -33,8 +35,8 @@ function [caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
 
     caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
     
-    namePos = max(strfind(caseFolder, '/')) + 1;
-    caseID = caseFolder(namePos:end);
+    campaignID = caseFolder((strfind(caseFolder, 'results/') + 8):(max(strfind(caseFolder, '/')) - 1));
+    caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
     disp(' ');
 

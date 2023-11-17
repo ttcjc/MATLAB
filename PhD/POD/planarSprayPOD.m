@@ -6,9 +6,9 @@ clc;
 evalc('delete(gcp(''nocreate''));');
 
 if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
+    saveLoc = '/mnt/Processing/Data';
 else
-    saveLocation = '~/Data';
+    saveLoc = '~/Data';
 end
 
 nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
@@ -94,7 +94,7 @@ switch format
         while ~valid
             disp(' ');
             
-            [fileName, filePath] = uigetfile([saveLocation, '/Numerical/MATLAB/planarSprayMap/*.mat'], ...
+            [fileName, filePath] = uigetfile([saveLoc, '/Numerical/MATLAB/planarSprayMap/*.mat'], ...
                                              'Select Map Data');
 
             switch format
@@ -104,6 +104,7 @@ switch format
                     if contains(filePath, '/base')
                         disp(['Loading ''', fileName, '''...']);
                         
+                        campaignID = load([filePath, fileName], 'campaignID').campaignID;
                         caseID = load([filePath, fileName], 'caseID').caseID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
@@ -125,6 +126,7 @@ switch format
                     if contains(filePath, '/X_')
                         disp(['Loading ''', fileName, '''...']);
                         
+                        campaignID = load([filePath, fileName], 'campaignID').campaignID;
                         caseID = load([filePath, fileName], 'caseID').caseID;
                         planeID = load([filePath, fileName], 'planeID').planeID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
@@ -152,12 +154,13 @@ switch format
         while ~valid
             disp(' ');
             
-            [fileName, filePath] = uigetfile([saveLocation, '/Experimental/MATLAB/planarSprayMap/*.mat'], ...
+            [fileName, filePath] = uigetfile([saveLoc, '/Experimental/MATLAB/planarSprayMap/*.mat'], ...
                                              'Select Map Data');
             
             if contains(filePath, 'Hz')
                 disp(['Loading ''', fileName, '''...']);
                 
+                campaignID = load([filePath, fileName], 'campaignID').campaignID;
                 caseID = load([filePath, fileName], 'caseID').caseID;
                 planeID = load([filePath, fileName], 'planeID').planeID;
                 dataID = load([filePath, fileName], 'dataID').dataID;
@@ -506,20 +509,20 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/base/', field], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/base/', field]);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field]);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/', planeID, '/', field], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/', planeID, '/', field]);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field]);
                 end
                 
             case 'C'
                 
-                if ~exist([saveLocation, '/Experimental/MATLAB/planarSprayPOD/', caseID, '/', field], 'dir')
-                    mkdir([saveLocation, '/Experimental/MATLAB/planarSprayPOD/', caseID, '/', field]);
+                if ~exist([saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field], 'dir')
+                    mkdir([saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field]);
                 end
                 
         end
@@ -527,21 +530,21 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/base/', field, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/base/', field, '/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat'], ...
+                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/', planeID, '/', field, '/', dataID, '.mat']);
-                save([saveLocation, '/Numerical/MATLAB/planarSprayPOD/', caseID, '/', planeID, '/', field, '/', dataID, '.mat'], ...
-                      'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat'], ...
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
             
             case 'C'
-                disp(['    Saving to: ', saveLocation, '/Experimental/MATLAB/planarSprayPOD/', caseID, '/', field, '/', dataID, '.mat']);
-                save([saveLocation, '/Experimental/MATLAB/planarSprayPOD/', caseID, '/', field, '/', dataID, '.mat'], ...
-                      'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat']);
+                save([saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat'], ...
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end

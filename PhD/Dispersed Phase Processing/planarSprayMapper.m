@@ -9,12 +9,9 @@ run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-figSave = false; % Save .fig File(s)
-
 normDims = true; % Normalise Spatial Dimensions
 
-normDensity = true; % Normalise Spray Area Density
-    normValue = 1;
+figSave = false; % Save .fig File(s)
 
 disp('========================');
 disp('Planar Spray Mapper v4.0');
@@ -66,9 +63,11 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
+        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -186,9 +185,9 @@ clear valid dLimsDefault;
 
 % Generate Dataset ID
 if normDims
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_Norm'];
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', dataFormat, '_normDims'];
 else
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', dataFormat];
 end
 
 disp(' ');
@@ -323,20 +322,18 @@ switch format
     case 'B'
         mapPerim = [];
         
-        xLimsPlot = [0.3; 4.6257662];
-        yLimsPlot = [-0.5; 0.5];
-        zLimsPlot = [0; 0.5];
+        xLimsData = double(LagData.positionCartesian{end}(1,1));
+        yLimsData = [-0.5; 0.5];
+        zLimsData = [0; 0.5];
         
         if ~normDims
 
             if strcmp(campaignID, 'Windsor_fullScale')
-                xLimsPlot = xLimsPlot * 4.176;
-                yLimsPlot = yLimsPlot * 4.176;
-                zLimsPlot = zLimsPlot * 4.176;
+                yLimsData = round((yLimsData * 4.176), spacePrecision);
+                zLimsData = round((zLimsData * 4.176), spacePrecision);
             elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                xLimsPlot = xLimsPlot * 1.044;
-                yLimsPlot = yLimsPlot * 1.044;
-                zLimsPlot = zLimsPlot * 1.044;
+                yLimsData = round((yLimsData * 1.044), spacePrecision);
+                zLimsData = round((zLimsData * 1.044), spacePrecision);
             end
 
         end
@@ -423,17 +420,19 @@ disp(' ');
 disp('    Generating Presentation Grid...');
 
 % Set Target Spatial Resolution
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+if normDims
     cellSize.target = 8e-3;
 else
-    cellSize.target = 32e-3;
+    
+    if strcmp(campaignID, 'Windsor_fullScale')
+        cellSize.target = 32e-3;
+    else
+        cellSize.target = 8e-3;
+    end
+    
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-if normDims
-    cellSize.target = round((cellSize.target / normLength), spacePrecision);
-end
-
 cellSize.x = cellSize.target;
 cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
 cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
@@ -548,7 +547,7 @@ parfor i = 1:nTimes
         end
         
         % Calculate Derived Variables
-        density{i} = ((1000 * density{i}) / cellArea) / normDensity;
+        density{i} = ((1000 * density{i}) / cellArea);
         d32{i} = (d30 ./ d20) * 1e6;
         d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
         
@@ -691,9 +690,9 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.RMS = sparse(nCells,1);
-mapData.density.RMS = mapData.nParticles.mean;
-mapData.d32.RMS = mapData.nParticles.mean;
-mapData.d10.RMS = mapData.nParticles.mean;
+mapData.density.RMS = mapData.nParticles.RMS;
+mapData.d32.RMS = mapData.nParticles.RMS;
+mapData.d10.RMS = mapData.nParticles.RMS;
 
 for i = 1:nTimes
     mapData.nParticles.RMS = mapData.nParticles.RMS + mapData.nParticles.prime{i}.^2;
@@ -743,9 +742,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -762,9 +763,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotRMS = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotRMS = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -781,6 +784,7 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
@@ -855,13 +859,13 @@ if plotMean || plotRMS || plotInst
     positionData = mapData.positionGrid;
     
     if normDims
-        spatialRes = 1e-3;
+        spatialRes = 0.5e-3;
     else
 
         if strcmp(campaignID, 'Windsor_fullScale')
-            spatialRes = 4e-3;
+            spatialRes = 2e-3;
         else
-            spatialRes = 1e-3;
+            spatialRes = 0.5e-3;
         end
 
     end
@@ -921,39 +925,96 @@ if plotMean
         switch format
             
             case 'A'
-                figName = ['Time_Averaged_Base_', plotVars{i}, '_Map'];
+                figName = ['Average_Base_', plotVars{i}, '_', caseID];
                 
             case 'B'
-                figName = ['Time_Averaged_', planeID, '_', plotVars{i}, '_Map'];
+                figName = ['Average_', planeID, '_', plotVars{i}, '_', caseID];
                 
         end
         
         if strcmp(plotVars{i}, 'density')
             
-            if normDensity == 1
-                contourlines = [0.02; 0.02] * max(scalarData);
-            else
-                contourLines = [0.02; 0.02];
+            switch format
+
+                case 'A'
+                    contourlines = [];
+                
+                case 'B'
+                    contourlines = [0.02; 0.02] * 0.1e-3;
+                    
             end
             
         else
             contourlines = [];
         end
         
-        figSubtitle = ' ';
-        
         if any(strcmp(plotVars{i}, {'d10', 'd32'}))
             
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                cLims = [0; 150];
-            else
+            if strcmp(campaignID, 'Windsor_fullScale')
                 cLims = [0; 400];
+            else
+                cLims = [0; 150];
             end
             
-        elseif strcmp(plotVars{i}, 'density') && normDensity == 1
-            cLims = [0; max(scalarData)];
+        elseif strcmp(plotVars{i}, 'density')
+            
+            switch format
+
+                case 'A'
+                    cLims = [0; 0.6e-5];
+
+                case 'B'
+                    cLims = [0; 0.1e-3];
+
+            end
+            
         else
-            cLims = [0; 1.2];
+            cLims = [0; max(scalarData)];
+        end
+        
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                               zLimsPlot, normDims, figSave);
+    end
+    clear i;
+    
+    disp(' ');
+end
+
+if plotRMS
+    
+    for i = 1:height(plotVars)
+        disp(['    Presenting RMS of ''', plotVars{i}, ''' Data...']);
+        
+        scalarData = full(mapData.(plotVars{i}).RMS) / mean(mapData.(plotVars{i}).mean(mapData.(plotVars{i}).mean > 0));
+        
+        switch format
+            
+            case 'A'
+                figName = ['RMS_Base_', plotVars{i}, '_', caseID];
+                
+            case 'B'
+                figName = ['RMS_', planeID, '_', plotVars{i}, '_', caseID];
+                
+        end
+        contourlines = [];
+        
+        if strcmp(plotVars{i}, 'density')
+            
+            switch format
+                
+                case 'A'
+                    cLims = [0; 4.2];
+                    
+                case 'B'
+                    cLims = [0; 7];
+                    
+            end
+            
+        else
+            cLims = [0; max(scalarData)];
         end
         
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
@@ -972,30 +1033,36 @@ if plotInst
     for i = 1:height(plotVars)
         disp(['    Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
         
-        if strcmp(plotVars{i}, 'density')
-            
-            if normDensity == 1
-                contourlines = [0.02; 0.02] * max(cellfun(@max, mapData.inst.(plotVars{i})));
-            else
-                contourLines = [0.02; 0.02] * 1;
-            end
-            
-        else
-            contourlines = [];
-        end
+        contourlines = [];
         
         if any(strcmp(plotVars{i}, {'d10', 'd32'}))
             
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                cLims = [0; 150];
-            else
+            if strcmp(campaignID, 'Windsor_fullScale')
                 cLims = [0; 400];
+            else
+                cLims = [0; 150];
             end
             
-        elseif strcmp(plotVars{i}, 'density') && normDensity == 1
-            cLims = [0; max(cellfun(@max, mapData.inst.(plotVars{i})))];
+        elseif strcmp(plotVars{i}, 'density')
+            
+            switch format
+
+                case 'A'
+                    cLims = [0; 0.16e-3];
+
+                case 'B'
+                    cLims = [0; 0.7e-3];
+
+            end
+            
         else
-            cLims = [0; 1];
+            instMax = 0;
+            
+            for j = 1:nTimes
+                instMax = max(instMax, max(mapData.(plotVars{i}).inst{j}));
+            end
+                
+            cLims = full([0; instMax]); clear instMax;
         end
         
         figHold = fig;
@@ -1007,25 +1074,25 @@ if plotInst
                 fig = figHold;
             end
             
-            scalarData = full(mapData.inst.(plotVars{i}){j});
+            scalarData = full(mapData.(plotVars{i}).inst{j});
             figTime = num2str(mapData.time(j), ['%.', num2str(timePrecision), 'f']);
             
             switch format
                 
                 case 'A'
-                    figName = ['Instantaneous_Base_', plotVars{i}, '_Map_T', erase(figTime, '.')];
+                    figName = ['Instantaneous_Base_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
                 
                 case 'B'
-                    figName = ['Instantaneous_', planeID, '_', plotVars{i}, '_Map_T', erase(figTime, '.')];
+                    figName = ['Instantaneous_', planeID, '_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
             end
             
-            figSubtitle = [figTime, ' \it{s}'];
+            figTitle = ['{', figTime, ' \it{s}}'];
         
             [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                                    xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
                                                    planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                                   refPoint, figTitle, figSubtitle, cLims, xLimsPlot, ...
-                                                   yLimsPlot, zLimsPlot, normDims, figSave);
+                                                   refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                   zLimsPlot, normDims, figSave);
         end
         clear j;
         
@@ -1035,7 +1102,7 @@ if plotInst
     disp(' ');
 end
 
-if ~plotMean && ~plotInst
+if ~plotMean && ~ plotRMS && ~plotInst
     disp('    Skipping Map Presentation');
 
     disp(' ');
@@ -1062,14 +1129,14 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base'], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base']);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base']);
                 end
                 
             case 'B'
                 
-                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID]);
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID]);
                 end
                 
         end
@@ -1077,15 +1144,15 @@ while ~valid
         switch format
             
             case 'A'
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base/', dataID, '.mat']);
-                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/base/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'mapData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID, '/', dataID, '.mat']);
-                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', caseID, '/', planeID, '/', dataID, '.mat'], ...
-                      'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end

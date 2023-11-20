@@ -1,28 +1,16 @@
+%% Planar Spray POD Field Reconstructor v1.1
+% ----
+% Perform Low-Order Reconstructions Using the Output of 'planarSprayPOD'
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLoc = '/mnt/Processing/Data';
-else
-    saveLoc = '~/Data';
-end
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Spray POD Field Reconstructor v1.0
+run preamble;
 
 figSave = false; % Save .fig File(s)
 
 disp('=========================================');
-disp('Planar Spray POD Field Reconstructor v1.0');
+disp('Planar Spray POD Field Reconstructor v1.1');
 disp('=========================================');
 
 disp(' ');
@@ -32,6 +20,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit (Functionality Separated From 'planarSprayPOD' To Improve Efficiency)
+% v1.1 - Minor Update to Shift Preamble Into Separate Script
 
 
 %% Select Mapping Location

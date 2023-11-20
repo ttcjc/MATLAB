@@ -84,6 +84,8 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
     end
     clear i k;
     
+    planePositions = zeros([height(dataFiles),1]);
+    
     for i = 1:height(dataFiles)
                 
         if distributedFiles
@@ -143,9 +145,11 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
         
         % Align Particles With Plane Position
         if contains(dataFiles(i).name, '-')
-            contentFloat(:,4) = str2double(dataFiles(i).name(strfind(dataFiles(i).name, '-'):end));
+            planePositions(i) = str2double(dataFiles(i).name(strfind(dataFiles(i).name, '-'):end));
+            contentFloat(:,4) = planePositions(i);
         else
-            contentFloat(:,4) = str2double(dataFiles(i).name((strfind(dataFiles(i).name, '_') + 1):end));
+            planePositions(i) = str2double(dataFiles(i).name((strfind(dataFiles(i).name, '_') + 1):end));
+            contentFloat(:,4) = planePositions(i);
         end
         
         % Initialise Particle Properties
@@ -262,6 +266,10 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
     clear i;
     
     delete(wB);
+    
+    % Sort Plane Order
+    [~, index] = sort(planePositions);
+    LagData = orderfields(LagData, index);
     
     %%%%
 

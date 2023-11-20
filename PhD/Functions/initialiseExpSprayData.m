@@ -150,7 +150,7 @@ function [campaignID, caseID, planeID, ...
     expSprayData.positionGrid(:,3) = expSprayData.positionGrid(:,3) + (0.309 / 2); % Offset Due to 309-15-3 Calibration Board
     
     % Sort Position Grid for 'ndgrid' Compatibility
-    [expSprayData.positionGrid, index] = sortrows(expSprayData.positionGrid,3);
+    [expSprayData.positionGrid, index] = sortrows(expSprayData.positionGrid, [3, 2, 1]);
     
     disp(' ');
     

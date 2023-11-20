@@ -1,32 +1,20 @@
+%% Planar Lagrangian Spray Mapper v4.0
+% ----
+% Load, Process and Present Volumetric Lagrangian Data Acquired Using OpenFOAM v7
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Lagrangian Volume Field Generator v4.0
+run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
+normDims = true; % Normalise Spatial Dimensions
+
 figSave = false; % Save .fig File(s)
 
-normalise = false; % Normalisation of Dimensions
-
 disp('===========================');
-disp('Volume Field Generator v4.0');
+disp('Volume Field Generator v4.1');
 disp('===========================');
 
 disp(' ');
@@ -46,12 +34,13 @@ disp(' ');
 % v3.3 - Added Support for Full-Scale Windsor Model Simulations
 % v3.4 - Changed Primary Output From Mass to Density
 % v4.0 - Rewrite, Making Use of Sparse Arrays to Reduce Memory Requirements
+% v4.1 - Minor Update to Shift Preamble Into Separate Script
 
 
 %% Initialise Case
 
-[caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise);
+[caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
+ xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
 
 disp(' ');
 disp(' ');
@@ -67,7 +56,7 @@ disp(' ');
 disp('Possible Regions of Interest:');
 disp('    A: Near Wake');
 disp('    B: Mid Wake');
-disp('    C: Far Wake');
+disp('    C: Far Wake (Full-Scale Only)');
 
 valid = false;
 while ~valid
@@ -76,12 +65,15 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format = 'A';
+        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format = 'B';
+        
         valid = true;
     elseif selection == 'c' | selection == 'C' %#ok<OR2>
         format = 'C';
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -98,13 +90,15 @@ disp(' ');
 
 maxNumCompThreads(nProc);
 
-[dataID, LagProps, ~, ~, LagData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseID, ...
-                                                                      cloudName, false, false, ...
-                                                                      true, timeDirs, deltaT, ...
-                                                                      timePrecision, maxNumCompThreads);
+[dataID, LagProps, ~, ~, ...
+          LagData, sampleInt, ~] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                     caseID, cloudName, false, false, ...
+                                                     true, timeDirs, deltaT, ...
+                                                     timePrecision, nProc);
 
-if ~contains(caseID, 'Windsor_SB_fullScale_multiPhase')
+if strcmp(format, 'C') && ~strcmp(campaignID, 'Windsor_fullScale')
     disp(' ');
+    
     disp('WARNING: Far-Wake Data Is Unavailable for This Case');
     disp('         Performing Analysis on Mid-Wake Data Instead');
     
@@ -121,10 +115,10 @@ disp(' ');
 disp('Field Options');
 disp('--------------');
 
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-    dLimsDefault = [1; 147];
+if strcmp(campaignID, 'Windsor_fullScale')
+    dLimsDefault = [20; 400]; % um
 else
-    dLimsDefault = [20; 400];
+    dLimsDefault = [1; 147];
 end
 
 valid = false;
@@ -169,8 +163,8 @@ end
 clear valid dLimsDefault;
 
 % Generate Dataset ID
-if normalise
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_Norm'];
+if normDims
+    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_normDims'];
 else
     dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 end
@@ -231,7 +225,7 @@ if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(case
 end
 
 % Normalise Coordinate System
-if normalise
+if normDims
     disp('        Normalising Coordinate System');
     
     % Initialise Progress Bar
@@ -258,41 +252,32 @@ end
 switch format
     
     case 'A' % 0.75 L
-        
-        if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-            xLimsData = [0.31875; 1.26625];
-            yLimsData = [-0.4176; 0.4176];
-            zLimsData = [0; 0.4176];
-        else
-            xLimsData = [1.275; 5.065];
-            yLimsData = [-1.6704; 1.6704];
-            zLimsData = [0; 1.6704];
-        end
+        xLimsData = [0.3; 1.3];
+        yLimsData = [-0.4; 0.4];
+        zLimsData = [0; 0.4];
         
     case 'B' % 2 L
-        
-        if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-            xLimsData = [0.31875; 2.57125];
-            yLimsData = [-0.522; 0.522];
-            zLimsData = [0; 0.522];
-        else
-            xLimsData = [1.275; 10.285];
-            yLimsData = [-2.088; 2.088];
-            zLimsData = [0; 2.088];
-        end
+        xLimsData = [0.3; 2.4628831];
+        yLimsData = [-0.5; 0.5];
+        zLimsData = [0; 0.5];
         
     case 'C' % 4 L
-        
-        xLimsData = [1.275; 18.637];
-        yLimsData = [-2.5056; 2.5056];
-        zLimsData = [0; 2.5056];
+        xLimsData = [0.3; 4.4628831];
+        yLimsData = [-0.5; 0.5];
+        zLimsData = [0; 0.5];
 
 end
 
-if normalise
-    xLimsData = round((xLimsData / normLength), spacePrecision);
-    yLimsData = round((yLimsData / normLength), spacePrecision);
-    zLimsData = round((zLimsData / normLength), spacePrecision);
+if ~normDims
+
+    if strcmp(campaignID, 'Windsor_fullScale')
+        yLimsData = round((yLimsData * 4.176), spacePrecision);
+        zLimsData = round((zLimsData * 4.176), spacePrecision);
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        yLimsData = round((yLimsData * 1.044), spacePrecision);
+        zLimsData = round((zLimsData * 1.044), spacePrecision);
+    end
+
 end
 
 disp(' ');
@@ -361,17 +346,19 @@ disp(' ');
 disp('    Generating Presentation Grid...');
 
 % Set Target Spatial Resolution
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+if normDims
     cellSize.target = 8e-3;
 else
-    cellSize.target = 32e-3;
+    
+    if strcmp(campaignID, 'Windsor_fullScale')
+        cellSize.target = 32e-3;
+    else
+        cellSize.target = 8e-3;
+    end
+    
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-if normalise
-    cellSize.target = round((cellSize.target / normLength), spacePrecision);
-end
-
 cellSize.x = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
 cellSize.y = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
 cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
@@ -511,10 +498,10 @@ clear index nParticle d d_tmp;
 
 delete(wB);
 
-volumeData.inst.nParticles = nParticles; clear nParticles;
-volumeData.inst.density = density; clear density;
-volumeData.inst.d32 = d32; clear d32;
-volumeData.inst.d10 = d10; clear d10;
+volumeData.nParticles.inst = nParticles; clear nParticles;
+volumeData.density.inst = density; clear density;
+volumeData.d32.inst = d32; clear d32;
+volumeData.d10.inst = d10; clear d10;
 
 disp(' ');
 
@@ -529,26 +516,26 @@ wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress')
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
-volumeData.mean.nParticles = zeros([nCells,1]);
-volumeData.mean.density = volumeData.mean.nParticles;
-volumeData.mean.d32 = volumeData.mean.nParticles;
-volumeData.mean.d10 = volumeData.mean.nParticles;
+volumeData.nParticles.mean = sparse(nCells,1);
+volumeData.density.mean = volumeData.nParticles.mean;
+volumeData.d32.mean = volumeData.nParticles.mean;
+volumeData.d10.mean = volumeData.nParticles.mean;
 
 for i = 1:nTimes
-    volumeData.mean.nParticles = volumeData.mean.nParticles + volumeData.inst.nParticles{i};
-    volumeData.mean.density = volumeData.mean.density + volumeData.inst.density{i};
-    volumeData.mean.d32 = volumeData.mean.d32 + volumeData.inst.d32{i};
-    volumeData.mean.d10 = volumeData.mean.d10 + volumeData.inst.d10{i};
+    volumeData.nParticles.mean = volumeData.nParticles.mean + volumeData.nParticles.inst{i};
+    volumeData.density.mean = volumeData.density.mean + volumeData.density.inst{i};
+    volumeData.d32.mean = volumeData.d32.mean + volumeData.d32.inst{i};
+    volumeData.d10.mean = volumeData.d10.mean + volumeData.d10.inst{i};
 
     % Update Waitbar
     waitbar((i / nTimes), wB);
 end
 clear i;
 
-volumeData.mean.nParticles = sparse(volumeData.mean.nParticles / nTimes);
-volumeData.mean.density = sparse(volumeData.mean.density / nTimes);
-volumeData.mean.d32 = sparse(volumeData.mean.d32 / nTimes);
-volumeData.mean.d10 = sparse(volumeData.mean.d10 / nTimes);
+volumeData.nParticles.mean = volumeData.nParticles.mean / nTimes;
+volumeData.density.mean = volumeData.density.mean / nTimes;
+volumeData.d32.mean = volumeData.d32.mean / nTimes;
+volumeData.d10.mean = volumeData.d10.mean / nTimes;
 
 delete(wB);
 

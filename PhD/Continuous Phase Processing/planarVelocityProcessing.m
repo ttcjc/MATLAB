@@ -760,13 +760,13 @@ switch format
                 vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
                 
                 if normDims
-                    spatialRes = 1e-3;
+                    spatialRes = 0.5e-3;
                 else
                     
                     if strcmp(campaignID, 'Windsor_fullScale')
-                        spatialRes = 4e-3;
+                        spatialRes = 2e-3;
                     else
-                        spatialRes = 1e-3;
+                        spatialRes = 0.5e-3;
                     end
                     
                 end
@@ -786,19 +786,19 @@ switch format
                 end
                 
                 if ~normDims
-                    
+
                     if strcmp(campaignID, 'Windsor_fullScale')
-                        xLimsPlot = xLimsPlot * 4.176;
-                        yLimsPlot = yLimsPlot * 4.176;
-                        zLimsPlot = zLimsPlot * 4.176;
+                        xLimsPlot = round((xLimsPlot * 4.176), spacePrecision);
+                        yLimsPlot = round((yLimsPlot * 4.176), spacePrecision);
+                        zLimsPlot = round((zLimsPlot * 4.176), spacePrecision);
                     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                        xLimsPlot = xLimsPlot * 1.044;
-                        yLimsPlot = yLimsPlot * 1.044;
-                        zLimsPlot = zLimsPlot * 1.044;
+                        xLimsPlot = round((xLimsPlot * 1.044), spacePrecision);
+                        yLimsPlot = round((yLimsPlot * 1.044), spacePrecision);
+                        zLimsPlot = round((zLimsPlot * 1.044), spacePrecision);
                     end
-                    
+
                 end
-        
+                
                 switch orientation
         
                     case 'YZ'

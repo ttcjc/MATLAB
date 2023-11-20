@@ -1,30 +1,19 @@
+%% Planar Spray POD Calculator v3.1
+% ----
+% Perform Proper Orthogonal Decomposition on Previously Processed Planar Spray Maps
+% (Collected Using 'planarSprayMapper' & 'expPlanarSprayMapper')
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLoc = '/mnt/Processing/Data';
-else
-    saveLoc = '~/Data';
-end
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Spray POD Calculator v3.0
-
-figSave = false; % Save .fig File(s)
+run preamble;
 
 flipMode = true; % Present Both Orientations of Mode(s)
 
+figSave = false; % Save .fig File(s)
+
 disp('================================');
-disp('Planar Spray POD Calculator v3.0');
+disp('Planar Spray POD Calculator v3.1');
 disp('================================');
 
 disp(' ');
@@ -38,6 +27,7 @@ disp(' ');
 % v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 % v2.1 - Moved Calculation of Instantaneous Variables To Pre-Processing Scripts
 % v3.0 - Offloaded Reconstruction To Improve Efficiency
+% v3.1 - Minor Update to Shift Preamble Into Separate Script
 
 
 %% Select Mapping Location
@@ -111,6 +101,7 @@ switch format
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
+                        dataFormat = load([filePath, fileName], 'dataFormat').dataFormat;
                         normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
@@ -134,6 +125,7 @@ switch format
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
+                        dataFormat = load([filePath, fileName], 'dataFormat').dataFormat;
                         normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
@@ -196,8 +188,6 @@ disp(' ');
 
 
 %% Select POD Options
-
-clc
 
 disp('POD Options');
 disp('------------');
@@ -282,18 +272,29 @@ switch format
         geoPoints = geometry.(parts).vertices;
         basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
         
-        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 1);
+        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-        basePoly = polybuffer(basePoly, -0.005, 'jointType', 'square');
-        mapPerim = ones([height(basePoly.Vertices),3]) * mapPerim(1,1);
+
+        if normDims
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+        else
+            
+            if strcmp(campaignID, 'Windsor_fullScale')
+                basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+            else
+                basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+            end
+        end
+        
+        mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
         mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
 
         if ~all(mapPerim(1,:) == mapPerim(end,:))
             mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
         end
         
-        xLimsData = xDims(2) + 1e-3; % Offset Particles From Base for Better Visibility
+        xLimsData = xDims(2);
         yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
         zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
         
@@ -390,61 +391,64 @@ disp(' ');
 
 if plotModes
     orientation = 'YZ';
+    positionData = PODdata.positionGrid;
     
-    switch format
-
-        case 'A'
-            
-            if contains(caseID, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.43075];
-                yLimsPlot = [-0.2445; 0.2445];
-                zLimsPlot = [0; 0.389];
-            end
-
-        case 'B'
-            
-            if contains(caseID, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 2.73575];
-                yLimsPlot = [-0.522; 0.522];
-                zLimsPlot = [0; 0.6264];
-            end
-            
-        case 'C'
-            xLimsPlot = [0.31875; 2.73575];
-            yLimsPlot = [-0.522; 0.522];
-            zLimsPlot = [0; 0.522];
-            
-    end
-
     if normDims
-        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+        spatialRes = 0.5e-3;
+    else
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            spatialRes = 2e-3;
+        else
+            spatialRes = 0.5e-3;
+        end
+
     end
     
+    % Offset Particles From Surface to Improve Visibility
     switch format
         
-        case {'A', 'B'}
-            
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                spatialRes = 0.5e-3;
-            else
-                spatialRes = 2e-3;
-            end
-            
-        case 'C'
-            spatialRes = 0.5e-3;
+        case 'A'
+            xLimsData = xLimsData + spatialRes;
+            positionData(:,1) = xLimsData;
             
     end
-
-    positionData = PODdata.positionGrid;
+    
     nPlanes = 1;
     planeNo = 1;
     cMap = cool2warm(32);
     contourlines = [];
     refPoint = [];
     cLims = [-1; 1];
+    
+    switch format
 
+        case 'A'
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.25; 0.25];
+            zLimsPlot = [0; 0.4];
+            
+        case {'B', 'C'}
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
+            
+    end
+    
+    if ~normDims
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            xLimsPlot = xLimsPlot * 4.176;
+            yLimsPlot = yLimsPlot * 4.176;
+            zLimsPlot = zLimsPlot * 4.176;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            xLimsPlot = xLimsPlot * 1.044;
+            yLimsPlot = yLimsPlot * 1.044;
+            zLimsPlot = zLimsPlot * 1.044;
+        end
+
+    end
+    
     for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
 
@@ -532,7 +536,7 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
@@ -544,7 +548,7 @@ while ~valid
             case 'C'
                 disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -568,19 +572,6 @@ function modes = inputModes(Nt)
         disp('        WARNING: Invalid Entry');
         
         modes = -1;
-    end
-
-end
-
-
-function frameNo = inputFrames(Nt, type)
-
-    frameNo = str2double(input(['    Input Desired ', type, ' Frame [1-', num2str(Nt), ']: '], 's'));
-    
-    if isnan(frameNo) || frameNo < 1 || frameNo > Nt
-        disp('        WARNING: Invalid Entry');
-        
-        frameNo = -1;
     end
 
 end

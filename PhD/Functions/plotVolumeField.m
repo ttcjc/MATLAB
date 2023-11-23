@@ -1,26 +1,25 @@
-%% Volume Field Plotter v2.4
+%% Volume Field Plotter v2.5
 % ----
 % Plots Previously Processed Volume Fields
 % ----
 % Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
 %                              POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
-%                              figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+%                              viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 %
-%        '*LimsData'    -> Contour Plot Limits [Dimensions of '*Init']
-%        'spatialRes'   -> Target Grid Spacing [Dimensions of '*Init']
-%        '*Init'        -> Initial 3D Arrays of Cartesian Positions
-%        'POD'          -> POD Mode Presentation [True/False]
-%        'fieldData'    -> 3D Array of Field Data @ '*Init' Points
-%        'fig'          -> Figure Number
-%        'figName'      -> Figure Name
-%        'geometry'     -> STL(s) to Include in Plot
-%        'isoValue'     -> Field Value Used for Isosurface
-%        'cMap'         -> Colour Map
-%        'figTitle'     -> Leave Blank ('-') for Formatting Purposes
-%        'figSubtitle'  -> Figure Title
-%        'viewAngle'    -> View Angle
-%        '*LimsPlot'    -> 3D Axes Limits [Dimensions of '*Init']
-%        'figSave'      -> Save .fig File [True/False]
+%        '*LimsData'   -> Contour Plot Limits [Dimensions of '*Init']
+%        'spatialRes'  -> Target Grid Spacing [Dimensions of '*Init']
+%        '*Init'       -> Initial 3D Arrays of Cartesian Positions
+%        'POD'         -> POD Mode Presentation [True/False]
+%        'fieldData'   -> 3D Array of Field Data @ '*Init' Points
+%        'fig'         -> Figure Number
+%        'figName'     -> Figure Name
+%        'geometry'    -> STL(s) to Include in Plot
+%        'isoValue'    -> Field Value Used for Isosurface
+%        'cMap'        -> Colour Map
+%        'figTitle'    -> Figure Title
+%        'viewAngle'   -> View Angle
+%        '*LimsPlot'   -> 3D Axes Limits [Dimensions of '*Init']
+%        'figSave'     -> Save .fig File [True/False]
 
 
 %% Changelog
@@ -31,13 +30,14 @@
 % v2.2 - Rename and Minor Formatting Updates
 % v2.3 - Added Spatial Resolution as an Input Variable
 % v2.4 - Added Support for Saving Multiple View Angles
+% v2.5 - Update To Ensure Consistent Figure Sizes
 
 
 %% Main Function
 
 function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
                                POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
-                               figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
+                               viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
     % Generate Refined Grid
     cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
@@ -73,12 +73,13 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
     
     % Initialise Figure
     fig = fig + 1;
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], 'units', 'pixels');
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
-             'fontSize', 18, 'layer', 'top');
-    lighting gouraud;
-    colormap(cMap);
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                     'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+    pause(0.5);
     hold on;
+    set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+    lighting gouraud;
     
     % Plot Geometry
     if ~isempty(geometry)
@@ -107,16 +108,17 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
         iso.VertexNormals = isonormals(x, y, z, fieldData{2}, iso);
     else
         iso = isosurface(x, y, z, fieldData, isoValue);
-        p = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+        p = patch(iso, 'faceColor', cMap, 'edgeColor', 'none');
         isonormals(fieldData, p);
     end
     
     % Format Figure
-    title(figTitle, 'color', ([254, 254, 254] / 255));
-    subtitle(figSubtitle);
+    title('{-----}', 'interpreter', 'latex');
+    subtitle(figTitle);
     lightangle(0, 45);
     axis on;
     box on;
+    grid off;
     xlim([xLimsPlot(1), xLimsPlot(2)]);
     ylim([yLimsPlot(1), yLimsPlot(2)]);
     zlim([zLimsPlot(1), zLimsPlot(2)]);
@@ -128,24 +130,35 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
     zticks(tickData);
     hold off;
     
-    set(figure(fig), 'position', [25, 25, 650, 650]);
-    pause(2);
+    tightInset = get(gca, 'TightInset');
+    set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                               (tightInset(2) + 0.00625), ...
+                               (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                               (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+    pause(0.5);
+    hold off;
     
     % Save Figure
     for i = 1:height(viewAngle)
         view(viewAngle(i,:));
         
         if height(viewAngle) == 1
-            exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '.png'], 'resolution', 600);
+            print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
         else
-            exportgraphics(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.png'], 'resolution', 600);
-            pause(2);
+            print(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.png'], '-dpng', '-r300');
+            pause(0.5);
+        end
+        
+        if figSave
+            
+            if height(viewAngle) == 1
+                savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
+            else
+                savefig(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.fig']);
+            end
+            
         end
         
     end
-
-    if figSave
-        savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
-    end
-
+    
 end

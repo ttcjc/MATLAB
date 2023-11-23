@@ -15,20 +15,20 @@ colormap(viridis(levels));
 
 % Figure Setup
 fig = fig + 1;
-figName = 'Colour_Bar_QS_Base_Cp';
+figName = 'Colour_Bar_Base_Cp';
 set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
                  'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
 pause(0.5);
 hold on;
 set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 
 % Figure Formatting
 axis off;
 box off;
-caxis([-0.245; -0.09]);
+caxis([-0.273; -0.103]);
 tickData = min(caxis):((max(caxis) - min(caxis)) / 5):max(caxis);
-cB = colorbar('ticks', tickData(2:end-1), 'location', 'southOutside', 'axisLocation', 'out');
+cB = colorbar('ticks', tickData(2:end-1), 'location', 'south', 'axisLocation', 'out');
 % cB.Ruler.TickLabelFormat = '%.0f';
 % cB.Ruler.TickLabelFormat = '%.1f';
 % cB.Ruler.TickLabelFormat = '%.2f';
@@ -42,9 +42,8 @@ cB.Ruler.TickLabelFormat = '%+.3f';
 cB.Ruler.Exponent = 0;
 cB.Label.Interpreter = 'latex';
 cB.Label.String = '{$C_{p}$}';
-
 pause(0.5);
 hold off;
 
 % Save Figure
-% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');

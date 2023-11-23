@@ -91,14 +91,14 @@ switch format
          ~, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
                                                        caseID, cloudName, true, false, ...
                                                        false, timeDirs, deltaT, ...
-                                                       timePrecision, nProc);
+                                                       timePrecision, maxNumCompThreads);
         
     case 'B'
         [dataID, LagProps, ~, LagData, ...
          ~, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
                                                        caseID, cloudName, false, true, ...
                                                        false, timeDirs, deltaT, ...
-                                                       timePrecision, nProc);
+                                                       timePrecision, maxNumCompThreads);
         
         % Select Plane of Interest
         planes = fieldnames(LagData);
@@ -514,7 +514,7 @@ parforWaitBar(wB, nTimes);
 
 % Perform Calculation
 nParticles = cell(nTimes,1); nParticles(:) = {zeros([nCells,1])}; % Number of Particles in Cell
-density = nParticles; % Spray Density in Cell
+areaDensity = nParticles; % Spray Density in Cell
 d32 = nParticles; % Sauter Mean Particle Diameter in Cell
 d10 = nParticles; % Arithmetic Mean Particle Diameter in Cell
 
@@ -533,8 +533,8 @@ parfor i = 1:nTimes
             nParticles{i}(index{i}(j)) = nParticles{i}(index{i}(j)) + ...
                                          nParticle{i}(j);
             
-            density{i}(index{i}(j)) = density{i}(index{i}(j)) + ...
-                                      (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
+            areaDensity{i}(index{i}(j)) = areaDensity{i}(index{i}(j)) + ...
+                                          (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
             
             d30(index{i}(j)) = d30(index{i}(j)) + ...
                                (nParticle{i}(j) * (d{i}(j)^3));
@@ -547,7 +547,7 @@ parfor i = 1:nTimes
         end
         
         % Calculate Derived Variables
-        density{i} = ((1000 * density{i}) / cellArea);
+        areaDensity{i} = ((1000 * areaDensity{i}) / cellArea);
         d32{i} = (d30 ./ d20) * 1e6;
         d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
         
@@ -558,7 +558,7 @@ parfor i = 1:nTimes
     
     % Make Arrays Sparse
     nParticles{i} = sparse(nParticles{i});
-    density{i} = sparse(density{i});
+    areaDensity{i} = sparse(areaDensity{i});
     d32{i} = sparse(d32{i});
     d10{i} = sparse(d10{i});
 
@@ -575,7 +575,7 @@ clear index nParticle d d_tmp;
 delete(wB);
 
 mapData.nParticles.inst = nParticles; clear nParticles;
-mapData.density.inst = density; clear density;
+mapData.areaDensity.inst = areaDensity; clear areaDensity;
 mapData.d32.inst = d32; clear d32;
 mapData.d10.inst = d10; clear d10;
 
@@ -591,10 +591,10 @@ mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')
 
 for i = 1:nTimes
     mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
-    mapData.CoM.inst{i}(2) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / ...
-                             sum(mapData.density.inst{i}));
-    mapData.CoM.inst{i}(3) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / ...
-                             sum(mapData.density.inst{i}));
+    mapData.CoM.inst{i}(2) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,2)) / ...
+                             sum(mapData.areaDensity.inst{i}));
+    mapData.CoM.inst{i}(3) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,3)) / ...
+                             sum(mapData.areaDensity.inst{i}));
     
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -617,13 +617,13 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.mean = sparse(nCells,1);
-mapData.density.mean = mapData.nParticles.mean;
+mapData.areaDensity.mean = mapData.nParticles.mean;
 mapData.d32.mean = mapData.nParticles.mean;
 mapData.d10.mean = mapData.nParticles.mean;
 
 for i = 1:nTimes
     mapData.nParticles.mean = mapData.nParticles.mean + mapData.nParticles.inst{i};
-    mapData.density.mean = mapData.density.mean + mapData.density.inst{i};
+    mapData.areaDensity.mean = mapData.areaDensity.mean + mapData.areaDensity.inst{i};
     mapData.d32.mean = mapData.d32.mean + mapData.d32.inst{i};
     mapData.d10.mean = mapData.d10.mean + mapData.d10.inst{i};
     
@@ -635,7 +635,7 @@ clear i;
 delete(wB);
 
 mapData.nParticles.mean = mapData.nParticles.mean / nTimes;
-mapData.density.mean = mapData.density.mean / nTimes;
+mapData.areaDensity.mean = mapData.areaDensity.mean / nTimes;
 mapData.d32.mean = mapData.d32.mean / nTimes;
 mapData.d10.mean = mapData.d10.mean / nTimes;
 
@@ -645,10 +645,10 @@ disp('        Calculating Time-Averaged Centre of Mass');
 mapData.CoM.mean = zeros([1,3], 'single');
     
 mapData.CoM.mean(1) = mapData.positionGrid(1,1);
-mapData.CoM.mean(2) = full(sum(mapData.density.mean .* mapData.positionGrid(:,2)) / ...
-                      sum(mapData.density.mean));
-mapData.CoM.mean(3) = full(sum(mapData.density.mean .* mapData.positionGrid(:,3)) / ...
-                      sum(mapData.density.mean));
+mapData.CoM.mean(2) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,2)) / ...
+                      sum(mapData.areaDensity.mean));
+mapData.CoM.mean(3) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,3)) / ...
+                      sum(mapData.areaDensity.mean));
 
 disp(' ');
 
@@ -659,18 +659,18 @@ disp('    Generating Fluctuating Spray Maps...');
 disp('        Calculating Instantaneous Field Fluctuations...');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Instantaneous Field Fluctuations', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.prime = mapData.nParticles.inst;
-mapData.density.prime = mapData.density.inst;
+mapData.areaDensity.prime = mapData.areaDensity.inst;
 mapData.d32.prime = mapData.d32.inst;
 mapData.d10.prime = mapData.d10.inst;
 
 for i = 1:nTimes
     mapData.nParticles.prime{i} = mapData.nParticles.prime{i} - mapData.nParticles.mean;
-    mapData.density.prime{i} = mapData.density.prime{i} - mapData.density.mean;
+    mapData.areaDensity.prime{i} = mapData.areaDensity.prime{i} - mapData.areaDensity.mean;
     mapData.d32.prime{i} = mapData.d32.prime{i} - mapData.d32.mean;
     mapData.d10.prime{i} = mapData.d10.prime{i} - mapData.d10.mean;
     
@@ -690,13 +690,13 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.RMS = sparse(nCells,1);
-mapData.density.RMS = mapData.nParticles.RMS;
+mapData.areaDensity.RMS = mapData.nParticles.RMS;
 mapData.d32.RMS = mapData.nParticles.RMS;
 mapData.d10.RMS = mapData.nParticles.RMS;
 
 for i = 1:nTimes
     mapData.nParticles.RMS = mapData.nParticles.RMS + mapData.nParticles.prime{i}.^2;
-    mapData.density.RMS = mapData.density.RMS + mapData.density.prime{i}.^2;
+    mapData.areaDensity.RMS = mapData.areaDensity.RMS + mapData.areaDensity.prime{i}.^2;
     mapData.d32.RMS = mapData.d32.RMS + mapData.d32.prime{i}.^2;
     mapData.d10.RMS = mapData.d10.RMS + mapData.d10.prime{i}.^2;
     
@@ -708,7 +708,7 @@ clear i;
 delete(wB);
 
 mapData.nParticles.RMS = sqrt((1 / nTimes) * mapData.nParticles.RMS);
-mapData.density.RMS = sqrt((1 / nTimes) * mapData.density.RMS);
+mapData.areaDensity.RMS = sqrt((1 / nTimes) * mapData.areaDensity.RMS);
 mapData.d32.RMS = sqrt((1 / nTimes) * mapData.d32.RMS);
 mapData.d10.RMS = sqrt((1 / nTimes) * mapData.d10.RMS);
 
@@ -883,7 +883,6 @@ if plotMean || plotRMS || plotInst
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     
     switch format
 
@@ -932,21 +931,31 @@ if plotMean
                 
         end
         
-        if strcmp(plotVars{i}, 'density')
+        switch format
             
-            switch format
-
-                case 'A'
-                    contourlines = [];
+            case 'A'
+                contourlines = [];
                 
-                case 'B'
-                    contourlines = [0.02; 0.02] * 0.1e-3;
+            case 'B'
+                
+                if strcmp(plotVars{i}, 'areaDensity')
                     
-            end
-            
-        else
-            contourlines = [];
+                    if strcmp(campaignID, 'Windsor_fullScale')
+%                         contourlines = [0.02; 0.02] * 15.5e-3; % Coupled
+                        contourlines = [0.02; 0.02] * 2.6; % Uncoupled
+                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                        contourlines = [0.02; 0.02] * 0.1e-3;
+                    end
+                    
+                end
+                
+                if ~exist('contourlines', 'var')
+                    contourlines = [];
+                end
+                
         end
+        
+        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         
         if any(strcmp(plotVars{i}, {'d10', 'd32'}))
             
@@ -956,19 +965,40 @@ if plotMean
                 cLims = [0; 150];
             end
             
-        elseif strcmp(plotVars{i}, 'density')
+        elseif strcmp(plotVars{i}, 'areaDensity')
             
-            switch format
+            if strcmp(campaignID, 'Windsor_fullScale')
+                
+                switch format
 
-                case 'A'
-                    cLims = [0; 0.6e-5];
+                    case 'A'
+%                         cLims = [0; 7.5e-3]; % Coupled
+                        cLims = [0; 55e-3]; % Uncoupled
+                        
 
-                case 'B'
-                    cLims = [0; 0.1e-3];
+                    case 'B'
+%                         cLims = [0; 15.5]; % Coupled
+                        cLims = [0; 2.6]; % Uncoupled
 
+                end
+                
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            
+                switch format
+
+                    case 'A'
+                        cLims = [0; 5.6e-6];
+
+                    case 'B'
+                        cLims = [0; 0.1e-3];
+
+                end
+                
             end
             
-        else
+        end
+            
+        if ~exist('cLims', 'var')
             cLims = [0; max(scalarData)];
         end
         
@@ -999,21 +1029,43 @@ if plotRMS
                 figName = ['RMS_', planeID, '_', plotVars{i}, '_', caseID];
                 
         end
-        contourlines = [];
         
-        if strcmp(plotVars{i}, 'density')
+        contourlines = [];
+        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+        
+        if strcmp(plotVars{i}, 'areaDensity')
             
-            switch format
+            if strcmp(campaignID, 'Windsor_fullScale')
                 
-                case 'A'
-                    cLims = [0; 4.2];
-                    
-                case 'B'
-                    cLims = [0; 7];
-                    
+                switch format
+
+                    case 'A'
+%                         cLims = [0; 16]; % Coupled
+                        cLims = [0; 6];
+
+                    case 'B'
+%                         cLims = [0; 12.3]; % Coupled
+                        cLims = [0; 4.4]; % Uncoupled
+
+                end
+                
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                
+                switch format
+
+                    case 'A'
+                        cLims = [0; 4.1];
+
+                    case 'B'
+                        cLims = [0; 6.8];
+
+                end
+                
             end
             
-        else
+        end
+            
+        if ~exist('cLims', 'var')
             cLims = [0; max(scalarData)];
         end
         
@@ -1043,26 +1095,46 @@ if plotInst
                 cLims = [0; 150];
             end
             
-        elseif strcmp(plotVars{i}, 'density')
+        elseif strcmp(plotVars{i}, 'areaDensity')
             
-            switch format
+            if strcmp(campaignID, 'Windsor_fullScale')
+                
+                switch format
 
-                case 'A'
-                    cLims = [0; 0.16e-3];
+                    case 'A'
+%                         cLims = [0; 0.5]; % Coupled
+                        cLims = [0; 1.4]; % Uncoupled
 
-                case 'B'
-                    cLims = [0; 0.7e-3];
+                    case 'B'
+%                         cLims = [0; 75]; % Coupled
+                        cLims = [0; 16]; % Uncoupled
 
+                end
+                
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                
+                switch format
+
+                    case 'A'
+                        cLims = [0; 0.18-3];
+
+                    case 'B'
+                        cLims = [0; 0.7e-3];
+
+                end
+                
             end
             
-        else
+        end
+            
+        if ~exist('cLims', 'var')
             instMax = 0;
             
             for j = 1:nTimes
                 instMax = max(instMax, max(mapData.(plotVars{i}).inst{j}));
             end
                 
-            cLims = full([0; instMax]); clear instMax;
+            cLims = full([0; instMax]);
         end
         
         figHold = fig;
@@ -1080,10 +1152,10 @@ if plotInst
             switch format
                 
                 case 'A'
-                    figName = ['Instantaneous_Base_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
+                    figName = ['Inst_Base_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
                 
                 case 'B'
-                    figName = ['Instantaneous_', planeID, '_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
+                    figName = ['Inst_', planeID, '_', plotVars{i}, '_T', erase(figTime, '.'), '_', caseID];
             end
             
             figTitle = ['{', figTime, ' \it{s}}'];

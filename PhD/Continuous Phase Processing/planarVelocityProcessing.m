@@ -1,30 +1,20 @@
+%% Planar Velocity Processing v5.2
+% ----
+% Load, Process and Present Experimental and Numerical Planar Velocity Profiles
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
+run preamble;
 
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Velocity Processing v5.0
-
-figSave = false; % Save .fig File(s)
+%#ok<*UNRCH>
 
 normDims = true; % Normalise Spatial Dimensions
 
+figSave = false; % Save .fig File(s)
+
 disp('===============================');
-disp('Planar Velocity Processing v5.0');
+disp('Planar Velocity Processing v5.2');
 disp('===============================');
 
 disp(' ');
@@ -38,6 +28,8 @@ disp(' ');
 % v3.0 - Moved Plotting to velocityPlots.m
 % v4.0 - Rewrite to Support ParaView, Probe and Experimental Planar Data
 % v5.0 - Update To Improve Consistency of Structures Across Repository
+% v5.1 - Minor Update to Shift Preamble Into Separate Script
+% v5.2 - Updates To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Select Data Format
@@ -85,7 +77,7 @@ disp(' ');
 switch format
 
     case 'A'
-        [campaignID, caseID, uData] = initialisePVdata(saveLocation, 'U');
+        [campaignID, caseID, uData] = initialisePVdata(saveLoc, 'U');
         
         planes = fieldnames(uData);
         
@@ -93,7 +85,7 @@ switch format
         error('NYI');
         
     case 'C'
-        [campaignID, caseID, uData] = initialiseExpFlowData(saveLocation, 'U');
+        [campaignID, caseID, uData] = initialiseExpFlowData(saveLoc, 'U');
         
         planes = fieldnames(uData);
         
@@ -107,7 +99,7 @@ end
 
 %     case 'B'
 %         [caseName, dataID, uData, sampleInterval, timePrecision, geometry, ...
-%          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLocation, 'planar', normalise, nProc);    
+%          xDims, yDims, zDims, spacePrecision] = initialiseVelocityProbeData(saveLoc, 'planar', normalise, nProc);    
 
 %     case 'C'
 %         [caseName, uData, geometry, ...
@@ -119,7 +111,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
 
 disp(' ');
 disp(' ');
@@ -158,7 +150,7 @@ switch format
         end
 
 end
-        
+
 %     case 'B'
 %         
 %         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
@@ -197,49 +189,28 @@ end
 % 
 %             end
 %             
-%         
+%
 
-disp(' ');
+for i = 1:height(planes)
+    [uData.(planes{i}).positionGrid, index] = unique(uData.(planes{i}).positionGrid, 'rows', 'stable');
 
-% Normalise Coordinate System
-disp('    Normalising Spatial Dimensions...');
-
-if normDims
-
-    switch format
-
-        case {'A', 'C'}
-            
-            for i = 1:height(planes)
-                uData.(planes{i}).positionGrid = round((uData.(planes{i}).positionGrid / normLength), spacePrecision);
-                
-                [uData.(planes{i}).positionGrid, index] = unique(uData.(planes{i}).positionGrid, 'rows', 'stable');
-
-                uData.(planes{i}).u.mean = uData.(planes{i}).u.mean(index);
-                uData.(planes{i}).v.mean = uData.(planes{i}).v.mean(index);
-                uData.(planes{i}).w.mean = uData.(planes{i}).w.mean(index);
-            end
-            clear i;
-    
-    end
-
+    uData.(planes{i}).u.mean = uData.(planes{i}).u.mean(index);
+    uData.(planes{i}).v.mean = uData.(planes{i}).v.mean(index);
+    uData.(planes{i}).w.mean = uData.(planes{i}).w.mean(index);
 end
+clear i;
 
 disp(' ');
 
 % Map Raw Data Onto UniformGrid
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
-if normDims
+if strcmp(campaignID, 'Windsor_fullScale')
+    cellSize.target = 4e-3;
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
     cellSize.target = 1e-3;
 else
-
-    if strcmp(campaignID, 'Windsor_fullScale')
-        cellSize.target = 4e-3;
-    else
-        cellSize.target = 1e-3;
-    end
-
+    cellSize.target = 1e-3;
 end
 
 switch format
@@ -260,22 +231,27 @@ switch format
         
                 case 'YZ'
                     xLimsData = uData.(planes{i}).positionGrid(1,1);
-                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); max(uData.(planes{i}).positionGrid(:,2))];
-                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); max(uData.(planes{i}).positionGrid(:,3))];
-        
+                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
+                                 max(uData.(planes{i}).positionGrid(:,2))];
+                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
+                                 max(uData.(planes{i}).positionGrid(:,3))];
+
+                    nPy = (diff(yLimsData) / cellSize.target) + 1;
+                    nPz = (diff(zLimsData) / cellSize.target) + 1;
+                    
+                    sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+                    sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+
                     cellSize.(planes{i}).x = cellSize.target;
-                    cellSize.(planes{i}).y = (yLimsData(2) - yLimsData(1)) / ...
-                             round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
-                    cellSize.(planes{i}).z = (zLimsData(2) - zLimsData(1)) / ...
-                             round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
-        
+                    cellSize.(planes{i}).y = sizeY(1); clear sizeY;
+                    cellSize.(planes{i}).z = sizeZ(1); clear sizeZ;
                     cellSize.(planes{i}).area = cellSize.(planes{i}).y * cellSize.(planes{i}).z;
         
                     yOrig = uData.(planes{i}).positionGrid(:,2);
                     zOrig = uData.(planes{i}).positionGrid(:,3);
                     
-                    [y, z] = ndgrid(yLimsData(1):cellSize.(planes{i}).y:yLimsData(2), ...
-                                    zLimsData(1):cellSize.(planes{i}).z:zLimsData(2));
+                    [y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
+                                    linspace(zLimsData(1), zLimsData(2), nPz));
                     
                     uData.(planes{i}).positionGrid = zeros([height(y(:)),3]);
                     uData.(planes{i}).positionGrid(:,1) = xLimsData;
@@ -293,23 +269,28 @@ switch format
                                                        uData.(planes{i}).positionGrid(:,3));
                     
                 case 'XZ'
-                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); max(uData.(planes{i}).positionGrid(:,1))];
+                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
+                                 max(uData.(planes{i}).positionGrid(:,1))];
                     yLimsData = uData.(planes{i}).positionGrid(1,2);
-                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); max(uData.(planes{i}).positionGrid(:,3))];
-        
-                    cellSize.(planes{i}).x = (xLimsData(2) - xLimsData(1)) / ...
-                             round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
+                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
+                                 max(uData.(planes{i}).positionGrid(:,3))];
+                    
+                    nPx = (diff(xLimsData) / cellSize.target) + 1;
+                    nPz = (diff(zLimsData) / cellSize.target) + 1;
+                    
+                    sizeX = diff(linspace(xLimsData(1), xLimsData(2), nPx));
+                    sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+                    
+                    cellSize.(planes{i}).x = sizeX(1); clear sizeX;
                     cellSize.(planes{i}).y = cellSize.target;
-                    cellSize.(planes{i}).z = (zLimsData(2) - zLimsData(1)) / ...
-                             round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
-        
+                    cellSize.(planes{i}).z = sizeZ(1); clear sizeZ;
                     cellSize.(planes{i}).area = cellSize.(planes{i}).x * cellSize.(planes{i}).z;
         
                     xOrig = uData.(planes{i}).positionGrid(:,1);
                     zOrig = uData.(planes{i}).positionGrid(:,3);
                     
-                    [x, z] = ndgrid(xLimsData(1):cellSize.(planes{i}).x:xLimsData(2), ...
-                                    zLimsData(1):cellSize.(planes{i}).z:zLimsData(2));
+                    [x, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
+                                    linspace(zLimsData(1), zLimsData(2), nPz));
                     
                     uData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
                     uData.(planes{i}).positionGrid(:,2) = yLimsData;
@@ -327,23 +308,28 @@ switch format
                                                        uData.(planes{i}).positionGrid(:,3));
 
                 case 'XY'
-                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); max(uData.(planes{i}).positionGrid(:,1))];
-                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); max(uData.(planes{i}).positionGrid(:,2))];
+                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
+                                 max(uData.(planes{i}).positionGrid(:,1))];
+                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
+                                 max(uData.(planes{i}).positionGrid(:,2))];
                     zLimsData = uData.(planes{i}).positionGrid(1,3);
-
-                    cellSize.(planes{i}).x = (xLimsData(2) - xLimsData(1)) / ...
-                             round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
-                    cellSize.(planes{i}).y = (yLimsData(2) - yLimsData(1)) / ...
-                             round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
+                    
+                    nPx = (diff(xLimsData) / cellSize.target) + 1;
+                    nPy = (diff(yLimsData) / cellSize.target) + 1;
+                    
+                    sizeX = diff(linspace(xLimsData(1), xLimsData(2), nPx));
+                    sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+                    
+                    cellSize.(planes{i}).x = sizeX(1); clear sizeX;
+                    cellSize.(planes{i}).y = sizeY(1); clear sizeY;
                     cellSize.(planes{i}).z = cellSize.target;
-        
                     cellSize.(planes{i}).area = cellSize.(planes{i}).x * cellSize.(planes{i}).y;
         
                     xOrig = uData.(planes{i}).positionGrid(:,1);
                     yOrig = uData.(planes{i}).positionGrid(:,2);
                     
-                    [x, y] = ndgrid(xLimsData(1):cellSize.(planes{i}).x:xLimsData(2), ...
-                                    yLimsData(1):cellSize.(planes{i}).y:yLimsData(2));
+                    [x, y] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
+                                    linspace(yLimsData(1), yLimsData(2), nPy));
                     
                     uData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
                     uData.(planes{i}).positionGrid(:,3) = zLimsData;
@@ -516,14 +502,12 @@ switch format
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
                     
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
-                    
-                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
-                    
-                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
-                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
+                    % Omit Values Close to the Ground Plane
+                    if strcmp(campaignID, 'Windsor_fullScale')
+                        uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
+                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                        uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+                    end
                     
                 case 'XZ'
                     gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
@@ -539,14 +523,12 @@ switch format
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
                     
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
-                    
-                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
-                    
-                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
-                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
+                    % Omit Values Close to the Ground Plane
+                    if strcmp(campaignID, 'Windsor_fullScale')
+                        uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
+                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                        uData.(planes{i}).vorticity.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+                    end
                     
                 case 'XY'
                     gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
@@ -562,20 +544,77 @@ switch format
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean';
                     uData.(planes{i}).vorticity.mean = uData.(planes{i}).vorticity.mean(:);
                     
-                    vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
-                    uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
-                    
-                    uData.(planes{i}).vorticity.mean = rescale( uData.(planes{i}).vorticity.mean, -1, 1);
-                    uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
-                    
             end
+            
+            % Omit Artificially High Values
+            vortLims = prctile(uData.(planes{i}).vorticity.mean, [1, 99]);
+            uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < vortLims(1)) = vortLims(1);
+            uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > vortLims(2)) = vortLims(2);
+
+            % Normalise
+            uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < 0) = ...
+            rescale(uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean < 0), -1, 0);
+            uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > 0) = ...
+            rescale(uData.(planes{i}).vorticity.mean(uData.(planes{i}).vorticity.mean > 0), 0, 1);
+            uData.(planes{i}).vorticity.mean((uData.(planes{i}).vorticity.mean > -0.25) & ...
+            (uData.(planes{i}).vorticity.mean < 0.25)) = 0;
             clear x y z u v w vortLims;
             
         end
         clear i;
         
 end
+
+disp(' ');
+
+% Normalise Coordinate System
+disp('    Normalising Spatial Dimensions...');
+
+if normDims
+    
+    parts = fieldnames(geometry);
+    for i = 1:height(parts)
+        geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+    end
+    clear i parts;
+    
+    xDims = xDims / normLength;
+    yDims = yDims / normLength;
+    zDims = zDims / normLength;
+    
+    cellSize.target = cellSize.target / normLength;
+    
+    for i = 1:height(planes)
+        cellSize.(planes{i}).x = cellSize.(planes{i}).x / normLength;
+        cellSize.(planes{i}).y = cellSize.(planes{i}).y / normLength;
+        cellSize.(planes{i}).z = cellSize.(planes{i}).z / normLength;
+        cellSize.(planes{i}).area = cellSize.(planes{i}).area / (normLength^2);
+
+        uData.(planes{i}).positionGrid = uData.(planes{i}).positionGrid / normLength;
+    end
+    
+end
+
+% if normDims
+% 
+%     switch format
+% 
+%         case {'A', 'C'}
+%             
+%             for i = 1:height(planes)
+%                 uData.(planes{i}).positionGrid = round((uData.(planes{i}).positionGrid / normLength), spacePrecision);
+%                 
+%                 [uData.(planes{i}).positionGrid, index] = unique(uData.(planes{i}).positionGrid, 'rows', 'stable');
+% 
+%                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean(index);
+%                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean(index);
+%                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean(index);
+%             end
+%             clear i;
+%     
+%     end
+% 
+% end
 
 %%%%
 
@@ -744,7 +783,27 @@ switch format
     case {'A', 'C'}
         
         if plotMean
+            
+            if normDims
+                spatialRes = 0.5e-3 / normLength;
+            else
+                
+                if strcmp(campaignID, 'Windsor_fullScale')
+                    spatialRes = 2e-3;
+                elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                    spatialRes = 0.5e-3;
+                else
+                    spatialRes = 0.5e-3;
+                end
 
+            end
+            
+            component = [];
+            mapPerim = [];
+            nPlanes = 1;
+            planeNo = 1;
+            figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+            
             for i = 1:height(plotPlanes)
                 disp(['    Presenting ', plotPlanes{i}, '...']);
                 
@@ -758,18 +817,6 @@ switch format
         
                 positionData = uData.(plotPlanes{i}).positionGrid;
                 vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
-                
-                if normDims
-                    spatialRes = 0.5e-3;
-                else
-                    
-                    if strcmp(campaignID, 'Windsor_fullScale')
-                        spatialRes = 2e-3;
-                    else
-                        spatialRes = 0.5e-3;
-                    end
-                    
-                end
         
                 switch orientation
         
@@ -780,7 +827,7 @@ switch format
         
                     case {'XZ', 'XY'}
                         xLimsPlot = [0.3; 1.2];
-                        yLimsPlot = [-0.4; 0.4];
+                        yLimsPlot = [-0.3; 0.3];
                         zLimsPlot = [0; 0.5];
                 
                 end
@@ -828,14 +875,9 @@ switch format
                         
                 end
                 
-                component = [];
-                mapPerim = [];
-                nPlanes = 1;
-                planeNo = 1;
                 figName = [plotPlanes{i}, '_', caseID];
                 cMap = viridis(32);
                 streamlines = true;
-                figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
                 cLims = [0, 1];
                                     
                 [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
@@ -846,12 +888,11 @@ switch format
                 
                 if plotVort
                     scalarData = uData.(plotPlanes{i}).vorticity.mean;
+                    figName = [plotPlanes{i}, '_Vorticity_', caseID];
                     cMap = cool2warm(32);
                     contourlines = [];
                     refPoint = [];
                     cLims = [-1; 1];
-                    figName = [plotPlanes{i}, '_Vorticity_', caseID];
-                    
                     
                     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                                            xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...

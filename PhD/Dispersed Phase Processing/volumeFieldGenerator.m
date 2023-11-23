@@ -1,4 +1,4 @@
-%% Planar Lagrangian Spray Mapper v4.0
+%% Lagrangian Volume Field Generator v4.1
 % ----
 % Load, Process and Present Volumetric Lagrangian Data Acquired Using OpenFOAM v7
 
@@ -9,7 +9,7 @@ run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-normDims = true; % Normalise Spatial Dimensions
+normDims = false; % Normalise Spatial Dimensions
 
 figSave = false; % Save .fig File(s)
 
@@ -91,10 +91,10 @@ disp(' ');
 maxNumCompThreads(nProc);
 
 [dataID, LagProps, ~, ~, ...
-          LagData, sampleInt, ~] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
-                                                     caseID, cloudName, false, false, ...
-                                                     true, timeDirs, deltaT, ...
-                                                     timePrecision, nProc);
+ LagData, sampleInt, ~] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                            caseID, cloudName, false, false, ...
+                                            true, timeDirs, deltaT, ...
+                                            timePrecision, maxNumCompThreads);
 
 if strcmp(format, 'C') && ~strcmp(campaignID, 'Windsor_fullScale')
     disp(' ');
@@ -251,10 +251,10 @@ end
 % Specify Region Boundaries
 switch format
     
-    case 'A' % 0.75 L
-        xLimsData = [0.3; 1.3];
-        yLimsData = [-0.4; 0.4];
-        zLimsData = [0; 0.4];
+    case 'A' % 1 L
+        xLimsData = [0.3; 1.4628831];
+        yLimsData = [-0.5; 0.5];
+        zLimsData = [0; 0.5];
         
     case 'B' % 2 L
         xLimsData = [0.3; 2.4628831];
@@ -271,9 +271,11 @@ end
 if ~normDims
 
     if strcmp(campaignID, 'Windsor_fullScale')
+        xLimsData = round((xLimsData * 4.176), spacePrecision);
         yLimsData = round((yLimsData * 4.176), spacePrecision);
         zLimsData = round((zLimsData * 4.176), spacePrecision);
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        xLimsData = round((xLimsData * 1.044), spacePrecision);
         yLimsData = round((yLimsData * 1.044), spacePrecision);
         zLimsData = round((zLimsData * 1.044), spacePrecision);
     end
@@ -570,9 +572,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -587,6 +591,7 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotInst = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotInst = true;
@@ -626,7 +631,7 @@ disp('--------------------------');
 
 disp(' ');
 
-if plotInst || plotMean
+if plotMean || plotInst
     gridShape = [height(unique(volumeData.positionGrid(:,1))), ...
                  height(unique(volumeData.positionGrid(:,2))), ...
                  height(unique(volumeData.positionGrid(:,3)))];
@@ -637,101 +642,110 @@ if plotInst || plotMean
     zInit = reshape(volumeData.positionGrid(:,3), gridShape);
     POD = false;
     
-    if contains(caseID, 'Windsor')
-        cMap = viridis(3);
+    if strcmp(campaignID, 'Windsor_fullScale')
         
-        if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC') || strcmp(caseID, 'Windsor_SB_fullScale_multiPhase')
-            cMap = cMap(1,:);
-        elseif strcmp(caseID, 'Windsor_ST_wW_Upstream_SC')
-            cMap = cMap(2,:);
-        elseif strcmp(caseID, 'Windsor_RSST_wW_Upstream_SC')
-            cMap = cMap(3,:);
+        if strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
+            cMap = graphColours(1);
+        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
+            cMap = graphColours(2);
         end
         
-    else
-        cMap = viridis(1);
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        
+        if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC')
+            cMap = graphColours(1);
+        elseif strcmp(caseID, 'Windsor_ST_wW_Upstream_SC')
+            cMap = graphColours(2);
+        elseif strcmp(caseID, 'Windsor_RSST_wW_Upstream_SC')
+            cMap = graphColours(3);
+        end
+        
     end
-
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
+    
+    if ~exist('cMap', 'var')
+        cMap = graphColours(1);
+    end
     
     switch format
-        
-        case 'A' % 0.75 L
-            
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; 1.43075];
-                yLimsPlot = [-0.4176; 0.4176];
-                zLimsPlot = [0; 0.4176];
-            else
-                xLimsPlot = [1.275; 5.723];
-                yLimsPlot = [-1.6704; 1.6704];
-                zLimsPlot = [0; 1.6704];
-            end
-            
+
+        case 'A' % 1 L
+            xLimsPlot = [0.3; 1.5128831];
+            yLimsPlot = [-0.55; 0.55];
+            zLimsPlot = [0; 0.55];
+
         case 'B' % 2 L
-            
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; 2.73575];
-                yLimsPlot = [-0.522; 0.522];
-                zLimsPlot = [0; 0.522];
-            else
-                xLimsPlot = [1.275; 10.943];
-                yLimsPlot = [-2.088; 2.088];
-                zLimsPlot = [0; 2.088];
-            end
-            
+            xLimsPlot = [0.3; 2.5128831];
+            yLimsPlot = [-0.55; 0.55];
+            zLimsPlot = [0; 0.55];
+
         case 'C' % 4 L
-            
-            xLimsPlot = [1.275; 19.295];
-            yLimsPlot = [-2.5056; 2.5056];
-            zLimsPlot = [0; 2.5056];
-            
+            xLimsPlot = [0.3; 4.5128831];
+            yLimsPlot = [-0.55; 0.55];
+            zLimsPlot = [0; 0.55];
+
     end
     
-    if normalise
-        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+    if ~normDims
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            xLimsPlot = round((xLimsPlot * 4.176), spacePrecision);
+            yLimsPlot = round((yLimsPlot * 4.176), spacePrecision);
+            zLimsPlot = round((zLimsPlot * 4.176), spacePrecision);
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            xLimsPlot = round((xLimsPlot * 1.044), spacePrecision);
+            yLimsPlot = round((yLimsPlot * 1.044), spacePrecision);
+            zLimsPlot = round((zLimsPlot * 1.044), spacePrecision);
+        end
+
+    end
+    
+    if normDims
+        units = 'kg_l3';
+    else
+        units = 'kg_m3';
     end
     
 end
-
+    
 if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
-    fieldData = reshape(full(volumeData.mean.density), gridShape);
+    fieldData = reshape(full(volumeData.density.mean), gridShape);
     
-    if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-        isoValue = [];
+    if strcmp(campaignID, 'Windsor_fullScale')
+%         isoValue = [5e-2; 5e-4];
+        isoValue = [5e-0; 2.5e-0; 1e-0; 7.5e-1; 5e-1];
     else
-        isoValue = [5e-2; 5e-4];
+        isoValue = [1e-3; 1e-5];
     end
     
-    figSubtitle = ' ';
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     
-    viewAngle = [0, 0;
-                 0, 90;
-                 90, 0;
-                 30, 30];
+%     viewAngle = [0, 0;
+%                  0, 90;
+%                  90, 0;
+%                  30, 30];
     
+       viewAngle = [30, 30];
+             
     for i = 1:height(isoValue)
         
         switch format
 
             case 'A'
-                figName = ['Near_Wake_Average_Spray_Density_', num2str(isoValue(i)), '_kg_m3'];
+                figName = ['NW_Average_Density_', num2str(isoValue(i)), '_', units];
 
             case 'B'
-                figName = ['Mid_Wake_Average_Spray_Density_', num2str(isoValue(i)), '_kg_m3'];
+                figName = ['MW_Average_Density_', num2str(isoValue(i)), '_', units];
 
             case 'C'
-                figName = ['Far_Wake_Average_Spray_Density_', num2str(isoValue(i)), '_kg_m3'];
+                figName = ['FW_Average_Density_', num2str(isoValue(i)), '_', units];
 
         end
-
+        
         fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
                               POD, fieldData, fig, figName, geometry, isoValue(i), cMap, figTitle, ...
-                              figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+                              viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
         
     end
     clear i;
@@ -742,10 +756,10 @@ end
 if plotInst
     disp('    Presenting Instantaneous Volume Field...');
     
-    if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-        isoValue = [];
-    else
+    if strcmp(campaignID, 'Windsor_fullScale')
         isoValue = [1e0; 1e-1];
+    else
+        isoValue = 2.5e-3;
     end
     
     viewAngle = [30, 30];
@@ -760,30 +774,30 @@ if plotInst
                 fig = figHold;
             end
             
-            fieldData = reshape(full(volumeData.inst.density{j}), gridShape);
+            fieldData = reshape(full(volumeData.density.inst{j}), gridShape);
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
 
             switch format
 
                 case 'A'
-                    figName = ['Near_Wake_Inst_Spray_Density_', num2str(isoValue(i)), ...
-                               'kg_m3_T', erase(figTime, '.')];
+                    figName = ['NW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
+                               erase(figTime, '.')];
                     
                 case 'B'
-                    figName = ['Mid_Wake_Inst_Spray_Density_', num2str(isoValue(i)), ...
-                               'kg_m3_T', erase(figTime, '.')];
+                    figName = ['MW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
+                               erase(figTime, '.')];
                     
                 case 'C'
-                    figName = ['Far_Wake_Inst_Spray_Density_', num2str(isoValue(i)), ...
-                               'kg_m3_T', erase(figTime, '.')];
+                    figName = ['FW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
+                               erase(figTime, '.')];
 
             end
 
-            figSubtitle = [figTime, ' \it{s}'];
-
+            figTitle = ['{', figTime, ' \it{s}}'];
+            
             fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
                                   POD, fieldData, fig, figName, geometry, isoValue(i), cMap, figTitle, ...
-                                  figSubtitle, viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+                                  viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 
         end
         clear j;
@@ -822,40 +836,40 @@ while ~valid
             
             case 'A'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/nearWake'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/nearWake']);
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake']);
                 end
                 
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/nearWake/', dataID, '.mat']);
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat']);
                 
-                save([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/nearWake/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
                 
                 disp('        Success');
                 
             case 'B'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/midWake'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/midWake']);
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake']);
                 end
                 
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/midWake/', dataID, '.mat']);
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat']);
                 
-                save([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/midWake/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
                 
                 disp('        Success');
                 
             case 'C'
                 
-                if ~exist([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/farWake'], 'dir')
-                    mkdir([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/farWake']);
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake']);
                 end
                 
-                disp(['    Saving to: ', saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/farWake/', dataID, '.mat']);
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat']);
                 
-                save([saveLocation, '/Numerical/MATLAB/volumeField/', caseID, '/farWake/', dataID, '.mat'], ...
-                      'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInterval', 'timePrecision', 'dLims', 'normalise', '-v7.3', '-noCompression');
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
                 
                 disp('        Success');
                 

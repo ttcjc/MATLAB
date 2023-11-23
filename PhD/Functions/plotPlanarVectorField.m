@@ -1,4 +1,4 @@
-%% Planar Vector Field Plotter v2.3
+%% Planar Vector Field Plotter v2.4
 % ----
 % Plots Previously Processed Planar Vector Fields
 % ----
@@ -37,6 +37,7 @@
 % v2.1 - Rename and Minor Formatting Updates
 % v2.2 - Added Spatial Resolution as an Input Variable
 % v2.3 - Update To Ensure Consistent Figure Sizes
+% v2.4 - Improved Consistency of Grid Spacing
 
 
 %% Main Function
@@ -68,13 +69,12 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             wInterp = griddedInterpolant(y, z, w, 'linear', 'none');
 
             % Generate 3D Surface
-            cellSizeX = spatialRes;
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round((yLimsData(2) - yLimsData(1)) / spatialRes);
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / spatialRes);
+            nPy = (diff(yLimsData) / spatialRes) + 1;
+            nPz = (diff(zLimsData) / spatialRes) + 1;
             
-            [x, y, z] = ndgrid((xLimsData - cellSizeX):cellSizeX:(xLimsData + cellSizeX), ...
-                               yLimsData(1):cellSizeY:yLimsData(2), ...
-                               zLimsData(1):cellSizeZ:zLimsData(2));
+            [x, y, z] = ndgrid((xLimsData - spatialRes):spatialRes:(xLimsData + spatialRes), ...
+                               linspace(yLimsData(1), yLimsData(2), nPy), ...
+                               linspace(zLimsData(1), zLimsData(2), nPz));
             
             % Map Data on to 3D Surface
             u = zeros(size(x));
@@ -122,13 +122,12 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             wInterp = griddedInterpolant(x, z, w, 'linear', 'none');
 
             % Generate 3D Surface
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
-            cellSizeY = spatialRes;
-            cellSizeZ = (zLimsData(2) - zLimsData(1)) / round((zLimsData(2) - zLimsData(1)) / spatialRes);
-            
-            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                               (yLimsData - cellSizeY):cellSizeY:(yLimsData + cellSizeY), ...
-                               zLimsData(1):cellSizeZ:zLimsData(2));
+            nPx = (diff(xLimsData) / spatialRes) + 1;
+            nPz = (diff(zLimsData) / spatialRes) + 1;
+
+            [x, y, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
+                               (yLimsData - spatialRes):spatialRes:(yLimsData + spatialRes), ...
+                               linspace(zLimsData(1), zLimsData(2), nPz));
             
             % Map Data on to 3D Surface
             u = zeros(size(x));
@@ -176,13 +175,12 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             wInterp = griddedInterpolant(x, y, w, 'linear', 'none');
 
             % Generate 3D Surface
-            cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
-            cellSizeY = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / spatialRes));
-            cellSizeZ = spatialRes;
+            nPx = (diff(xLimsData) / spatialRes) + 1;
+            nPy = (diff(yLimsData) / spatialRes) + 1;
             
-            [x, y, z] = ndgrid(xLimsData(1):cellSizeX:xLimsData(2), ...
-                               yLimsData(1):cellSizeY:yLimsData(2), ...
-                               (zLimsData - cellSizeZ):cellSizeZ:(zLimsData + cellSizeZ));
+            [x, y, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
+                               linspace(yLimsData(1), yLimsData(2), nPy), ...
+                               (zLimsData - spatialRes):spatialRes:(zLimsData + spatialRes));
             
             % Map Data on to 3D Surface
             u = zeros(size(x));
@@ -282,10 +280,10 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
                     tickData = [];
                     xticks(tickData);
-                    tickData = (yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2));
-                    yticks(tickData(2:(end-1)));
-                    tickData = (zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2));
-                    zticks(tickData(2:(end-1)));
+                    tickData = (yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2));
+                    yticks(tickData(2:5));
+                    tickData = (zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2));
+                    zticks(tickData(2:5));
                     xtickformat('%+.2g');
                     ytickformat('%+.2g');
                     ztickformat('%+.2g');
@@ -370,11 +368,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
-                    tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
+                    tickData = round((xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2)), 2);
                     xticks(tickData(2:5));
                     tickData = [];
                     yticks(tickData);
-                    tickData = round((zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2)), 2);
+                    tickData = round((zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2)), 2);
                     zticks(tickData(2:5));
                     xtickformat('%+.2g');
                     ytickformat('%+.2g');
@@ -460,9 +458,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
-                    tickData = round((xLimsPlot(1):((xLimsPlot(2) - xLimsPlot(1)) / 5):xLimsPlot(2)), 2);
+                    tickData = round((xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2)), 2);
                     xticks(tickData(2:5));
-                    tickData = round((yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2)), 2);
+                    tickData = round((yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2)), 2);
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);

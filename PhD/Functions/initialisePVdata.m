@@ -2,13 +2,10 @@
 % ----
 % Initialisation of Exported ParaView Planar Field Data for Further Processing
 % ----
-% Usage: [caseID, PVdata, geometry, ...
-%         xDims, yDims, zDims, spacePrecision, ...
-%         normDims, normLength] = initialisePVdata(field, normDims)
+% Usage: [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
 %
-%        'saveLocation' -> Start of File Path, Stored as a String
-%        'field'        -> Desired Field Stored as String
-%        'normDims'     -> Normalise Dimensions [True/False]
+%        'saveLoc' -> Start of File Path, Stored as a String
+%        'field'   -> Desired Field Stored as String
 
 
 %% Changelog
@@ -34,13 +31,13 @@
 
 %% Main Function
 
-function [campaignID, caseID, PVdata] = initialisePVdata(saveLocation, field)
+function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
 
     % Select Case
     disp('Case Selection');
     disp('---------------');
 
-    caseFolder = uigetdir([saveLocation, '/Numerical/ParaView'], 'Select Case');
+    caseFolder = uigetdir([saveLoc, '/Numerical/ParaView'], 'Select Case');
     
     % Confirm Support
     if ~contains(caseFolder, ["Run_Test", "Windsor"])

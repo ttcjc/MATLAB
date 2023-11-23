@@ -1,10 +1,8 @@
-%% Geometry Selection Tool v1.3
+%% Geometry Selection Tool v1.4
 % ----
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
-% Usage: [geometry, xDims, yDims, zDims, precision, normDims, normLength] = selectGeometry(normDims);
-%
-%        'normDims' -> Normalise Dimensions [True/False]
+% Usage: [geometry, xDims, yDims, zDims, precision, normLength] = selectGeometry;
 
 
 %% Changelog
@@ -13,6 +11,7 @@
 % v1.1 - Minor Formatting Updates
 % v1.2 - Added Support for Full-Scale Windsor Model Geometries
 % v1.3 - Fixed a Bug Preventing the Normalisation of the Quarter-Scale Windsor Model
+% v1.4 - Removed Geometry Normalisation (Should Be Done After Processing)
 
 
 %% Supported Geometries
@@ -23,7 +22,7 @@
 
 %% Main Function
 
-function [geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims)
+function [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry
 
     disp('Geometry Selection');
     disp('-------------------');
@@ -85,41 +84,7 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] =
     
     spacePrecision = max([xPre, yPre, zPre]);
     
-    % Normalise Geometry Dimensions
-    if normDims
-        disp(' ');
-        
-        disp('Normalising Dimensions...');
-        
-        if contains(path, 'Run_Test')
-            normLength = 1.044;
-        elseif contains(path, 'Windsor')
-            
-            if contains(path, 'Full-Scale')
-                normLength = 4.176;
-            else
-                normLength = 1.044;
-            end
-            
-        else
-            disp('    WARNING: Dimension Normalisation for This Geometry Not Supported');
-            
-            normLength = [];
-            normDims = false;
-            return;
-        end
-        
-        xDims = round((xDims / normLength), spacePrecision);
-        yDims = round((yDims / normLength), spacePrecision);
-        zDims = round((zDims / normLength), spacePrecision);
-        
-        for i = 1:height(parts)
-            geometry.(parts{i}).vertices = round((geometry.(parts{i}).vertices / normLength), spacePrecision);
-        end
-        
-        disp('    Success');
-    else
-        normLength = [];
-    end
-
+    % Specify Value Used for Dimensional Normalisation
+    normLength = round((diff(xDims)), spacePrecision);
+    
 end

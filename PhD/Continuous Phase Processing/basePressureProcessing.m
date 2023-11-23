@@ -1,31 +1,21 @@
+%% Base Pressure Processing v3.2
+% ----
+% Load, Process and Present Experimental and Numerical Base Pressure Distributions
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
+run preamble;
 
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Pressure Processing v3.0
-
-figSave = false; % Save .fig File(s)
+%#ok<*UNRCH>
 
 normDims = true; % Normalise Spatial Dimensions
 
-disp('===============================');
-disp('Planar Pressure Processing v3.0');
-disp('===============================');
+figSave = false; % Save .fig File(s)
+
+disp('============================');
+disp('Base Pressure Processing v3.2');
+disp('============================');
 
 disp(' ');
 disp(' ');
@@ -37,6 +27,8 @@ disp(' ');
 % v2.0 - Rewrite to Support ParaView, Probe and Experimental Base Pressure Data
 % v2.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
 % v3.0 - Update To Improve Consistency of Structures Across Repository
+% v3.1 - Minor Update to Shift Preamble Into Separate Script
+% v3.2 - Updates To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Select Data Format
@@ -84,7 +76,7 @@ disp(' ');
 switch format
 
     case 'A'
-        [campaignID, caseID, pData] = initialisePVdata(saveLocation, 'p');
+        [campaignID, caseID, pData] = initialisePVdata(saveLoc, 'p');
         
         pData = pData.(cell2mat(fieldnames(pData)));
         
@@ -92,7 +84,7 @@ switch format
         error('NYI');
         
     case 'C'
-        [campaignID, caseID, pData] = initialiseExpFlowData(saveLocation, 'p');
+        [campaignID, caseID, pData] = initialiseExpFlowData(saveLoc, 'p');
         
         pData = pData.(cell2mat(fieldnames(pData)));
         pData.p = rmfield(pData.p, 'RMS');
@@ -101,7 +93,7 @@ end
     
 %     case 'B'
 %         [caseID, dataID, pData, sampleInterval, timePrecision, geometry, ...
-%          xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLocation, normalise, nProc);    
+%          xDims, yDims, zDims, spacePrecision] = initialisePressureProbeData(saveLoc, normalise, nProc);    
 
 disp(' ');
 disp(' ');
@@ -109,7 +101,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
 
 disp(' ');
 disp(' ');
@@ -145,15 +137,6 @@ end
 
 disp(' ');
 
-% Normalise Spatial Dimensions
-disp('    Normalising Spatial Dimensions...');
-
-if normDims
-    pData.positionGrid = round((pData.positionGrid / normLength), spacePrecision);
-end
-
-disp(' ');
-
 % Identify Base Boundaries
 disp('    Identifying Base Boundaries...');
 
@@ -161,7 +144,7 @@ parts = fieldnames(geometry);
 for i = 1:height(parts)
     
     if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-        parts = parts{i};
+        part = parts{i};
         break;
     end
     
@@ -170,31 +153,21 @@ for i = 1:height(parts)
     end
     
 end
-clear i;
+clear i parts;
 
-geoPoints = geometry.(parts).vertices;
+geoPoints = geometry.(part).vertices;
 basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
 
 mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
 mapPerim = basePoints(mapPerim,:);
 basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
 
-if normDims
-    
-    if strcmp(campaignID, 'Varney')
-        basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
-    else
-        basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-    end
-    
+if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Varney')
+    basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+    basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
 else
-    
-    if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Varney')
-        basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
-    else
-        basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-    end
-    
+    basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
 end
 
 mapPerim = ones([height(basePoly.Vertices),3]) * mapPerim(1,1);
@@ -213,28 +186,30 @@ disp(' ');
 % Map Raw Data Onto Uniform Grid
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
-if normDims
+if strcmp(campaignID, 'Windsor_fullScale')
+    cellSize.target = 4e-3;
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
     cellSize.target = 1e-3;
 else
-
-    if strcmp(campaignID, 'Windsor_fullScale')
-        cellSize.target = 4e-3;
-    else
-        cellSize.target = 1e-3;
-    end
-
+    cellSize.target = 1e-3;        
 end
 
-cellSize.x = cellSize.target;
-cellSize.y = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
-cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
+nPy = (diff(yLimsData) / cellSize.target) + 1;
+nPz = (diff(zLimsData) / cellSize.target) + 1;
 
+sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+
+cellSize.x = cellSize.target;
+cellSize.y = sizeY(1); clear sizeY;
+cellSize.z = sizeZ(1); clear sizeZ;
 cellSize.area = cellSize.y * cellSize.z;
 
 yOrig = pData.positionGrid(:,2);
 zOrig = pData.positionGrid(:,3);
 
-[y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
+[y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
+                linspace(zLimsData(1), zLimsData(2), nPz));
 
 pData.positionGrid = zeros([height(y(:)),3]);
 pData.positionGrid(:,1) = xLimsData;
@@ -260,7 +235,6 @@ switch format
         pData.Cp.mean = pData.Cp.mean(:);
         
 end
-clear yOrig zOrig y z pInterp;
 
 disp(' ');
 
@@ -275,10 +249,14 @@ switch format
             U = 22.22; % m/s
             rho = 1.269; % kg/m^3
             pRef = 0 * rho; % Pa
-        else
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
             U = 40; % m/s
             rho = 1.269; % kg/m^3
             pRef = 19.524 * rho; % Pa
+        else
+            U = 1; % m/s
+            rho = 1.269; % kg/m^3
+            pRef = 0 * rho; % Pa
         end
         
         pData.p.mean = pData.p.mean * rho;
@@ -370,6 +348,45 @@ end
 %             pData.CoP{i}(2) = sum(pData.Cp{i} .* pData.position(:,2)) / sum(pData.Cp{i});
 %             pData.CoP{i}(3) = sum(pData.Cp{i} .* pData.position(:,3)) / sum(pData.Cp{i});
 %         end
+disp(' ');
+
+% Normalise Spatial Dimensions
+disp('    Normalising Spatial Dimensions...');
+
+if normDims
+    
+    parts = fieldnames(geometry);
+    for i = 1:height(parts)
+        geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+    end
+    clear i parts;
+    
+    xDims = xDims / normLength;
+    yDims = yDims / normLength;
+    zDims = zDims / normLength;
+    
+    mapPerim = mapPerim / normLength;
+    
+    xLimsData = xLimsData / normLength;
+    yLimsData = yLimsData / normLength;
+    zLimsData = zLimsData / normLength;
+    
+    cellSize.target = cellSize.target / normLength;
+    cellSize.x = cellSize.x / normLength;
+    cellSize.y = cellSize.y / normLength;
+    cellSize.z = cellSize.z / normLength;
+    cellSize.area = cellSize.area / (normLength^2);
+    
+    pData.positionGrid = pData.positionGrid / normLength;
+    
+    switch format
+        
+        case {'A', 'C'}
+            pData.CoP.mean = pData.CoP.mean / normLength;
+            
+    end
+    
+end
 
 %%%%
 
@@ -496,11 +513,13 @@ if plotMean || plotRMS || plotInst
     orientation = 'YZ';
     
     if normDims
-        spatialRes = 0.5e-3;
+        spatialRes = 0.5e-3 / normLength;
     else
         
         if strcmp(campaignID, 'Windsor_fullScale')
             spatialRes = 2e-3;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            spatialRes = 0.5e-3;
         else
             spatialRes = 0.5e-3;
         end
@@ -519,17 +538,9 @@ if plotMean || plotRMS || plotInst
     zLimsPlot = [0; 0.4];
         
     if ~normDims
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            xLimsPlot = round((xLimsPlot * 4.176), spacePrecision);
-            yLimsPlot = round((yLimsPlot * 4.176), spacePrecision);
-            zLimsPlot = round((zLimsPlot * 4.176), spacePrecision);
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            xLimsPlot = round((xLimsPlot * 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot * 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot * 1.044), spacePrecision);
-        end
-
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
     end
 
     if plotMean
@@ -541,9 +552,13 @@ if plotMean || plotRMS || plotInst
         figName = ['Average_Cp_', caseID];
 
         if strcmp(campaignID, 'Windsor_fullScale')
-            cLims = 'auto';
+            cLims = [-0.273; -0.103]; % Quarter-Scale Comparison
+%             cLims = 'auto';
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            cLims = [-0.273; -0.103]; % Full-Scale Comparison
+%             cLims = 'auto'
         else
-            cLims = [-0.245; -0.09];
+            cLims = [min(scalarData); max(scalarData)];
         end
 
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...

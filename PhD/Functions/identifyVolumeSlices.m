@@ -4,9 +4,9 @@
 % ----
 % Usage: volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice)
 % 
-%        'positionData'   -> 
-%        'spacePrecision' -> 
-%        'multiSlice'     -> 
+%        'positionData'   -> List of Points in 3D Spray (Extracted From a 3D 'ndgrid')
+%        'spacePrecision' -> Desired Rounding Precision
+%        'multiSlice'     -> Extract Multiple Slices [TrueFalse]
 
 
 %% Changelog
@@ -29,9 +29,12 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
     zLimsData = [min(positionData(:,3)); max(positionData(:,3))];
     
     disp('Volume Boundaries:');
-    disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+         num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+         num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
+         num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
 
     disp(' ');
 

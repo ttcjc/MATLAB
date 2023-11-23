@@ -1,32 +1,21 @@
+
+%% Lagrangian Particle Tracker v4.1
+% ----
+% Track Particles Through Space Using Lagrangian Data Acquired Using OpenFOAM v7
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-if exist('/mnt/Processing/Data', 'dir')
-    saveLocation = '/mnt/Processing/Data';
-else
-    saveLocation = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Lagrangian Particle Tracker v4.0
+run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
+normDims = true; % Normalise Spatial Dimensions
+
 figSave = false; % Save .fig File(s)
 
-normalise = false; % Normalisation of Dimensions
-
 disp('=====================');
-disp('Particle Tracker v4.0');
+disp('Particle Tracker v4.1');
 disp('=====================');
 
 disp(' ');
@@ -42,12 +31,13 @@ disp(' ');
 % v3.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 % v3.1 - Added Support for Full-Scale Windsor Model Simulations
 % v4.0 - Enabled Tracking of Particles That Impact User-Specified Region
+% v4.1 - Minor Update to Shift Preamble Into Separate Script
 
 
 %% Initialise Case
 
-[caseFolder, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normalise);
+[caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
+ xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
 
 disp(' ');
 disp(' ');
@@ -61,8 +51,8 @@ disp('-------------------');
 disp(' ');
 
 disp('Possible Regions of Interest:');
-disp('    A: Rear-End Contamination');
-disp('    B: Downstream Contaminant Transport');
+disp('    A: Base Contamination');
+disp('    B: Far-Field Spray Transport');
 
 valid = false;
 while ~valid
@@ -71,9 +61,11 @@ while ~valid
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
         format1 = '1A';
+        
         valid = true;
     elseif selection == 'b' | selection == 'B' %#ok<OR2>
         format1 = '1B';
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -93,16 +85,18 @@ maxNumCompThreads(nProc);
 switch format1
 
     case '1A'
-        [dataID, LagProps, ~, impactData, volumeData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseID, ...
-                                                                                          cloudName, false, true, ...
-                                                                                          true, timeDirs, deltaT, ...
-                                                                                          timePrecision, maxNumCompThreads);
+        [dataID, LagProps, impactData, ~, ...
+         volumeData, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                                caseID, cloudName, true, false, ...
+                                                                true, timeDirs, deltaT, ...
+                                                                timePrecision, maxNumCompThreads);
 
     case '1B'
-        [dataID, LagProps, impactData, ~, volumeData, sampleInterval] = initialiseLagData(saveLocation, caseFolder, caseID, ...
-                                                                                          cloudName, true, false, ...
-                                                                                          true, timeDirs, deltaT, ...
-                                                                                          timePrecision, maxNumCompThreads);
+        [dataID, LagProps, ~, impactData, ...
+         volumeData, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
+                                                                caseID, cloudName, false, true, ...
+                                                                true, timeDirs, deltaT, ...
+                                                                timePrecision, maxNumCompThreads);
         
         % Select Plane of Interest
         planes = fieldnames(impactData);
@@ -124,6 +118,7 @@ switch format1
 
         impactData = impactData.(planes{index});
         planePos = erase(planes{index}, '.');
+        
         clear planes;
         
         disp(['Plane of Interest: ', planePos]);
@@ -984,15 +979,19 @@ function [pos] = inputPosition(fig, impactList)
     yBoundary = ceil(max(abs(impactList(:,2))) * 2) / 2;
     zBoundary = ceil(max(abs(impactList(:,3))) * 2) / 2;
     
+    cMap = graphColours(1);
+    
     disp('    Select an Impact Point [Right-Click]:')
     
-    set(figure(fig), 'name', 'Particle Impacts', 'color', [1, 1, 1], 'units', 'pixels');
-    set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 4, 'fontName', 'LM Mono 12', ...
-             'fontSize', 18, 'layer', 'top');
+    % Initialise Figure
+    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                     'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+    pause(0.5);
     hold on;
+    set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
     
-    cMap = viridis(3); cMap = cMap(1,:);
-    
+    % Plot Impact Points
     scatter(impactList(:,2), impactList(:,3), 5, cMap, 'filled');
     
     xlim([-yBoundary, yBoundary]);

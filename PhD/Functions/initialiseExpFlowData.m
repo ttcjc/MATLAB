@@ -225,37 +225,6 @@ function [campaignID, caseID, expData] = initialiseExpFlowData(saveLocation, fie
 
         end
         
-        % Crop Data Boundaries
-        switch field
-
-            case 'p'
-                % Crop
-
-            case 'U'
-
-                if contains(testID, '_X_')
-                    % Crop
-                elseif contains(testID, '_Y_')
-                    index = find((expData.(testID).positionGrid(:,1) >= 0.48325) & ...
-                                 ((expData.(testID).positionGrid(:,3) >= 0.035) & ...
-                                 (expData.(testID).positionGrid(:,3) <= 0.354)));
-
-                elseif contains(testID, '_Z_')
-                    index = find((expData.(testID).positionGrid(:,1) >= 0.48325) & ...
-                                 ((expData.(testID).positionGrid(:,2) >= -0.21) & ...
-                                 (expData.(testID).positionGrid(:,2) <= 0.21)));
-                end
-                
-                expData.(testID).positionGrid = expData.(testID).positionGrid(index,:);
-                expData.(testID).u.mean = expData.(testID).u.mean(index);
-                expData.(testID).v.mean = expData.(testID).v.mean(index);
-                expData.(testID).w.mean = expData.(testID).w.mean(index);
-                expData.(testID).u.RMS = expData.(testID).u.RMS(index);
-                expData.(testID).v.RMS = expData.(testID).v.RMS(index);
-                expData.(testID).w.RMS = expData.(testID).w.RMS(index);
-
-        end
-        
         % Sort Position Grid for 'ndgrid' Compatibility
         [expData.(testID).positionGrid, index] = sortrows(expData.(testID).positionGrid, [3, 2, 1]);
 

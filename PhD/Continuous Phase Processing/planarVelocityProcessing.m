@@ -202,7 +202,7 @@ clear i;
 
 disp(' ');
 
-% Map Raw Data Onto UniformGrid
+% Map Raw Data Onto Uniform Grid
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
 if strcmp(campaignID, 'Windsor_fullScale')
@@ -230,12 +230,27 @@ switch format
             switch orientation
         
                 case 'YZ'
-                    xLimsData = uData.(planes{i}).positionGrid(1,1);
-                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
-                                 max(uData.(planes{i}).positionGrid(:,2))];
-                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
-                                 max(uData.(planes{i}).positionGrid(:,3))];
-
+                    
+                    switch format
+                        
+                        case 'A'
+                            xLimsData = uData.(planes{i}).positionGrid(1,1);
+                            yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
+                                         max(uData.(planes{i}).positionGrid(:,2))];
+                            zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
+                                         max(uData.(planes{i}).positionGrid(:,3))];
+                                     
+                        case 'C'
+                            xLimsData = uData.(planes{i}).positionGrid(1,1);
+                            yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
+                                         max(uData.(planes{i}).positionGrid(:,2))];
+                            zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
+                                         max(uData.(planes{i}).positionGrid(:,3))];
+                            
+                    end
+                            
+                    
+                    % Adjust Uniform Cell Size to Fit Region of Interest
                     nPy = (diff(yLimsData) / cellSize.target) + 1;
                     nPz = (diff(zLimsData) / cellSize.target) + 1;
                     
@@ -250,6 +265,7 @@ switch format
                     yOrig = uData.(planes{i}).positionGrid(:,2);
                     zOrig = uData.(planes{i}).positionGrid(:,3);
                     
+                    % Generate Grid
                     [y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
                                     linspace(zLimsData(1), zLimsData(2), nPz));
                     
@@ -269,12 +285,24 @@ switch format
                                                        uData.(planes{i}).positionGrid(:,3));
                     
                 case 'XZ'
-                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
-                                 max(uData.(planes{i}).positionGrid(:,1))];
-                    yLimsData = uData.(planes{i}).positionGrid(1,2);
-                    zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
-                                 max(uData.(planes{i}).positionGrid(:,3))];
                     
+                    switch format
+                        
+                        case 'A'
+                            xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
+                                         max(uData.(planes{i}).positionGrid(:,1))];
+                            yLimsData = uData.(planes{i}).positionGrid(1,2);
+                            zLimsData = [min(uData.(planes{i}).positionGrid(:,3)); ...
+                                         max(uData.(planes{i}).positionGrid(:,3))];
+                                     
+                        case 'C'
+                            xLimsData = [0.48525; 1.15];
+                            yLimsData = uData.(planes{i}).positionGrid(1,2);
+                            zLimsData = [0.035; 0.354];
+                            
+                    end
+                    
+                    % Adjust Uniform Cell Size to Fit Region of Interest
                     nPx = (diff(xLimsData) / cellSize.target) + 1;
                     nPz = (diff(zLimsData) / cellSize.target) + 1;
                     
@@ -289,6 +317,7 @@ switch format
                     xOrig = uData.(planes{i}).positionGrid(:,1);
                     zOrig = uData.(planes{i}).positionGrid(:,3);
                     
+                    % Generate Grid
                     [x, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
                                     linspace(zLimsData(1), zLimsData(2), nPz));
                     
@@ -308,12 +337,23 @@ switch format
                                                        uData.(planes{i}).positionGrid(:,3));
 
                 case 'XY'
-                    xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
-                                 max(uData.(planes{i}).positionGrid(:,1))];
-                    yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
-                                 max(uData.(planes{i}).positionGrid(:,2))];
-                    zLimsData = uData.(planes{i}).positionGrid(1,3);
                     
+                    switch format
+                        
+                        case 'A'
+                            xLimsData = [min(uData.(planes{i}).positionGrid(:,1)); ...
+                                         max(uData.(planes{i}).positionGrid(:,1))];
+                            yLimsData = [min(uData.(planes{i}).positionGrid(:,2)); ...
+                                         max(uData.(planes{i}).positionGrid(:,2))];
+                            zLimsData = uData.(planes{i}).positionGrid(1,3);
+                            
+                        case 'C'
+                            xLimsData = [0.48525; 1.15];
+                            yLimsData = [-0.21; 0.21];
+                            zLimsData = uData.(planes{i}).positionGrid(1,3);
+                    end
+                    
+                    % Adjust Uniform Cell Size to Fit Region of Interest
                     nPx = (diff(xLimsData) / cellSize.target) + 1;
                     nPy = (diff(yLimsData) / cellSize.target) + 1;
                     
@@ -328,6 +368,7 @@ switch format
                     xOrig = uData.(planes{i}).positionGrid(:,1);
                     yOrig = uData.(planes{i}).positionGrid(:,2);
                     
+                    % Generate Grid
                     [x, y] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
                                     linspace(yLimsData(1), yLimsData(2), nPy));
                     
@@ -387,9 +428,6 @@ switch format
                     uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
                     uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
                     uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
-                    uData.(planes{i}).u.RMS = uData.(planes{i}).u.RMS / U;
-                    uData.(planes{i}).v.RMS = uData.(planes{i}).v.RMS / U;
-                    uData.(planes{i}).w.RMS = uData.(planes{i}).w.RMS / U;
             end
             
         end
@@ -565,12 +603,11 @@ switch format
         
 end
 
-disp(' ');
-
 % Normalise Coordinate System
-disp('    Normalising Spatial Dimensions...');
-
 if normDims
+    disp(' ');
+    
+    disp('    Normalising Spatial Dimensions...');
     
     parts = fieldnames(geometry);
     for i = 1:height(parts)
@@ -782,20 +819,18 @@ switch format
 
     case {'A', 'C'}
         
-        if plotMean
+        if plotMean || plotRMS
+            
+            if strcmp(campaignID, 'Windsor_fullScale')
+                spatialRes = 2e-3;
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                spatialRes = 0.5e-3;
+            else
+                spatialRes = 0.5e-3;
+            end
             
             if normDims
-                spatialRes = 0.5e-3 / normLength;
-            else
-                
-                if strcmp(campaignID, 'Windsor_fullScale')
-                    spatialRes = 2e-3;
-                elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                    spatialRes = 0.5e-3;
-                else
-                    spatialRes = 0.5e-3;
-                end
-
+                spatialRes = spatialRes / normLength;
             end
             
             component = [];
@@ -803,6 +838,9 @@ switch format
             nPlanes = 1;
             planeNo = 1;
             figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+        end
+        
+        if plotMean
             
             for i = 1:height(plotPlanes)
                 disp(['    Presenting ', plotPlanes{i}, '...']);

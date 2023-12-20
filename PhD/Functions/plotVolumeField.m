@@ -105,7 +105,6 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
         iso = isosurface(x, y, z, fieldData{2}, isoValue);
         p = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
         isonormals(fieldData{2}, p);
-        iso.VertexNormals = isonormals(x, y, z, fieldData{2}, iso);
     else
         iso = isosurface(x, y, z, fieldData, isoValue);
         p = patch(iso, 'faceColor', cMap, 'edgeColor', 'none');

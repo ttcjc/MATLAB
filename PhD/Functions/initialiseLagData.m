@@ -118,6 +118,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
             valid = false;
             while ~valid
                 disp(' ');
+                
                 selection = input('Load Saved Surface Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -159,6 +160,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
             valid = false;
             while ~valid
                 disp(' ');
+                
                 selection = input('Load Saved Plane Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -200,6 +202,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
             valid = false;
             while ~valid
                 disp(' ');
+                
                 selection = input('Load Saved Volume Data? [y/n]: ', 's');
     
                 if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -322,6 +325,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Restrict Data Range? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -369,6 +373,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
     valid = false;
     while ~valid
         disp(' ');
+        
         disp(['Default Sampling Frequency: ', num2str(round((1 / deltaT), timePrecision)), ' Hz']);
         selection = input('    Reduce Recording Frequency? [y/n]: ', 's');
 

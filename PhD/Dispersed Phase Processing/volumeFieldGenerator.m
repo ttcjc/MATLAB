@@ -1,4 +1,4 @@
-%% Lagrangian Volume Field Generator v4.1
+%% Lagrangian Volume Field Generator v4.2
 % ----
 % Load, Process and Present Volumetric Lagrangian Data Acquired Using OpenFOAM v7
 
@@ -7,14 +7,19 @@
 
 run preamble;
 
+%#ok<*UNRCH>
+
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-normDims = false; % Normalise Spatial Dimensions
+normDims = true; % Normalise Spatial Dimensions
+
+normDensity = true; % Normalise Area Density in Plots
+    normValue = 1; % Windsor_SB_wW_Upstream_SC
 
 figSave = false; % Save .fig File(s)
 
 disp('===========================');
-disp('Volume Field Generator v4.1');
+disp('Volume Field Generator v4.2');
 disp('===========================');
 
 disp(' ');
@@ -35,12 +40,13 @@ disp(' ');
 % v3.4 - Changed Primary Output From Mass to Density
 % v4.0 - Rewrite, Making Use of Sparse Arrays to Reduce Memory Requirements
 % v4.1 - Minor Update to Shift Preamble Into Separate Script
+% v4.2 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Initialise Case
 
 [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
+ xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
 
 disp(' ');
 disp(' ');
@@ -61,6 +67,7 @@ disp('    C: Far Wake (Full-Scale Only)');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Select Region of Interest [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
@@ -124,6 +131,7 @@ end
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -163,11 +171,7 @@ end
 clear valid dLimsDefault;
 
 % Generate Dataset ID
-if normDims
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_normDims'];
-else
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
-end
+dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2))];
 
 disp(' ');
 disp(' ');
@@ -210,8 +214,8 @@ if ~isempty(suspectTimes)
     
 end
 
-% Shift Data Origin
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+% Adjust Data Origin
+if strcmp(campaignID, 'Windsor_Upstream_2023')
     
     for i = 1:nTimes
         
@@ -224,61 +228,23 @@ if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(case
     
 end
 
-% Normalise Coordinate System
-if normDims
-    disp('        Normalising Coordinate System');
-    
-    % Initialise Progress Bar
-    wB = waitbar(0, 'Normalising Coordinate System', 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
-
-    % Perform Normalisation
-    for i = 1:nTimes
-
-        if ~isempty(LagData.positionCartesian{i})
-            LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / normLength), ...
-                                                  spacePrecision);
-        end
-
-        % Update Waitbar
-        waitbar((i / nTimes), wB);
-    end
-    clear i;
-
-    delete(wB);
-end
-
 % Specify Region Boundaries
 switch format
     
     case 'A' % 1 L
-        xLimsData = [0.3; 1.4628831];
-        yLimsData = [-0.5; 0.5];
-        zLimsData = [0; 0.5];
+        xLimsData = [0.3; 1.4628831] * normLength;
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
         
     case 'B' % 2 L
-        xLimsData = [0.3; 2.4628831];
-        yLimsData = [-0.5; 0.5];
-        zLimsData = [0; 0.5];
+        xLimsData = [0.3; 2.4628831] * normLength;
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
         
     case 'C' % 4 L
-        xLimsData = [0.3; 4.4628831];
-        yLimsData = [-0.5; 0.5];
-        zLimsData = [0; 0.5];
-
-end
-
-if ~normDims
-
-    if strcmp(campaignID, 'Windsor_fullScale')
-        xLimsData = round((xLimsData * 4.176), spacePrecision);
-        yLimsData = round((yLimsData * 4.176), spacePrecision);
-        zLimsData = round((zLimsData * 4.176), spacePrecision);
-    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        xLimsData = round((xLimsData * 1.044), spacePrecision);
-        yLimsData = round((yLimsData * 1.044), spacePrecision);
-        zLimsData = round((zLimsData * 1.044), spacePrecision);
-    end
+        xLimsData = [0.3; 4.4628831] * normLength;
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
 
 end
 
@@ -348,28 +314,32 @@ disp(' ');
 disp('    Generating Presentation Grid...');
 
 % Set Target Spatial Resolution
-if normDims
+if strcmp(campaignID, 'Windsor_fullScale')
+    cellSize.target = 32e-3;
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
     cellSize.target = 8e-3;
 else
-    
-    if strcmp(campaignID, 'Windsor_fullScale')
-        cellSize.target = 32e-3;
-    else
-        cellSize.target = 8e-3;
-    end
-    
+    cellSize.target = 8e-3;
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-cellSize.x = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / cellSize.target));
-cellSize.y = (yLimsData(2) - yLimsData(1)) / round(((yLimsData(2) - yLimsData(1)) / cellSize.target));
-cellSize.z = (zLimsData(2) - zLimsData(1)) / round(((zLimsData(2) - zLimsData(1)) / cellSize.target));
+nPx = (diff(xLimsData) / cellSize.target) + 1;
+nPy = (diff(yLimsData) / cellSize.target) + 1;
+nPz = (diff(zLimsData) / cellSize.target) + 1;
 
+sizeX = diff(linspace(xLimsData(1), xLimsData(2), nPx));
+sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+
+cellSize.x = sizeX(1); clear sizeX;
+cellSize.y = sizeY(1); clear sizeY;
+cellSize.z = sizeZ(1); clear sizeZ;
 cellSize.volume = cellSize.x * cellSize.y * cellSize.z;
 
-[x, y, z] = ndgrid(xLimsData(1):(cellSize.x):xLimsData(2), ...
-                   yLimsData(1):(cellSize.y):yLimsData(2), ...
-                   zLimsData(1):(cellSize.z):zLimsData(2));
+% Generate Grid
+[x, y, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
+                   linspace(yLimsData(1), yLimsData(2), nPy), ...
+                   linspace(zLimsData(1), zLimsData(2), nPz));
 
 volumeData.positionGrid = [x(:), y(:), z(:)]; clear x y z;
 
@@ -534,12 +504,12 @@ for i = 1:nTimes
 end
 clear i;
 
+delete(wB);
+
 volumeData.nParticles.mean = volumeData.nParticles.mean / nTimes;
 volumeData.density.mean = volumeData.density.mean / nTimes;
 volumeData.d32.mean = volumeData.d32.mean / nTimes;
 volumeData.d10.mean = volumeData.d10.mean / nTimes;
-
-delete(wB);
 
 %%%%
 
@@ -560,6 +530,77 @@ disp(' ');
 disp(' ');
 
 
+%% Save Volume Field Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        % Save Data
+        switch format
+            
+            case 'A'
+                
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake']);
+                end
+                
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat']);
+                
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', '-v7.3', '-noCompression');
+                
+                disp('        Success');
+                
+            case 'B'
+                
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake']);
+                end
+                
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat']);
+                
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', '-v7.3', '-noCompression');
+                
+                disp('        Success');
+                
+            case 'C'
+                
+                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake']);
+                end
+                
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat']);
+                
+                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', '-v7.3', '-noCompression');
+                
+                disp('        Success');
+                
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
 %% Select Presentation Options
 
 disp('Presentation Options');
@@ -568,6 +609,7 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot Time-Averaged Volume Field? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -587,6 +629,7 @@ end
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot Instantaneous Volume Field? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -620,6 +663,39 @@ while ~valid
 end
 clear valid;
 
+if plotMean || plotInst
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+
+        cellSize.target = cellSize.target / normLength;
+        cellSize.x = cellSize.x / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.volume = cellSize.volume / (normLength^3);
+
+        volumeData.positionGrid = volumeData.positionGrid / normLength;
+    end
+
+end
+
 disp(' ');
 disp(' ');
 
@@ -644,10 +720,10 @@ if plotMean || plotInst
     
     if strcmp(campaignID, 'Windsor_fullScale')
         
-        if strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-            cMap = graphColours(1);
-        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
+        if strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
             cMap = graphColours(2);
+        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
+            cMap = graphColours(3);
         end
         
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -686,23 +762,9 @@ if plotMean || plotInst
     end
     
     if ~normDims
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            xLimsPlot = round((xLimsPlot * 4.176), spacePrecision);
-            yLimsPlot = round((yLimsPlot * 4.176), spacePrecision);
-            zLimsPlot = round((zLimsPlot * 4.176), spacePrecision);
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            xLimsPlot = round((xLimsPlot * 1.044), spacePrecision);
-            yLimsPlot = round((yLimsPlot * 1.044), spacePrecision);
-            zLimsPlot = round((zLimsPlot * 1.044), spacePrecision);
-        end
-
-    end
-    
-    if normDims
-        units = 'kg_l3';
-    else
-        units = 'kg_m3';
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
     end
     
 end
@@ -710,13 +772,14 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
-    fieldData = reshape(full(volumeData.density.mean), gridShape);
+    fieldData = reshape(full(volumeData.density.mean / max(volumeData.density.mean)), gridShape);
     
     if strcmp(campaignID, 'Windsor_fullScale')
-%         isoValue = [5e-2; 5e-4];
-        isoValue = [5e-0; 2.5e-0; 1e-0; 7.5e-1; 5e-1];
+        isoValue = [1.5e-3; 2.5e-5]; % Normalised
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        isoValue = [1.5e-3; 2.5e-5]; % Normalised
     else
-        isoValue = [1e-3; 1e-5];
+        isoValue = 1e-3;
     end
     
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
@@ -733,13 +796,13 @@ if plotMean
         switch format
 
             case 'A'
-                figName = ['NW_Average_Density_', num2str(isoValue(i)), '_', units];
+                figName = ['NW_Average_Density_', num2str(isoValue(i)), '_', caseID];
 
             case 'B'
-                figName = ['MW_Average_Density_', num2str(isoValue(i)), '_', units];
+                figName = ['MW_Average_Density_', num2str(isoValue(i)), '_', caseID];
 
             case 'C'
-                figName = ['FW_Average_Density_', num2str(isoValue(i)), '_', units];
+                figName = ['FW_Average_Density_', num2str(isoValue(i)), '_', caseID];
 
         end
         
@@ -757,9 +820,11 @@ if plotInst
     disp('    Presenting Instantaneous Volume Field...');
     
     if strcmp(campaignID, 'Windsor_fullScale')
-        isoValue = [1e0; 1e-1];
+        isoValue = 5e-3; % Normalised
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        isoValue = 5e-3; % Normalised
     else
-        isoValue = 2.5e-3;
+        isoValue = 1e-3;
     end
     
     viewAngle = [30, 30];
@@ -774,22 +839,22 @@ if plotInst
                 fig = figHold;
             end
             
-            fieldData = reshape(full(volumeData.density.inst{j}), gridShape);
+            fieldData = reshape(full(volumeData.density.inst{j} / max(volumeData.density.mean)), gridShape);
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
 
             switch format
 
                 case 'A'
-                    figName = ['NW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
-                               erase(figTime, '.')];
+                    figName = ['NW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
                     
                 case 'B'
-                    figName = ['MW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
-                               erase(figTime, '.')];
+                    figName = ['MW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
                     
                 case 'C'
-                    figName = ['FW_Inst_Density_', num2str(isoValue(i)), '_', units, '_T'...
-                               erase(figTime, '.')];
+                    figName = ['FW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
 
             end
 
@@ -813,75 +878,6 @@ if ~plotMean && ~plotInst
 
     disp(' ');
 end
-
-disp(' ');
-
-
-%% Save Volume Field Data
-
-disp('Data Save Options');
-disp('------------------');
-
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Save Data for Future Use? [y/n]: ', 's');
-    
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        
-        % Save Data
-        switch format
-            
-            case 'A'
-                
-                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake'], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake']);
-                end
-                
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat']);
-                
-                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/nearWake/', dataID, '.mat'], ...
-                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
-                
-                disp('        Success');
-                
-            case 'B'
-                
-                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake'], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake']);
-                end
-                
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat']);
-                
-                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/midWake/', dataID, '.mat'], ...
-                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
-                
-                disp('        Success');
-                
-            case 'C'
-                
-                if ~exist([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake'], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake']);
-                end
-                
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat']);
-                
-                save([saveLoc, '/Numerical/MATLAB/volumeField/', campaignID, '/', caseID, '/farWake/', dataID, '.mat'], ...
-                     'campaignID', 'caseID', 'dataID', 'volumeData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'normDims', '-v7.3', '-noCompression');
-                
-                disp('        Success');
-                
-        end
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
 
 
 %% Local Functions

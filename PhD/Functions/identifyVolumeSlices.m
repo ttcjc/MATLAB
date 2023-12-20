@@ -1,22 +1,24 @@
-%% Volume Slice Identifier v1.0
+%% Volume Slice Identifier v1.1
 % ----
 % Extract 2D Planes From an Existing 3D Grid
 % ----
-% Usage: volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice)
+% Usage: volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice, normDims)
 % 
 %        'positionData'   -> List of Points in 3D Spray (Extracted From a 3D 'ndgrid')
 %        'spacePrecision' -> Desired Rounding Precision
 %        'multiSlice'     -> Extract Multiple Slices [TrueFalse]
+%        'normDims'       -> Normalise Dimensions [True/False]
 
 
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Main Function
 
-function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice)
+function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiSlice, normDims)
 
     disp('Plane of Interest Selection');
     disp('----------------------------');
@@ -28,13 +30,19 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
     yLimsData = [min(positionData(:,2)); max(positionData(:,2))];
     zLimsData = [min(positionData(:,3)); max(positionData(:,3))];
     
+    if normDims
+        units = '[l]';
+    else
+        units = '[m]';
+    end
+    
     disp('Volume Boundaries:');
-    disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-         num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-         num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
-    disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-         num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+    disp(['    X: ', num2str(xLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+         num2str(xLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
+    disp(['    Y: ', num2str(yLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+         num2str(yLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
+    disp(['    Z: ', num2str(zLimsData(1), ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+         num2str(zLimsData(2), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
 
     disp(' ');
 
@@ -231,8 +239,8 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                 if offset ~= 0
                     disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting X: ', num2str(volumeSlice.(['s', num2str(i)]).xLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    disp(['        Shifting X: ', num2str(volumeSlice.(['s', num2str(i)]).xLims, ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
                     
                     volumeSlice.(['s', num2str(i)]).xLims = allPlanes(index);
                 end
@@ -246,8 +254,8 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                 if offset ~= 0
                     disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting Y: ', num2str(volumeSlice.(['s', num2str(i)]).yLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    disp(['        Shifting Y: ', num2str(volumeSlice.(['s', num2str(i)]).yLims, ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
                     
                     volumeSlice.(['s', num2str(i)]).yLims = allPlanes(index);
                 end
@@ -261,8 +269,8 @@ function volumeSlice = identifyVolumeSlices(positionData, spacePrecision, multiS
                 if offset ~= 0
                     disp(' ');
                     disp('    INFO: Requested Slice Unavailable');
-                    disp(['        Shifting Z: ', num2str(volumeSlice.(['s', num2str(i)]).zLims, ['%+.', num2str(spacePrecision), 'f']), ' [m] -> ', ...
-                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' [m]']);
+                    disp(['        Shifting Z: ', num2str(volumeSlice.(['s', num2str(i)]).zLims, ['%+.', num2str(spacePrecision), 'f']), ' ', units, ' -> ', ...
+                                                  num2str(allPlanes(index), ['%+.', num2str(spacePrecision), 'f']), ' ', units]);
                     
                     volumeSlice.(['s', num2str(i)]).zLims = allPlanes(index);
                 end

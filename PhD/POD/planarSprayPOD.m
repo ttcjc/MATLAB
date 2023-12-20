@@ -1,4 +1,4 @@
-%% Planar Spray POD Calculator v3.1
+%% Planar Spray POD Calculator v3.2
 % ----
 % Perform Proper Orthogonal Decomposition on Previously Processed Planar Spray Maps
 % (Collected Using 'planarSprayMapper' & 'expPlanarSprayMapper')
@@ -8,12 +8,14 @@
 
 run preamble;
 
+normDims = true; % Normalise Spatial Dimensions in Plots
+
 flipMode = true; % Present Both Orientations of Mode(s)
 
 figSave = false; % Save .fig File(s)
 
 disp('================================');
-disp('Planar Spray POD Calculator v3.1');
+disp('Planar Spray POD Calculator v3.2');
 disp('================================');
 
 disp(' ');
@@ -28,6 +30,7 @@ disp(' ');
 % v2.1 - Moved Calculation of Instantaneous Variables To Pre-Processing Scripts
 % v3.0 - Offloaded Reconstruction To Improve Efficiency
 % v3.1 - Minor Update to Shift Preamble Into Separate Script
+% v3.2 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Select Mapping Location
@@ -98,11 +101,11 @@ switch format
                         caseID = load([filePath, fileName], 'caseID').caseID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
+                        cellSize = load([filePath, fileName], 'cellSize').cellSize;
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
                         dataFormat = load([filePath, fileName], 'dataFormat').dataFormat;
-                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
                         
@@ -122,11 +125,11 @@ switch format
                         planeID = load([filePath, fileName], 'planeID').planeID;
                         dataID = load([filePath, fileName], 'dataID').dataID;
                         mapData = load([filePath, fileName], 'mapData').mapData;
+                        cellSize = load([filePath, fileName], 'cellSize').cellSize;
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
                         dataFormat = load([filePath, fileName], 'dataFormat').dataFormat;
-                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
 
@@ -160,7 +163,6 @@ switch format
                 cellSize = load([filePath, fileName], 'cellSize').cellSize;
                 sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                 timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
-                normDims = load([filePath, fileName], 'normDims').normDims;
                 
                 disp('    Success');
                 
@@ -181,7 +183,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
 
 disp(' ');
 disp(' ');
@@ -253,6 +255,7 @@ disp('    Initialising...');
 switch format
     
     case 'A'
+        
         % Identify Model Base
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -276,15 +279,12 @@ switch format
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
 
-        if normDims
+        if strcmp(campaignID, 'Windsor_fullScale')
+            basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
             basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
         else
-            
-            if strcmp(campaignID, 'Windsor_fullScale')
-                basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
-            else
-                basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-            end
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
         end
         
         mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
@@ -346,154 +346,6 @@ disp(' ');
 disp(' ');
 
 
-%% Select Mode Presentation Options
-
-disp('Mode Presentation Options');
-disp('--------------------------');
-
-valid = false;
-while ~valid
-    disp(' ');
-    
-    selection = input('Plot Individual Modes? [y/n]: ', 's');
-
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotModes = false;
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotModes = true;
-        nModes = inputModes(Nt);
-        
-        if nModes == -1
-            continue;
-        else
-            nModes = sort(nModes);
-        end
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
-
-disp(' ');
-disp(' ');
-
-
-%% Present POD Modes
-
-disp('Mode Presentation');
-disp('------------------');
-
-disp(' ');
-
-if plotModes
-    orientation = 'YZ';
-    positionData = PODdata.positionGrid;
-    
-    if normDims
-        spatialRes = 0.5e-3;
-    else
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            spatialRes = 2e-3;
-        else
-            spatialRes = 0.5e-3;
-        end
-
-    end
-    
-    % Offset Particles From Surface to Improve Visibility
-    switch format
-        
-        case 'A'
-            xLimsData = xLimsData + spatialRes;
-            positionData(:,1) = xLimsData;
-            
-    end
-    
-    nPlanes = 1;
-    planeNo = 1;
-    cMap = cool2warm(32);
-    contourlines = [];
-    refPoint = [];
-    cLims = [-1; 1];
-    
-    switch format
-
-        case 'A'
-            xLimsPlot = [0.3; 4.6257662];
-            yLimsPlot = [-0.25; 0.25];
-            zLimsPlot = [0; 0.4];
-            
-        case {'B', 'C'}
-            xLimsPlot = [0.3; 4.6257662];
-            yLimsPlot = [-0.5; 0.5];
-            zLimsPlot = [0; 0.5];
-            
-    end
-    
-    if ~normDims
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            xLimsPlot = xLimsPlot * 4.176;
-            yLimsPlot = yLimsPlot * 4.176;
-            zLimsPlot = zLimsPlot * 4.176;
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            xLimsPlot = xLimsPlot * 1.044;
-            yLimsPlot = yLimsPlot * 1.044;
-            zLimsPlot = zLimsPlot * 1.044;
-        end
-
-    end
-    
-    for i = nModes
-        disp(['    Presenting Mode #', num2str(i), '...']);
-
-        scalarData = rescale(PODdata.POD.phi(:,i), -1, 1);
-
-        switch format
-
-            case 'A'
-                figName = ['Base_POD_', field, '_M', num2str(i)];
-
-            case 'B'
-                figName = [planeID, '_POD_', field, '_M', num2str(i)];
-            
-            case 'C'
-                figName = ['POD_M', num2str(i), '_', caseID];
-
-        end
-
-        figTitle = [num2str(round(PODdata.POD.modeEnergy(i), 2), '%.2f'), '%'];
-
-        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
-                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
-                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-                                               zLimsPlot, normDims, figSave);
-        
-        if flipMode
-            [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
-                                                   xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
-                                                   planeNo, fig, [figName, '_Flip'], flipud(cMap), ...
-                                                   geometry, contourlines, refPoint, figTitle, cLims, ...
-                                                   xLimsPlot, yLimsPlot, zLimsPlot, normDims, figSave);
-        end
-        
-    end
-    clear i;
-    
-else
-    disp('    Skipping Mode Presentation');
-end
-
-disp(' ');
-disp(' ');
-
-
 %% Save POD Data
 
 disp('Data Save Options');
@@ -536,19 +388,19 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
                 disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', '-v7.3', '-noCompression');
                 disp('        Success');
             
             case 'C'
                 disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Experimental/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', '-v7.3', '-noCompression');
                 disp('        Success');
         
         end
@@ -560,6 +412,202 @@ while ~valid
 
 end
 clear valid;
+
+disp(' ');
+disp(' ');
+
+
+%% Select Mode Presentation Options
+
+disp('Mode Presentation Options');
+disp('--------------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Plot Individual Modes? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotModes = false;
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotModes = true;
+        nModes = inputModes(Nt);
+        
+        if nModes == -1
+            continue;
+        else
+            nModes = sort(nModes);
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+if plotModes
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        wB = waitbar(0, 'Normalising Spatial Dimensions', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        mapPerim = mapPerim / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+        
+        switch format
+            
+            case 'C'
+                cellSize.DaVis = cellSize.DaVis / normLength;
+            
+        end
+
+        cellSize.target = cellSize.target / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.area = cellSize.area / (normLength^2);
+
+        PODdata.positionGrid = PODdata.positionGrid / normLength;
+
+        PODdata.CoM.mean = PODdata.CoM.mean / normLength;
+
+        for i = 1:Nt
+            PODdata.CoM.inst{i} = PODdata.CoM.inst{i} / normLength;
+
+            % Update Waitbar
+            waitbar((i / Nt), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
+end
+
+disp(' ');
+disp(' ');
+
+
+%% Present POD Modes
+
+disp('Mode Presentation');
+disp('------------------');
+
+disp(' ');
+
+if plotModes
+    orientation = 'YZ';
+    positionData = PODdata.positionGrid;
+    
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        spatialRes = 0.5e-3;
+    else
+        spatialRes = 0.5e-3;
+    end
+    
+    if normDims
+        spatialRes = spatialRes / normLength;
+    end
+    
+    % Offset Particles From Surface to Improve Visibility
+    switch format
+        
+        case 'A'
+            xLimsData = xLimsData + spatialRes;
+            positionData(:,1) = xLimsData;
+            
+    end
+    
+    nPlanes = 1;
+    planeNo = 1;
+    cMap = cool2warm(32);
+    contourlines = [];
+    refPoint = [];
+    cLims = [-1; 1];
+    
+    switch format
+
+        case 'A'
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.25; 0.25];
+            zLimsPlot = [0; 0.4];
+            
+        case {'B', 'C'}
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
+            
+    end
+    
+    if ~normDims
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
+    end
+    
+    for i = nModes
+        disp(['    Presenting Mode #', num2str(i), '...']);
+
+        scalarData = rescale(PODdata.POD.phi(:,i), -1, 1);
+
+        switch format
+
+            case 'A'
+                figName = ['Base_POD_', field, '_M', num2str(i)];
+
+            case 'B'
+                figName = [planeID, '_POD_', field, '_M', num2str(i)];
+            
+            case 'C'
+                figName = ['POD_M', num2str(i), '_', caseID];
+
+        end
+
+        figTitle = [num2str(round(PODdata.POD.modeEnergy(i), 2), '%.2f'), '%'];
+
+        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                               zLimsPlot, normDims, figSave);
+        
+        if flipMode
+            [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                                   xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                                   planeNo, fig, [figName, '_Flip'], flipud(cMap), ...
+                                                   geometry, contourlines, refPoint, figTitle, cLims, ...
+                                                   xLimsPlot, yLimsPlot, zLimsPlot, normDims, figSave);
+        end
+        
+    end
+    clear i;
+    
+else
+    disp('Skipping Mode Presentation');
+end
 
 
 %% Local Functions

@@ -1,33 +1,23 @@
+%% Planar Experimental Spray Mapper v2.1
+% ----
+% Load, Process and Present Planar Experimental Spray Data
+
+
 %% Preamble
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
+run preamble;
 
-if exist('/mnt/Processing/Data', 'dir')
-    saveLoc = '/mnt/Processing/Data';
-else
-    saveLoc = '~/Data';
-end
-
-nProc = 4; % Number of Processors Used for Process-Based Parallelisation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
-
-%% Planar Experimental Spray Mapper v2.0
-
-figSave = false; % Save .fig File(s);
+%#ok<*UNRCH>
 
 normDims = true; % Normalise Spatial Dimensions
 
 normDensity = true; % Normalise Spray Density
-    normValue = 0.0052140; % (SB_1.0L_120s_15Hz_02)
+    normValue = 0.0052166; % (SB_1.0L_120s_15Hz_02)
+
+figSave = false; % Save .fig File(s);
 
 disp('=====================================');
-disp('Planar Experimental Spray Mapper v2.0');
+disp('Planar Experimental Spray Mapper v2.1');
 disp('=====================================');
 
 disp(' ');
@@ -39,12 +29,13 @@ disp(' ');
 % v1.0 - Initial Commit
 % v1.1 - Minor Update to Support Changes to 'plotPlanarScalarField'
 % v2.0 - Update To Support Changes to DaVis Data Format
+% v2.1 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Initialise Case
 
 % Select Relevant Geometry and Define Bounding Box
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
 
 disp(' ');
 disp(' ');
@@ -168,22 +159,13 @@ endInst = erase(num2str(expSprayData.time(end), ['%.', num2str(timePrecision), '
 
 sampleFreq = num2str(sampleFreq / sampleInt);
 
-if normDims
-    dataID = ['T', startInst, '_T', endInst, '_F', sampleFreq, '_Norm'];
-else
-    dataID = ['T', startInst, '_T', endInst, '_F', sampleFreq];
-end
+% Generate Dataset ID
+dataID = ['T', startInst, '_T', endInst, '_F', sampleFreq];
 
 % Identify Plane Position
 planePos = str2double(planeID(1:(end-1)));
 
-if ~normDims
-    
-    if strcmp(campaignID, 'Far_Field_Soiling_07_22')
-        planePos = planePos * 1.044;
-    end
-    
-end
+planePos = planePos * normLength;
 
 disp(' ');
 disp(' ');
@@ -223,14 +205,26 @@ if strcmp(campaignID, 'Far_Field_Soiling_07_22')
     cellSize.target = 0.8e-3;
 end
 
-cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
-cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
+% Adjust Uniform Cell Size to Fit Region of Interest
+nPy = (diff(yLimsData) / cellSize.target) + 1;
+nPz = (diff(zLimsData) / cellSize.target) + 1;
 
-[y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
+sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+
+cellSize.y = sizeY(1); clear sizeY;
+cellSize.z = sizeZ(1); clear sizeZ;
+cellSize.area = cellSize.y * cellSize.z;
+
+% Generate Grid
+[y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
+                linspace(zLimsData(1), zLimsData(2), nPz));
 
 mapData.positionGrid = zeros([height(y(:)),3]);
 mapData.positionGrid(:,1) = xLimsData;
 mapData.positionGrid(:,(2:3)) = [y(:), z(:)];
+
+nCells = height(mapData.positionGrid);
 
 mapData.time = expSprayData.time;
 
@@ -241,10 +235,12 @@ wB.Children.Title.Interpreter = 'none';
 % Perform Mapping Operation
 mapData.density.inst = cell(nTimes,1);
 
+densityOrig = expSprayData.density;
 yOrig = reshape(expSprayData.positionGrid(:,2), gridShape);
 zOrig = reshape(expSprayData.positionGrid(:,3), gridShape);
+clear expSprayData
 for i = 1:nTimes
-    density = reshape(expSprayData.density{i}, gridShape);
+    density = reshape(densityOrig{i}, gridShape);
     
     interp = griddedInterpolant(yOrig, zOrig, density, 'linear', 'none');
     
@@ -256,37 +252,32 @@ for i = 1:nTimes
     % Update Waitbar
     waitbar((i / nTimes), wB);
 end
-clear i yOrig zOrig y z density expSprayData;
+clear i densityOrig yOrig zOrig y z density;
 
 delete(wB);
 
-% Normalise Position Data
-if normDims
-    mapData.positionGrid(:,(2:3)) = round((mapData.positionGrid(:,(2:3)) / normLength), spacePrecision);
-
-    yLimsData = round((yLimsData / normLength), spacePrecision);
-    zLimsData = round((zLimsData / normLength), spacePrecision);
-end
-
 disp(' ');
 
-% Normalise Contaminant Maps
-if normDensity
-    disp('    Normalising Instantaneous Spray Density...');
-    
-    for i = 1:nTimes %#ok<*UNRCH>
-        mapData.density.inst{i} = mapData.density.inst{i} / normValue;
-    end
-    clear i;
-    
+% Calculate Instantaneous Centre of Spray
+disp('    Calculating Instantaneous Centre of Spray...');
+
+mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')};
+
+for i = 1:nTimes
+    mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
+    mapData.CoM.inst{i}(2) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / ...
+                                 sum(mapData.density.inst{i});
+    mapData.CoM.inst{i}(3) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / ...
+                                 sum(mapData.density.inst{i});
 end
+clear i;
 
 disp(' ');
 
 % Calculate Time-Averaged Spray Density
 disp('    Calculating Time-Averaged Spray Density...');
 
-mapData.density.mean = zeros([height(mapData.positionGrid),1], 'single');
+mapData.density.mean = zeros([nCells,1], 'single');
 
 for i = 1:nTimes
     mapData.density.mean = mapData.density.mean + mapData.density.inst{i};
@@ -294,6 +285,19 @@ end
 clear i;
 
 mapData.density.mean = mapData.density.mean / nTimes;
+
+disp(' ');
+
+% Calculate Time-Averaged Centre of Spray
+disp('    Calculating Time-Averaged Centre of Spray...');
+
+mapData.CoM.mean = zeros([1,3], 'single');
+
+mapData.CoM.mean(1) = mapData.positionGrid(1,1);
+mapData.CoM.mean(2) = sum(mapData.density.mean .* mapData.positionGrid(:,2)) / ...
+                           sum(mapData.density.mean);
+mapData.CoM.mean(3) = sum(mapData.density.mean .* mapData.positionGrid(:,3)) / ...
+                          sum(mapData.density.mean);
 
 disp(' ');
 
@@ -312,7 +316,7 @@ disp(' ');
 % Calculate RMS of Spray Density
 disp('    Calculating RMS of Spray Density...');
 
-mapData.density.RMS = zeros([height(mapData.positionGrid),1]);
+mapData.density.RMS = zeros([nCells,1], 'single');
 
 for i = 1:nTimes
     mapData.density.RMS = mapData.density.RMS + mapData.density.prime{i}.^2;
@@ -320,31 +324,6 @@ end
 clear i;
 
 mapData.density.RMS = sqrt((1 / nTimes) * mapData.density.RMS);
-
-disp(' ');
-
-% Calculate Instantaneous Centre of Spray
-disp('    Calculating Instantaneous Centre of Spray...');
-
-mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')};
-
-for i = 1:nTimes
-    mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
-    mapData.CoM.inst{i}(2) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / sum(mapData.density.inst{i});
-    mapData.CoM.inst{i}(3) = sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / sum(mapData.density.inst{i});
-end
-clear i;
-
-disp(' ');
-
-% Calculate Time-Averaged Centre of Spray
-disp('    Calculating Time-Averaged Centre of Spray...');
-
-mapData.CoM.mean = zeros([1,3], 'single');
-
-mapData.CoM.mean(1) = mapData.positionGrid(1,1);
-mapData.CoM.mean(2) = sum(mapData.density.mean .* mapData.positionGrid(:,2)) / sum(mapData.density.mean);
-mapData.CoM.mean(3) = sum(mapData.density.mean .* mapData.positionGrid(:,3)) / sum(mapData.density.mean);
 
 %%%%
 
@@ -363,6 +342,42 @@ disp(' ');
 disp(' ');
 
 
+%% Save Map Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        if ~exist([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID], 'dir')
+            mkdir([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID]);
+        end
+        
+        disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat']);
+        save([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat'], ...
+             'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
+        disp('        Success');
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
+
+
 %% Select Presentation Options
 
 disp('Presentation Options');
@@ -376,9 +391,11 @@ while ~valid
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
         plotMean = false;
+        
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
         plotMean = true;
+        
         valid = true;
     else
         disp('    WARNING: Invalid Entry');
@@ -442,6 +459,78 @@ while ~valid
 end
 clear valid;
 
+if plotMean || plotRMS || plotInst
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        wB = waitbar(0, 'Normalising Spatial Dimensions', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+
+        cellSize.DaVis = cellSize.DaVis / normLength;
+        cellSize.target = cellSize.target / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.area = cellSize.area / (normLength^2);
+
+        mapData.positionGrid(:,(2:3)) = mapData.positionGrid(:,(2:3)) / normLength;
+
+        mapData.CoM.mean = mapData.CoM.mean / normLength;
+
+        for i = 1:nTimes
+            mapData.CoM.inst{i} = mapData.CoM.inst{i} / normLength;
+
+            % Update Waitbar
+            waitbar((i / nTimes), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
+    % Normalise Contaminant Maps
+    if normDensity
+        disp(' ');
+
+        disp('    Normalising Spray Density...');
+
+        wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        mapData.density.mean = mapData.density.mean / normValue;
+        mapData.density.RMS = mapData.density.RMS / normValue;
+
+        for i = 1:nTimes
+            mapData.density.inst{i} = mapData.density.inst{i} / normValue;
+            mapData.density.prime{i} = mapData.density.prime{i} / normValue;
+
+            % Update Waitbar
+            waitbar((i / nTimes), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
+end
+
 disp(' ');
 disp(' ');
 
@@ -457,20 +546,11 @@ if plotMean || plotRMS || plotInst
     orientation = 'YZ';
     
     if strcmp(campaignID, 'Far_Field_Soiling_07_22')
-        xLimsPlot = [0.3; 4.7128831];
-        yLimsPlot = [-0.5; 0.5];
-        zLimsPlot = [0; 0.5];
-
-        if ~normDims
-            xLimsPlot = xLimsPlot * 1.044;
-            yLimsPlot = yLimsPlot * 1.044;
-            zLimsPlot = zLimsPlot * 1.044;
-        end
-        
+        spatialRes = 0.5e-3;
     end
     
-    if strcmp(campaignID, 'Far_Field_Soiling_07_22')
-        spatialRes = 0.5e-3;
+    if normDims
+        spatialRes = spatialRes / normLength;
     end
     
     positionData = mapData.positionGrid;
@@ -479,11 +559,22 @@ if plotMean || plotRMS || plotInst
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-end
+    
+    xLimsPlot = [0.3; 4.6257662];
+    yLimsPlot = [-0.5; 0.5];
+    zLimsPlot = [0; 0.5];
 
-% Remove Geometry From Empty Tunnel
-if contains(caseID, 'ET')
-    geometry = [];
+    if ~normDims
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
+    end
+    
+    % Remove Geometry From Empty Tunnel
+    if contains(caseID, 'ET')
+        geometry = [];
+    end
+    
 end
 
 if plotMean
@@ -539,7 +630,7 @@ if plotInst
 
         scalarData = mapData.density.inst{i};
         figTime = num2str(mapData.time(i), '%.3f');
-        figName = ['Instantaneous_T', erase(figTime, '.'), '_', caseID];
+        figName = ['Inst_T', erase(figTime, '.'), '_', caseID];
         figTitle = ['{', figTime, ' \it{s}}'];
         
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
@@ -554,45 +645,8 @@ if plotInst
 end
 
 if ~plotMean && ~plotRMS && ~plotInst
-    disp('    Skipping Map Presentation');
-    
-    disp(' ');
+    disp('Skipping Map Presentation');
 end
-
-disp(' ');
-
-
-%% Save Map Data
-
-disp('Data Save Options');
-disp('------------------');
-
-valid = false;
-while ~valid
-    disp(' ');
-    
-    selection = input('Save Data for Future Use? [y/n]: ', 's');
-    
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        
-        if ~exist([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID], 'dir')
-            mkdir([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID]);
-        end
-        
-        disp(['    Saving to: ', saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat']);
-        save([saveLoc, '/Experimental/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', dataID '.mat'], ...
-             'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'normDims', '-v7.3', '-noCompression');
-        disp('        Success');
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
 
 
 %% Local Functions

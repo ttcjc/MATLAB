@@ -87,7 +87,7 @@ switch format
         [campaignID, caseID, pData] = initialiseExpFlowData(saveLoc, 'p');
         
         pData = pData.(cell2mat(fieldnames(pData)));
-        pData.p = rmfield(pData.p, 'RMS');
+        pData.Cp = rmfield(pData.Cp, 'RMS');
 
 end
     
@@ -140,52 +140,66 @@ disp(' ');
 % Identify Base Boundaries
 disp('    Identifying Base Boundaries...');
 
-parts = fieldnames(geometry);
-for i = 1:height(parts)
+switch format
     
-    if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
-        part = parts{i};
-        break;
-    end
-    
-    if i == height(parts)
-        error('Mismatch Between ''xDims'' and Geometry Bounding Box')
-    end
-    
+    case {'A', 'B'}
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+
+            if max(geometry.(parts{i}).vertices(:,1)) == xDims(2)
+                part = parts{i};
+                break;
+            end
+
+            if i == height(parts)
+                error('Mismatch Between ''xDims'' and Geometry Bounding Box')
+            end
+
+        end
+        clear i parts;
+
+        geoPoints = geometry.(part).vertices;
+        basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
+
+        mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
+        mapPerim = basePoints(mapPerim,:);
+        basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
+
+        if strcmp(campaignID, 'Windsor_fullScale')
+            basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+        else
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
+        end
+
+        mapPerim = ones([height(basePoly.Vertices),3]) * mapPerim(1,1);
+        mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
+
+        if ~all(mapPerim(1,:) == mapPerim(end,:))
+            mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
+        end
+
+        xLimsData = xDims(2);
+        yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
+        zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
+        
+    case 'C'
+        mapPerim = [];
+        
+        xLimsData = xDims(2);
+        yLimsData = [min(pData.positionGrid(:,2)), max(pData.positionGrid(:,2))];
+        zLimsData = [min(pData.positionGrid(:,3)), max(pData.positionGrid(:,3))];
+        
 end
-clear i parts;
-
-geoPoints = geometry.(part).vertices;
-basePoints = geoPoints((geoPoints(:,1) == xDims(2)),:);
-
-mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
-mapPerim = basePoints(mapPerim,:);
-basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-
-if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Varney')
-    basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
-elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-    basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-else
-    basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-end
-
-mapPerim = ones([height(basePoly.Vertices),3]) * mapPerim(1,1);
-mapPerim(:,[2,3]) = basePoly.Vertices(:,[1,2]);
-
-if ~all(mapPerim(1,:) == mapPerim(end,:))
-    mapPerim = [mapPerim; mapPerim(1,:)]; % Close Boundary
-end
-
-xLimsData = xDims(2);
-yLimsData = [min(mapPerim(:,2)); max(mapPerim(:,2))];
-zLimsData = [min(mapPerim(:,3)); max(mapPerim(:,3))];
 
 disp(' ');
 
 % Map Raw Data Onto Uniform Grid
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
+% Set Target Spatial Resolution
 if strcmp(campaignID, 'Windsor_fullScale')
     cellSize.target = 4e-3;
 elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -194,6 +208,7 @@ else
     cellSize.target = 1e-3;        
 end
 
+% Adjust Uniform Cell Size to Fit Region of Interest
 nPy = (diff(yLimsData) / cellSize.target) + 1;
 nPz = (diff(zLimsData) / cellSize.target) + 1;
 
@@ -208,6 +223,7 @@ cellSize.area = cellSize.y * cellSize.z;
 yOrig = pData.positionGrid(:,2);
 zOrig = pData.positionGrid(:,3);
 
+% Generate Grid
 [y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
                 linspace(zLimsData(1), zLimsData(2), nPz));
 
@@ -327,8 +343,8 @@ switch format
         pData.CoP.mean = zeros([1,3]);
         
         pData.CoP.mean(1) = pData.positionGrid(1,1);
-        pData.CoP.mean(2) = sum(pData.Cp.mean .* pData.positionGrid(:,2)) / sum(pData.Cp.mean);
-        pData.CoP.mean(3) = sum(pData.Cp.mean .* pData.positionGrid(:,3)) / sum(pData.Cp.mean);
+        pData.CoP.mean(2) = sum((pData.Cp.mean .* pData.positionGrid(:,2)), 'omitNaN') / sum(pData.Cp.mean, 'omitNaN');
+        pData.CoP.mean(3) = sum((pData.Cp.mean .* pData.positionGrid(:,3)), 'omitNaN') / sum(pData.Cp.mean, 'omitNaN');
         
 end
         
@@ -348,12 +364,12 @@ end
 %             pData.CoP{i}(2) = sum(pData.Cp{i} .* pData.position(:,2)) / sum(pData.Cp{i});
 %             pData.CoP{i}(3) = sum(pData.Cp{i} .* pData.position(:,3)) / sum(pData.Cp{i});
 %         end
-disp(' ');
 
 % Normalise Spatial Dimensions
-disp('    Normalising Spatial Dimensions...');
-
 if normDims
+    disp(' ');
+    
+    disp('    Normalising Spatial Dimensions...');
     
     parts = fieldnames(geometry);
     for i = 1:height(parts)
@@ -512,18 +528,16 @@ disp(' ');
 if plotMean || plotRMS || plotInst
     orientation = 'YZ';
     
-    if normDims
-        spatialRes = 0.5e-3 / normLength;
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        spatialRes = 0.5e-3;
     else
-        
-        if strcmp(campaignID, 'Windsor_fullScale')
-            spatialRes = 2e-3;
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            spatialRes = 0.5e-3;
-        else
-            spatialRes = 0.5e-3;
-        end
-        
+        spatialRes = 0.5e-3;
+    end
+    
+    if normDims
+        spatialRes = spatialRes / normLength;
     end
     
     xLimsData = xLimsData + spatialRes;
@@ -552,11 +566,12 @@ if plotMean || plotRMS || plotInst
         figName = ['Average_Cp_', caseID];
 
         if strcmp(campaignID, 'Windsor_fullScale')
-            cLims = [-0.273; -0.103]; % Quarter-Scale Comparison
-%             cLims = 'auto';
+            cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
         elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            cLims = [-0.273; -0.103]; % Full-Scale Comparison
-%             cLims = 'auto'
+            cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
+%             cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
+        elseif strcmp(campaignID, 'Varney')
+            cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
         else
             cLims = [min(scalarData); max(scalarData)];
         end

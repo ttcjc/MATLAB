@@ -53,6 +53,7 @@ disp(' ');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Collate Surface Data? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -73,6 +74,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Collate Plane Data? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -93,6 +95,7 @@ clear valid;
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Collate Volume Data? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>

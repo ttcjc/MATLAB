@@ -44,9 +44,9 @@ function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, d
     disp('***********');
     disp(' COLLATING ');
     
-    %%%%
-    
     tic;
+    
+    %%%%
     
     disp(' ');
     
@@ -109,18 +109,17 @@ function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, d
     end
     
     % Reduce Time Instances to Desired Sampling Frequency
-    sampleTimes = zeros([ceil(height(timeDirs) / sampleInt),1], 'single');
-    nTimes = height(sampleTimes);
+    LagData.time = zeros([ceil(height(timeDirs) / sampleInt),1], 'single');
+    nTimes = height(LagData.time);
 
     j = height(timeDirs);
     for i = nTimes:-1:1
-        sampleTimes(i) = str2double(timeDirs(j).name);
+        LagData.time(i) = str2double(timeDirs(j).name);
         j = j - sampleInt;
     end
-    clear i k;
+    clear i j;
 
     % Initialise Particle Properties
-    LagData.time = sampleTimes;
     LagData.timeExact = cell(nTimes,1);
 
     for i = 1:height(LagProps)
@@ -237,6 +236,7 @@ function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, d
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Save Data for Future Use? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>

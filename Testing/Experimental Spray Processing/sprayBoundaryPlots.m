@@ -11,27 +11,39 @@ figSave = false; % Save .fig File(s);
 %%%
 
 % Select Relevant Geometry and Define Bounding Box
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(true);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+
+parts = fieldnames(geometry);
+for i = 1:height(parts)
+    geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+end
+clear i parts;
 
 
 %%
 
-% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/SB_1.0L_120s_15Hz_01/T0067_T120000_F15_Norm.mat';
-% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/SB_1.0L_120s_15Hz_02/T0067_T120000_F15_Norm.mat';
-% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/SB_1.0L_120s_15Hz_03/T0067_T120000_F15_Norm.mat';
+% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
+% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
+% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
 
-% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/ST_1.0L_120s_15Hz_01/T0067_T120000_F15_Norm.mat';
-% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/ST_1.0L_120s_15Hz_02/T0067_T120000_F15_Norm.mat';
-% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/ST_1.0L_120s_15Hz_03/T0067_T120000_F15_Norm.mat';
+% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
+% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
+% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
 
-caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15_Norm.mat';
-caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15_Norm.mat';
-caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15_Norm.mat';
+caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
+caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
+caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
+caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_04/T0067_T120000_F15_normDims.mat';
+caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_05/T0067_T120000_F15_normDims.mat';
+caseF = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_600s_03Hz_01/T0333_T600000_F3_normDims.mat';
 
 % Load Data
 R2R.mapDataA = load(caseA, 'mapData').mapData;
 R2R.mapDataB = load(caseB, 'mapData').mapData;
 R2R.mapDataC = load(caseC, 'mapData').mapData;
+R2R.mapDataD = load(caseD, 'mapData').mapData;
+R2R.mapDataE = load(caseE, 'mapData').mapData;
+R2R.mapDataF = load(caseF, 'mapData').mapData;
 
 sprayMaps = fieldnames(R2R);
 
@@ -42,15 +54,11 @@ xLimsData = R2R.mapDataA.positionGrid(1,1);
 yLimsData = [min(R2R.mapDataA.positionGrid(:,2)); max(R2R.mapDataA.positionGrid(:,2))];
 zLimsData = [min(R2R.mapDataA.positionGrid(:,3)); max(R2R.mapDataA.positionGrid(:,3))];
 
-xLimsPlot = [0.31875; 2.73575];
-yLimsPlot = [-0.522; 0.522];
-zLimsPlot = [0; 0.522];
+xLimsPlot = [0.3; 4.6257662];
+yLimsPlot = [-0.5; 0.5];
+zLimsPlot = [0; 0.5];
 
-xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
-
-spatialRes = 0.5e-3;
+spatialRes = 0.5e-3 / normLength;
     
 positionData = R2R.mapDataA.positionGrid;
 
@@ -69,7 +77,7 @@ set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
 pause(0.5);
 hold on;
 set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 lighting gouraud;
 
 % Plot Geometry
@@ -142,9 +150,9 @@ tickData = (yLimsPlot(1):((yLimsPlot(2) - yLimsPlot(1)) / 5):yLimsPlot(2));
 yticks(tickData(2:(end-1)));
 tickData = (zLimsPlot(1):((zLimsPlot(2) - zLimsPlot(1)) / 5):zLimsPlot(2));
 zticks(tickData(2:(end-1)));
-xtickformat('%+.2f');
-ytickformat('%+.2f');
-ztickformat('%+.2f');
+xtickformat('%+.2g');
+ytickformat('%+.2g');
+ztickformat('%+.2g');
 
 if normDims
     ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');

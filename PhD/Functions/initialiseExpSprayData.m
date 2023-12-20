@@ -17,6 +17,11 @@
 % v2.0 - Update To Support Changes to DaVis Data Format
 
 
+%% Supported Experimental Campaigns
+
+% Far_Field_Soiling_07_22
+
+
 %% Main Function
 
 function [campaignID, caseID, planeID, ...
@@ -83,10 +88,10 @@ function [campaignID, caseID, planeID, ...
 
         caseFolder = uigetdir([dataLoc, '/Experimental'], 'Select DaVis Results Folder');
 
-        if ~isnumeric(caseFolder)
+        if ~isnumeric(caseFolder) 
 
             % Confirm Support
-            if contains(caseFolder, 'Far_Field_Soiling_07_22')
+            if contains(caseFolder, 'Far_Field_Soiling_07_22') && contains(caseFolder, 'Results')
                 dataFiles = dir([caseFolder, '/*.csv']);
             else
                 disp('    WARNING: Invalid Case Directory (Unsupported Case Type)');
@@ -110,7 +115,7 @@ function [campaignID, caseID, planeID, ...
     end
     clear valid
 
-    campaignID = caseFolder((strfind(caseFolder, 'Experimental/') + 13):(strfind(caseFolder, '/Results') - 1));
+    campaignID = caseFolder((strfind(caseFolder, 'Experimental/') + 13):(strfind(caseFolder, '/DaVis') - 1));
     caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
 
     disp(' ');

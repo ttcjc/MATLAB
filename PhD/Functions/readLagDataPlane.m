@@ -82,7 +82,7 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
         sampleTimes(i) = str2double(timeDirs(j).name);
         j = j - sampleInt;
     end
-    clear i k;
+    clear i j;
     
     planePositions = zeros([height(dataFiles),1]);
     
@@ -290,6 +290,7 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Save Data for Future Use? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>

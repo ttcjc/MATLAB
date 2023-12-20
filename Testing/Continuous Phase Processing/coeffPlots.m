@@ -22,14 +22,19 @@ disp (' ');
 
 %% Case Selection
 
-disp('CASE SELECTION');
-disp('--------------');
+disp('Case Selection');
+disp('---------------');
+
+caseFolder = uigetdir('~/OpenFOAM/', 'Select Case');
+
+campaignID = caseFolder((strfind(caseFolder, 'results/') + 8):(max(strfind(caseFolder, '/')) - 1));
+caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
+
 disp(' ');
 
-disp('Select Case Folder:');
-caseFolder = uigetdir('~/OpenFOAM');
+disp(['Case: ', caseID]);
 
-disp(['Case: ', caseFolder]);
+disp(' ');
 disp(' ');
 
 
@@ -110,19 +115,46 @@ coeffData.Cm_r = Cm_r;
 clear time Cl Cd Cs Cm_p Cm_y Cm_r;
 
 
-%% Process Stuff
+%% Perform Blockage Correction
 
-Cd_Mean = zeros(height(coeffData.time),1);
+if strcmp(campaignID, 'Windsor_Upstream_2023')
+    U = 40; % m/s
+    rho = 1.269; % kg/m^3
+    
+    Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+    At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+    
+    Fl = coeffData.Cl * 0.5 * rho * U^2 * Am;
+    Fd = coeffData.Cd * 0.5 * rho * U^2 * Am;
+    Fs = coeffData.Cs * 0.5 * rho * U^2 * Am;
+    
+    Ucorr = U * (At / (At - Am));
+    
+    coeffData.Cl = Fl / (0.5 * rho * Ucorr^2 * Am); clear Fl;
+    coeffData.Cd = Fd / (0.5 * rho * Ucorr^2 * Am); clear Fd;
+    coeffData.Cs = Fs / (0.5 * rho * Ucorr^2 * Am); clear Fs;
+end
 
-startTime = 0.25;
+
+%% Calculate Time Average
+
+Cl_Mean = zeros([height(coeffData.time),1]);
+Cd_Mean = Cl_Mean;
+Cs_Mean = Cl_Mean;
+
+startTime = 1;
 startSample = find(coeffData.time == startTime);
 
 for i = 1:height(coeffData.time)
     
     if i < startSample
+        Cl_Mean(i) = nan;
         Cd_Mean(i) = nan;
+        Cs_Mean(i) = nan;
     else
-        Cd_Mean(i) = mean(coeffData.Cd(2500:i));
+        Cl_Mean(i) = mean(coeffData.Cl(startSample:i));
+        Cd_Mean(i) = mean(coeffData.Cd(startSample:i));
+        Cs_Mean(i) = mean(coeffData.Cs(startSample:i));
     end
     
 end
@@ -130,76 +162,40 @@ end
 
 %% Plot
 
-% Figure Setup
+% Initialise Figure
 fig = fig + 1;
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Lift Coefficient');
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
+figName = 'Drag Coefficient';
+set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                 'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+pause(0.5);
 hold on;
+set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
 
-% Plot
-plot(coeffData.time, coeffData.Cl, 'lineWidth', 2, 'color', ([74, 24, 99] / 255));
-% plot(coeffData.time, Cl_Mean, 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
+% Plot Mean Profiles
+plot(coeffData.time, coeffData.Cd, 'color', graphColours(1), 'lineWidth', 2);
+plot(coeffData.time, round(Cd_Mean, 3), 'color', graphColours(2), 'lineWidth', 2);
 
-% Figure Formatting
-xlim('padded');
-ylim([0; 0.3]);
-xticks([]);
-yticks([]);
-xlabel({' ', 'Time'});
-ylabel({'Lift Coefficient', ' '});
-grid on;
+% Format Figure
+title('{-----}', 'interpreter', 'latex');
+subtitle('{ }');
+axis on;
 box on;
-set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
-hold off;
-
-
-% Figure Setup
-fig = fig + 1;
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Drag Coefficient');
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-hold on;
-
-% Plot
-plot(coeffData.time, coeffData.Cd, 'lineWidth', 2, 'color', ([74, 24, 99] / 255));
-plot(coeffData.time, Cd_Mean, 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
-
-% Figure Formatting
-xlim('padded');
-ylim([0.3,0.45]);
-xticks([]);
-yticks([]);
-xlabel({' ', 'Time'});
-ylabel({'Drag Coefficient', ' '});
-grid on;
-box on;
-set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
-hold off;
-
-
-% Figure Setup
-fig = fig + 1;
-set(figure(fig), 'outerPosition', [25, 25, 1275, 850], 'name', 'Side Coefficient');
-set(gca, 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-hold on;
-
-% Plot
-plot(coeffData.time, coeffData.Cs, 'lineWidth', 2, 'color', ([74, 24, 99] / 255));
-yline(0, 'lineStyle', '--', 'lineWidth', 2, 'color', ([230, 0, 126] / 255));
-
-% Figure Formatting
-xlim('padded');
-ylim([-0.1,0.1]);
-xticks([]);
-yticks([]);
-xlabel({' ', 'Time'});
-ylabel({'Side Coefficient', ' '});
-grid on;
-box on;
-set(gca, 'units', 'normalized', 'position', [0.1275, 0.1275, 0.745, 0.745], ...
-         'fontName', 'LM Roman 12', 'fontSize', 12, 'layer', 'top');
+grid off;
+xlim([0; 4]);
+ylim([0.28; 0.42]);
+tickData = (0.8:0.8:3.2);
+xticks(tickData);
+tickData = (0.308:0.028:0.392);
+yticks(tickData);
+xtickformat('%.1f');
+ytickformat('%.3f');
+xlabel({'{$t \left( s \right)$}'; '{-----}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$C_{_{D}}$}'}, 'interpreter', 'latex');
+tightInset = get(gca, 'TightInset');
+set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                           (tightInset(2) + 0.00625), ...
+                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+pause(0.5);
 hold off;

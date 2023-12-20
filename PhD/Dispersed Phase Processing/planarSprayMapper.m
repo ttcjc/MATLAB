@@ -1,4 +1,4 @@
-%% Planar Lagrangian Spray Mapper v4.0
+%% Planar Lagrangian Spray Mapper v4.1
 % ----
 % Load, Process and Present Planar Lagrangian Data Acquired Using OpenFOAM v7
 
@@ -7,14 +7,19 @@
 
 run preamble;
 
+%#ok<*UNRCH>
+
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-normDims = true; % Normalise Spatial Dimensions
+normDims = true; % Normalise Spatial Dimensions in Plots
+
+normDensity = true; % Normalise Area Density in Plots
+    normValue = 8.996259860381801e-05; % Windsor_SB_wW_Upstream_SC 1.0L
 
 figSave = false; % Save .fig File(s)
 
 disp('========================');
-disp('Planar Spray Mapper v4.0');
+disp('Planar Spray Mapper v4.1');
 disp('========================');
 
 disp(' ');
@@ -34,12 +39,13 @@ disp(' ');
 % v3.0 - Rewrite, Making Use of Sparse Arrays to Reduce Memory Requirements
 % v3.1 - Minor Update to Shift Preamble Into Separate Script
 % v4.0 - Update To Include Calculation of Fluctuating Field Variables
+% v4.1 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Initialise Case
 
 [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
+ xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
 
 disp(' ');
 disp(' ');
@@ -59,6 +65,7 @@ disp('    B: Far-Field Spray Transport');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Select Mapping Location [A/B]: ', 's');
 
     if selection == 'a' | selection == 'A' %#ok<OR2>
@@ -138,12 +145,13 @@ disp('----------------');
 if strcmp(campaignID, 'Windsor_fullScale')
     dLimsDefault = [20; 400]; % um
 else
-    dLimsDefault = [1; 147];
+    dLimsDefault = [1; 147]; % um
 end
 
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Filter Particle Diameters? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -184,11 +192,7 @@ end
 clear valid dLimsDefault;
 
 % Generate Dataset ID
-if normDims
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', dataFormat, '_normDims'];
-else
-    dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', dataFormat];
-end
+dataID = [dataID, '_D', num2str(dLims(1)), '_D', num2str(dLims(2)), '_', dataFormat];
 
 disp(' ');
 disp(' ');
@@ -231,8 +235,8 @@ if ~isempty(suspectTimes)
     
 end
 
-% Shift Data Origin
-if contains(caseID, 'Run_Test') || strcmp(campaignID, 'Windsor_Upstream_2023')
+% Adjust Data Origin
+if strcmp(campaignID, 'Windsor_Upstream_2023')
     
     for i = 1:nTimes
         
@@ -243,30 +247,6 @@ if contains(caseID, 'Run_Test') || strcmp(campaignID, 'Windsor_Upstream_2023')
     end
     clear i;
     
-end
-
-% Normalise Coordinate System
-if normDims
-    disp('        Normalising Coordinate System');
-    
-    % Initialise Progress Bar
-    wB = waitbar(0, 'Normalising Coordinate System', 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
-    
-    % Perform Normalisation
-    for i = 1:nTimes
-        
-        if ~isempty(LagData.positionCartesian{i})
-            LagData.positionCartesian{i}  = round((LagData.positionCartesian{i} / normLength), ...
-                                                  spacePrecision);
-        end
-        
-        % Update Waitbar
-        waitbar((i / nTimes), wB);
-    end
-    clear i;
-    
-    delete(wB);
 end
 
 % Specify Map Boundaries
@@ -296,16 +276,13 @@ switch format
         mapPerim = boundary(basePoints(:,2), basePoints(:,3), 0.95);
         mapPerim = basePoints(mapPerim,:);
         basePoly = polyshape(mapPerim(:,2), mapPerim(:,3), 'keepCollinearPoints', true);
-
-        if normDims
+        
+        if strcmp(campaignID, 'Windsor_fullScale')
+            basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
             basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
         else
-            
-            if strcmp(campaignID, 'Windsor_fullScale')
-                basePoly = polybuffer(basePoly, -16e-3, 'jointType', 'square');
-            else
-                basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
-            end
+            basePoly = polybuffer(basePoly, -4e-3, 'jointType', 'square');
         end
         
         mapPerim = ones(height(basePoly.Vertices),3) * mapPerim(1,1);
@@ -323,20 +300,8 @@ switch format
         mapPerim = [];
         
         xLimsData = double(LagData.positionCartesian{end}(1,1));
-        yLimsData = [-0.5; 0.5];
-        zLimsData = [0; 0.5];
-        
-        if ~normDims
-
-            if strcmp(campaignID, 'Windsor_fullScale')
-                yLimsData = round((yLimsData * 4.176), spacePrecision);
-                zLimsData = round((zLimsData * 4.176), spacePrecision);
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                yLimsData = round((yLimsData * 1.044), spacePrecision);
-                zLimsData = round((zLimsData * 1.044), spacePrecision);
-            end
-
-        end
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
         
 end
 
@@ -420,26 +385,28 @@ disp(' ');
 disp('    Generating Presentation Grid...');
 
 % Set Target Spatial Resolution
-if normDims
+if strcmp(campaignID, 'Windsor_fullScale')
+    cellSize.target = 32e-3;
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
     cellSize.target = 8e-3;
 else
-    
-    if strcmp(campaignID, 'Windsor_fullScale')
-        cellSize.target = 32e-3;
-    else
-        cellSize.target = 8e-3;
-    end
-    
+    cellSize.target = 8e-3;
 end
 
 % Adjust Uniform Cell Size to Fit Region of Interest
-cellSize.x = cellSize.target;
-cellSize.y = (yLimsData (2) - yLimsData (1)) / round(((yLimsData (2) - yLimsData (1)) / cellSize.target));
-cellSize.z = (zLimsData (2) - zLimsData (1)) / round(((zLimsData (2) - zLimsData (1)) / cellSize.target));
+nPy = (diff(yLimsData) / cellSize.target) + 1;
+nPz = (diff(zLimsData) / cellSize.target) + 1;
 
+sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
+sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
+
+cellSize.y = sizeY(1); clear sizeY;
+cellSize.z = sizeZ(1); clear sizeZ;
 cellSize.area = cellSize.y * cellSize.z;
 
-[y, z] = ndgrid(yLimsData(1):cellSize.y:yLimsData(2), zLimsData(1):cellSize.z:zLimsData(2));
+% Generate Grid
+[y, z] = ndgrid(linspace(yLimsData(1), yLimsData(2), nPy), ...
+                linspace(zLimsData(1), zLimsData(2), nPz));
 
 mapData.positionGrid = zeros([height(y(:)),3]);
 mapData.positionGrid(:,1) = xLimsData;
@@ -592,9 +559,9 @@ mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')
 for i = 1:nTimes
     mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
     mapData.CoM.inst{i}(2) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,2)) / ...
-                             sum(mapData.areaDensity.inst{i}));
+                                  sum(mapData.areaDensity.inst{i}));
     mapData.CoM.inst{i}(3) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,3)) / ...
-                             sum(mapData.areaDensity.inst{i}));
+                                  sum(mapData.areaDensity.inst{i}));
     
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -646,9 +613,9 @@ mapData.CoM.mean = zeros([1,3], 'single');
     
 mapData.CoM.mean(1) = mapData.positionGrid(1,1);
 mapData.CoM.mean(2) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,2)) / ...
-                      sum(mapData.areaDensity.mean));
+                           sum(mapData.areaDensity.mean));
 mapData.CoM.mean(3) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,3)) / ...
-                      sum(mapData.areaDensity.mean));
+                           sum(mapData.areaDensity.mean));
 
 disp(' ');
 
@@ -712,6 +679,8 @@ mapData.areaDensity.RMS = sqrt((1 / nTimes) * mapData.areaDensity.RMS);
 mapData.d32.RMS = sqrt((1 / nTimes) * mapData.d32.RMS);
 mapData.d10.RMS = sqrt((1 / nTimes) * mapData.d10.RMS);
 
+%%%%
+
 evalc('delete(gcp(''nocreate''));');
 
 executionTime = toc;
@@ -724,6 +693,66 @@ disp(' ');
 
 disp('  SUCCESS  ');
 disp('***********');
+
+disp(' ');
+disp(' ');
+
+
+%% Save Map Data
+
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        % Save Data
+        switch format
+            
+            case 'A'
+                
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base'], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base']);
+                end
+                
+            case 'B'
+                
+                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID], 'dir')
+                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID]);
+                end
+                
+        end
+        
+        switch format
+            
+            case 'A'
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', '-v7.3', '-noCompression');
+                disp('        Success');
+                 
+            case 'B'
+                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat']);
+                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat'], ...
+                     'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', '-v7.3', '-noCompression');
+                disp('        Success');
+        
+        end
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
 
 disp(' ');
 disp(' ');
@@ -814,6 +843,76 @@ end
 clear valid;
 
 if plotMean || plotRMS || plotInst
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        wB = waitbar(0, 'Normalising Spatial Dimensions', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        mapPerim = mapPerim / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+
+        cellSize.target = cellSize.target / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.area = cellSize.area / (normLength^2);
+
+        mapData.positionGrid = mapData.positionGrid / normLength;
+
+        mapData.CoM.mean = mapData.CoM.mean / normLength;
+
+        for i = 1:nTimes
+            mapData.CoM.inst{i} = mapData.CoM.inst{i} / normLength;
+
+            % Update Waitbar
+            waitbar((i / nTimes), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
+    % Normalise Contaminant Maps
+    if normDensity
+        disp(' ');
+
+        disp('    Normalising Area Density...');
+
+        wB = waitbar(0, 'Normalising Area Density', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        mapData.areaDensity.mean = mapData.areaDensity.mean / normValue;
+        mapData.areaDensity.RMS = mapData.areaDensity.RMS / normValue;
+
+        for i = 1:nTimes
+            mapData.areaDensity.inst{i} = mapData.areaDensity.inst{i} / normValue;
+            mapData.areaDensity.prime{i} = mapData.areaDensity.prime{i} / normValue;
+
+            % Update Waitbar
+            waitbar((i / nTimes), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
     disp(' ');
     
     % Select Variable(s) of Interest
@@ -858,16 +957,16 @@ if plotMean || plotRMS || plotInst
     orientation = 'YZ';
     positionData = mapData.positionGrid;
     
-    if normDims
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
         spatialRes = 0.5e-3;
     else
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            spatialRes = 2e-3;
-        else
-            spatialRes = 0.5e-3;
-        end
-
+        spatialRes = 0.5e-3;
+    end
+    
+    if normDims
+        spatialRes = spatialRes / normLength;
     end
     
     % Offset Particles From Surface to Improve Visibility
@@ -899,17 +998,9 @@ if plotMean || plotRMS || plotInst
     end
     
     if ~normDims
-
-        if strcmp(campaignID, 'Windsor_fullScale')
-            xLimsPlot = xLimsPlot * 4.176;
-            yLimsPlot = yLimsPlot * 4.176;
-            zLimsPlot = zLimsPlot * 4.176;
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            xLimsPlot = xLimsPlot * 1.044;
-            yLimsPlot = yLimsPlot * 1.044;
-            zLimsPlot = zLimsPlot * 1.044;
-        end
-
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
     end
     
 end
@@ -940,11 +1031,14 @@ if plotMean
                 
                 if strcmp(plotVars{i}, 'areaDensity')
                     
-                    if strcmp(campaignID, 'Windsor_fullScale')
-%                         contourlines = [0.02; 0.02] * 15.5e-3; % Coupled
-                        contourlines = [0.02; 0.02] * 2.6; % Uncoupled
-                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                        contourlines = [0.02; 0.02] * 0.1e-3;
+                    if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
+                        
+                        if normDensity
+                            contourlines = [0.02; 0.02];
+                        else
+                            contourlines = [0.02; 0.02] * normValue;
+                        end
+                        
                     end
                     
                 end
@@ -961,36 +1055,32 @@ if plotMean
             
             if strcmp(campaignID, 'Windsor_fullScale')
                 cLims = [0; 400];
-            else
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
                 cLims = [0; 150];
             end
             
         elseif strcmp(plotVars{i}, 'areaDensity')
             
-            if strcmp(campaignID, 'Windsor_fullScale')
+            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
                 
                 switch format
 
                     case 'A'
-%                         cLims = [0; 7.5e-3]; % Coupled
-                        cLims = [0; 55e-3]; % Uncoupled
                         
-
+                        if normDensity %#ok<IFBDUP>
+                            cLims = 'auto';
+                        else
+                            cLims = 'auto';
+                        end
+                    
                     case 'B'
-%                         cLims = [0; 15.5]; % Coupled
-                        cLims = [0; 2.6]; % Uncoupled
-
-                end
-                
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            
-                switch format
-
-                    case 'A'
-                        cLims = [0; 5.6e-6];
-
-                    case 'B'
-                        cLims = [0; 0.1e-3];
+                        
+                        if normDensity
+                            cLims = [0; 1.05];
+%                             cLims = [0; 2];
+                        else
+                            cLims = 'auto';
+                        end
 
                 end
                 
@@ -1035,29 +1125,16 @@ if plotRMS
         
         if strcmp(plotVars{i}, 'areaDensity')
             
-            if strcmp(campaignID, 'Windsor_fullScale')
+            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
                 
                 switch format
 
                     case 'A'
-%                         cLims = [0; 16]; % Coupled
-                        cLims = [0; 6];
-
-                    case 'B'
-%                         cLims = [0; 12.3]; % Coupled
-                        cLims = [0; 4.4]; % Uncoupled
-
-                end
-                
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                
-                switch format
-
-                    case 'A'
-                        cLims = [0; 4.1];
+                        cLims = 'auto';
 
                     case 'B'
                         cLims = [0; 6.8];
+%                         cLims = [0; 9];
 
                 end
                 
@@ -1097,29 +1174,26 @@ if plotInst
             
         elseif strcmp(plotVars{i}, 'areaDensity')
             
-            if strcmp(campaignID, 'Windsor_fullScale')
+            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
                 
                 switch format
 
                     case 'A'
-%                         cLims = [0; 0.5]; % Coupled
-                        cLims = [0; 1.4]; % Uncoupled
-
+                        
+                        if normDensity %#ok<IFBDUP>
+                            cLims = 'auto';
+                        else
+                            cLims = 'auto';
+                        end
+                    
                     case 'B'
-%                         cLims = [0; 75]; % Coupled
-                        cLims = [0; 16]; % Uncoupled
-
-                end
-                
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                
-                switch format
-
-                    case 'A'
-                        cLims = [0; 0.18-3];
-
-                    case 'B'
-                        cLims = [0; 0.7e-3];
+                        
+                        if normDensity
+                            cLims = [0; 5.5];
+%                             cLims = [0; 11.5];
+                        else
+                            cLims = 'auto';
+                        end
 
                 end
                 
@@ -1128,13 +1202,13 @@ if plotInst
         end
             
         if ~exist('cLims', 'var')
-            instMax = 0;
-            
+            instMax = zeros([nTimes,1]);
+
             for j = 1:nTimes
-                instMax = max(instMax, max(mapData.(plotVars{i}).inst{j}));
+                instMax(j) = full(max(mapData.(plotVars{i}).inst{j}));
             end
-                
-            cLims = full([0; instMax]);
+
+            cLims = [0; prctile(instMax, 99)];
         end
         
         figHold = fig;
@@ -1175,67 +1249,8 @@ if plotInst
 end
 
 if ~plotMean && ~ plotRMS && ~plotInst
-    disp('    Skipping Map Presentation');
-
-    disp(' ');
+    disp('Skipping Map Presentation');
 end
-
-disp(' ');
-
-
-%% Save Map Data
-
-disp('Data Save Options');
-disp('------------------');
-
-valid = false;
-while ~valid
-    disp(' ');
-    selection = input('Save Data for Future Use? [y/n]: ', 's');
-    
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        
-        switch format
-            
-            case 'A'
-                
-                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base'], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base']);
-                end
-                
-            case 'B'
-                
-                if ~exist([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID], 'dir')
-                    mkdir([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID]);
-                end
-                
-        end
-        
-        switch format
-            
-            case 'A'
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat']);
-                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/base/', dataID, '.mat'], ...
-                     'campaignID', 'caseID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
-                disp('        Success');
-                 
-            case 'B'
-                disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat']);
-                save([saveLoc, '/Numerical/MATLAB/planarSprayMap/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat'], ...
-                     'campaignID', 'caseID', 'planeID', 'dataID', 'mapData', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', 'normDims', '-v7.3', '-noCompression');
-                disp('        Success');
-        
-        end
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
 
 
 %% Local Functions

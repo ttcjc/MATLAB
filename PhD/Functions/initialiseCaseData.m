@@ -1,11 +1,9 @@
-%% OpenFOAM Case Initialisation v2.2
+%% OpenFOAM Case Initialisation v2.3
 % ----
 % Initialisation of OpenFOAM v7 Case Data for Further Processing
 % ----
 % Usage: [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-%         xDims, yDims, zDims, spacePrecision, normalise, normLength] = initialiseCaseData(normDims);
-%
-%        'normDims' -> Normalise Dimensions [True/False]
+%         xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
 
 
 %% Changelog
@@ -16,18 +14,19 @@
 % v2.0 - Substantial Rewrite to Accommodate New Data Formats
 % v2.1 - Added Support for Full-Scale Windsor Model Simulations
 % v2.2 - Added 'campaignID' Output
+% v2.3 - Removed Geometry Normalisation (Should Be Done After Processing)
 
 
-%% Supported OpenFOAM Cases
+%% Supported OpenFOAM Campaigns
 
-% Run_Test
-% Windsor_2022
+% Windsor_Upstream_2023
+% Windsor_fullScale
 
 
 %% Main Function
 
 function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims)
+          xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData
 
     % Select Case
     disp('Case Selection');
@@ -40,10 +39,10 @@ function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geome
 
     disp(' ');
 
-    disp(['Case: ', caseID]);
+    disp(['Case: ', campaignID, ', ', caseID]);
 
     % Confirm Support
-    if ~contains(caseID, ["Run_Test", "Windsor"])
+    if ~strcmp(campaignID, 'Windsor_Upstream_2023') && ~strcmp(campaignID, 'Windsor_fullScale')
         error('Invalid Case Directory (Unsupported Case Type)');
     end
     
@@ -56,6 +55,6 @@ function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geome
     disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+    [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
     
 end

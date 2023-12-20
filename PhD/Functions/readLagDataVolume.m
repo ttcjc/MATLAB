@@ -51,7 +51,7 @@ function LagData = readLagDataVolume(saveLoc, caseFolder, campaignID, caseID, da
     disp(' ');
     
     % Reduce Time Instances to Desired Sampling Frequency
-    LagData.time = single(zeros(ceil(height(timeDirs) / sampleInt),1));
+    LagData.time = zeros([ceil(height(timeDirs) / sampleInt),1], 'single');
     nTimes = height(LagData.time);
 
     j = height(timeDirs);
@@ -82,9 +82,10 @@ function LagData = readLagDataVolume(saveLoc, caseFolder, campaignID, caseID, da
         parfor j = 1:nTimes
             propData{j} = readInstPropData(caseFolder, num2str(time(j), '%.7g'), cloudName, prop);
             
+            % Update Waitbar
             send(dQ, []);
         end
-        clear j time;
+        clear time;
         
         delete(wB);
         
@@ -138,6 +139,7 @@ function LagData = readLagDataVolume(saveLoc, caseFolder, campaignID, caseID, da
     valid = false;
     while ~valid
         disp(' ');
+        
         selection = input('Save Data for Future Use? [y/n]: ', 's');
 
         if selection == 'n' | selection == 'N' %#ok<OR2>

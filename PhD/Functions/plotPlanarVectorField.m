@@ -280,9 +280,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
                     tickData = [];
                     xticks(tickData);
-                    tickData = (yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2));
+                    tickData = yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2);
                     yticks(tickData(2:5));
-                    tickData = (zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2));
+                    tickData = zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2);
                     zticks(tickData(2:5));
                     xtickformat('%+.2g');
                     ytickformat('%+.2g');
@@ -368,11 +368,11 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
-                    tickData = round((xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2)), 2);
+                    tickData = xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2);
                     xticks(tickData(2:5));
                     tickData = [];
                     yticks(tickData);
-                    tickData = round((zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2)), 2);
+                    tickData = zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2);
                     zticks(tickData(2:5));
                     xtickformat('%+.2g');
                     ytickformat('%+.2g');
@@ -458,9 +458,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);
-                    tickData = round((xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2)), 2);
+                    tickData = xLimsPlot(1):(diff(xLimsPlot) / 5):xLimsPlot(2);
                     xticks(tickData(2:5));
-                    tickData = round((yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2)), 2);
+                    tickData = yLimsPlot(1):(diff(yLimsPlot) / 5):yLimsPlot(2);
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);

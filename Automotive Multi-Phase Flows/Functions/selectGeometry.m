@@ -2,7 +2,9 @@
 % ----
 % Load One or More ASCII STL Geometry Files for Further Processing
 % ----
-% Usage: [geometry, xDims, yDims, zDims, precision, normLength] = selectGeometry;
+% Usage: [geometry, xDims, yDims, zDims, precision, normLength] = selectGeometry(geoLoc);
+% 
+%        'geoLoc' -> Start of File Path, Stored as a String
 
 
 %% Changelog
@@ -22,7 +24,7 @@
 
 %% Main Function
 
-function [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry
+function [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc)
 
     disp('Geometry Selection');
     disp('-------------------');
@@ -30,7 +32,7 @@ function [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeo
     disp(' ');
     
     % Select STL File(s)
-    [file, path] = uigetfile('~/CAD/CFD Geometries/*.stl', ...
+    [file, path] = uigetfile([geoLoc, '/*.stl'], ...
                              'Select Subject Geometry', 'multiSelect', 'on');
     
     if isa(file, 'cell')

@@ -59,6 +59,7 @@ function [campaignID, caseID, planeID, ...
                     return;
                 else
                     disp('    WARNING: Invalid File Selection');
+                    
                     clear fileName filePath;
                 end
 
@@ -113,7 +114,7 @@ function [campaignID, caseID, planeID, ...
         end
 
     end
-    clear valid
+    clear valid;
 
     campaignID = caseFolder((strfind(caseFolder, 'Experimental/') + 13):(strfind(caseFolder, '/DaVis') - 1));
     caseID = caseFolder((max(strfind(caseFolder, '/')) + 1):end);
@@ -128,14 +129,14 @@ function [campaignID, caseID, planeID, ...
     disp(' COLLATING ');
     
     tic;
+
+    evalc('parpool(nProc);');
     
     %%%%
     
     disp(' ');
     
     disp('    Initialising...');
-    
-    evalc('parpool(nProc);');
     
     % Identify Sampling Frequency
     sampleFreq = str2double(caseID((strfind(caseID, 's_') + 2):(strfind(caseID, 'Hz') - 1)));
@@ -184,7 +185,6 @@ function [campaignID, caseID, planeID, ...
         % Update Waitbar
         send(dQ, []);
     end
-    clear i;
     
     expSprayData.time = time;
     expSprayData.density = density;

@@ -118,6 +118,7 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
     axis on;
     box on;
     grid off;
+    view([30, 30]);
     xlim([xLimsPlot(1), xLimsPlot(2)]);
     ylim([yLimsPlot(1), yLimsPlot(2)]);
     zlim([zLimsPlot(1), zLimsPlot(2)]);

@@ -97,6 +97,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
     end
     
     % Initialise Lagrangian Properties
+%     LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'; 'Uslip'};
     LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'Uslip'};
     LagDataSurface = [];
     LagDataPlane = [];
@@ -319,6 +320,7 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
     disp('    origId');
     disp('    origProcId');
     disp('    positionCartesian');
+%     disp('    U');
     disp('    Uslip');
     
     % Select Times of Interest

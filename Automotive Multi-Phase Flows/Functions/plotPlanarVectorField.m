@@ -52,6 +52,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
     switch orientation
         
         case 'YZ'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,2))), ...
                          height(unique(positionData(:,3)))];
@@ -105,6 +106,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             end
 
         case 'XZ'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,3)))];
@@ -158,6 +160,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             end
             
         case 'XY'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,2)))];
@@ -245,6 +248,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
     switch orientation
         
         case 'YZ'
+            
             % Plot Vector Field
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -289,8 +293,8 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     ztickformat('%+.2g');
                     
                     if normDims
-                        ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
+                        ylabel({'{$y_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         ylabel({'{$y$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
@@ -335,6 +339,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             end
             
         case 'XZ'
+            
             % Plot Vector Field
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -379,8 +384,8 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     ztickformat('%+.2g');
                     
                     if normDims
-                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
+                        xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
@@ -425,6 +430,7 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
             end
 
         case 'XY'
+            
             % Plot Vector Field
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(vector), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -469,8 +475,8 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     ztickformat('%+.2g');
                     
                     if normDims
-                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        ylabel({'{-----}'; '{$y_{\ell}$}'}, 'interpreter', 'latex');
+                        xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        ylabel({'{-----}'; '{$y_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         ylabel({'{-----}'; '{$y$ ($m$)}'}, 'interpreter', 'latex');

@@ -1249,7 +1249,7 @@ if plotInst
 end
 
 if ~plotMean && ~ plotRMS && ~plotInst
-    disp('Skipping Map Presentation');
+    disp('    Skipping Map Presentation');
 end
 
 

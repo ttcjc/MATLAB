@@ -13,9 +13,9 @@ normDims = true; % Normalise Spatial Dimensions
 
 figSave = false; % Save .fig File(s)
 
-disp('============================');
+disp('=============================');
 disp('Base Pressure Processing v3.2');
-disp('============================');
+disp('=============================');
 
 disp(' ');
 disp(' ');
@@ -101,7 +101,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -556,67 +556,59 @@ if plotMean || plotRMS || plotInst
         yLimsPlot = yLimsPlot * normLength;
         zLimsPlot = zLimsPlot * normLength;
     end
+    
+end
 
-    if plotMean
-        disp('    Presenting Time-Averaged Pressure Data...');
-        
-        scalarData = pData.Cp.mean;
-        refPoint = [];
-        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-        figName = ['Average_Cp_', caseID];
+if plotMean
+    disp('    Presenting Time-Averaged Pressure Data...');
 
-        if strcmp(campaignID, 'Windsor_fullScale')
-            cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
+    scalarData = pData.Cp.mean;
+    refPoint = [];
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    figName = ['Average_Cp_', caseID];
+
+    if strcmp(campaignID, 'Windsor_fullScale')
+        cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
 %             cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
-        elseif strcmp(campaignID, 'Varney')
-            cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
-        else
-            cLims = [min(scalarData); max(scalarData)];
-        end
-
-        [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
-                                               xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
-                                               planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                               refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-                                               zLimsPlot, normDims, figSave);
+    elseif strcmp(campaignID, 'Varney')
+        cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
+    else
+        cLims = [min(scalarData); max(scalarData)];
     end
+
+    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                           refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                           zLimsPlot, normDims, figSave);
 
     disp(' ');
 end
 
-% switch format
-%     
-%     case 'B'
-%         
-%         if plotInst
-%             disp('Presenting Instantaneous Pressure Data...');
-%             
-%             figHold = fig;
-%             
-%             for i = 1:nFrames
-%                 
-%                 if i ~= 1
-%                     clf(fig)
-%                     fig = figHold;
-%                 end
-%                 
-%                 scalarData = pData.Cp{i};
-%                 figTime = num2str(pData.time(i), ['%.', num2str(timePrecision), 'f']);
-%                 figName = [caseID, '_Instantaneous_Cp_T', erase(figTime, '.')];
-%                 CoM = pData.CoP{i};
-%                 figSubtitle = [num2str(pData.time(i), ['%.', num2str(timePrecision), 'f']), ' \it{s}'];
-% 
-%                 fig = planarScalarPlots(orientation, xLimsData, yLimsData, zLimsData, positionData, scalarData, ...
-%                                         mapPerim, fig, figName, cMap, geometry, contourlines, ...
-%                                         xDims, yDims, zDims, CoM, figTitle, figSubtitle, cLims, ...
-%                                         xLimsPlot, yLimsPlot, zLimsPlot, normalise);
-%             end
-%             
-%         end
-%         
-% end
+% NYI
+switch format
+    
+    case 'B'
+        
+        if plotRMS
+            disp('    Presenting RMS of Pressure Data...');
+            
+            % Do Stuff
+        end
+        
+        if plotInst
+            disp('    Presenting Instantaneous Pressure Data...');   
+            
+            % Do Stuff
+        end
+        
+end
+
+if ~plotMean && ~ plotRMS && ~plotInst
+    disp('    Skipping Map Presentation');
+end
 
 
 %% Local Functions

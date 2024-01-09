@@ -3,7 +3,9 @@
 % Initialisation of OpenFOAM v7 Case Data for Further Processing
 % ----
 % Usage: [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-%         xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
+%         xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc);
+% 
+%        'geoLoc' -> Start of File Path, Stored as a String
 
 
 %% Changelog
@@ -26,7 +28,7 @@
 %% Main Function
 
 function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
-          xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData
+          xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc)
 
     % Select Case
     disp('Case Selection');
@@ -55,6 +57,6 @@ function [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geome
     disp(' ');
     
     % Select Relevant Geometry and Define Bounding Box
-    [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+    [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
     
 end

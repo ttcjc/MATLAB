@@ -51,6 +51,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
     switch orientation
         
         case 'YZ'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,2))), ...
                          height(unique(positionData(:,3)))];
@@ -85,6 +86,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             end
             
         case 'XZ'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,3)))];
@@ -119,6 +121,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             end
             
         case 'XY'
+            
             % Reshape Data for Improved Interpolation Performance
             gridShape = [height(unique(positionData(:,1))), ...
                          height(unique(positionData(:,2)))];
@@ -187,6 +190,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
     switch orientation
         
         case 'YZ'
+            
             % Plot Scalar Field
             surf(squeeze(x(2,:,:)), squeeze(y(2,:,:)), squeeze(z(2,:,:)), squeeze(scalar(2,:,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -234,8 +238,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normDims
-                        ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
+                        ylabel({'{$y_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         ylabel({'{$y$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
@@ -279,7 +283,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                 planeNo = planeNo + 1;
             end
             
-        case 'XZ'            
+        case 'XZ'  
+            
             % Plot Scalar Field
             surf(squeeze(x(:,2,:)), squeeze(y(:,2,:)), squeeze(z(:,2,:)), squeeze(scalar(:,2,:)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -327,8 +332,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normDims
-                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
+                        xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        zlabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
@@ -373,6 +378,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             end
             
         case 'XY'
+            
             % Plot Scalar Field
             surf(squeeze(x(:,:,2)), squeeze(y(:,:,2)), squeeze(z(:,:,2)), squeeze(scalar(:,:,2)), ...
                  'lineStyle', 'none', 'faceLighting', 'none', 'faceAlpha', 0.95);
@@ -420,8 +426,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     ztickformat('%+.2g');
                     
                     if normDims
-                        xlabel({'{$x_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-                        ylabel({'{-----}'; '{$y_{\ell}$}'}, 'interpreter', 'latex');
+                        xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+                        ylabel({'{-----}'; '{$y_{_{\ell}}$}'}, 'interpreter', 'latex');
                     else
                         xlabel({'{$x$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
                         ylabel({'{-----}'; '{$y$ ($m$)}'}, 'interpreter', 'latex');

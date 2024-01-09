@@ -1,23 +1,27 @@
-%% Volume Field Plotter v2.5
+%% Volume Field Plotter v2.6
 % ----
 % Plots Previously Processed Volume Fields
 % ----
-% Usage: fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
-%                              POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
-%                              viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+% Usage: [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+%                                           xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+%                                           fig, figName, geometry, isoValue, cMap, figTitle, viewAngle, ...
+%                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 %
 %        '*LimsData'   -> Contour Plot Limits [Dimensions of '*Init']
 %        'spatialRes'  -> Target Grid Spacing [Dimensions of '*Init']
 %        '*Init'       -> Initial 3D Arrays of Cartesian Positions
 %        'POD'         -> POD Mode Presentation [True/False]
 %        'fieldData'   -> 3D Array of Field Data @ '*Init' Points
+%        'nSurfaces'   -> Number of Isosurfaces in a Multi-Surface Figure
+%        'surfaceNo'   -> Current Surface Number
 %        'fig'         -> Figure Number
 %        'figName'     -> Figure Name
 %        'geometry'    -> STL(s) to Include in Plot
 %        'isoValue'    -> Field Value Used for Isosurface
 %        'cMap'        -> Colour Map
 %        'figTitle'    -> Figure Title
-%        'viewAngle'   -> View Angle
+%        'viewAngle'   -> Default Viewing Angle
+%        'multiView'   -> Plot Additional Views Normal to Each Co-Ordinate Axis [True/False]
 %        '*LimsPlot'   -> 3D Axes Limits [Dimensions of '*Init']
 %        'figSave'     -> Save .fig File [True/False]
 
@@ -31,13 +35,15 @@
 % v2.3 - Added Spatial Resolution as an Input Variable
 % v2.4 - Added Support for Saving Multiple View Angles
 % v2.5 - Update To Ensure Consistent Figure Sizes
+% v2.6 - Added Support for Multiple Surfaces
 
 
 %% Main Function
 
-function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
-                               POD, fieldData, fig, figName, geometry, isoValue, cMap, figTitle, ...
-                               viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
+function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                            xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+                                            fig, figName, geometry, isoValue, cMap, figTitle, viewAngle, ...
+                                            multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
     % Generate Refined Grid
     cellSizeX = (xLimsData(2) - xLimsData(1)) / round(((xLimsData(2) - xLimsData(1)) / spatialRes));
@@ -72,28 +78,31 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
     end
     
     % Initialise Figure
-    fig = fig + 1;
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                     'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
-    pause(0.5);
-    hold on;
-    set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
-             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
-    lighting gouraud;
-    
-    % Plot Geometry
-    if ~isempty(geometry)
-        parts = fieldnames(geometry);
-
-        for i = 1:height(parts)
-            patch('faces', geometry.(parts{i}).faces, ...
-                  'vertices', geometry.(parts{i}).vertices, ...
-                  'faceColor', [0.5, 0.5, 0.5], ...
-                  'edgeColor', [0.5, 0.5, 0.5], ...
-                  'lineStyle', 'none');
+    if surfaceNo == 1
+        fig = fig + 1;
+        set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                         'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+        pause(0.5);
+        hold on;
+        set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+                 'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+        lighting gouraud;
+        
+        % Plot Geometry
+        if ~isempty(geometry)
+            parts = fieldnames(geometry);
+            
+            for i = 1:height(parts)
+                patch('faces', geometry.(parts{i}).faces, ...
+                      'vertices', geometry.(parts{i}).vertices, ...
+                      'faceColor', [0.5, 0.5, 0.5], ...
+                      'edgeColor', [0.5, 0.5, 0.5], ...
+                      'lineStyle', 'none');
+            end
+            clear i;
+            
         end
-        clear i;
-
+        
     end
 
     % Plot Iso-Surface
@@ -112,53 +121,61 @@ function fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xIni
     end
     
     % Format Figure
-    title('{-----}', 'interpreter', 'latex');
-    subtitle(figTitle);
-    lightangle(0, 45);
-    axis on;
-    box on;
-    grid off;
-    view([30, 30]);
-    xlim([xLimsPlot(1), xLimsPlot(2)]);
-    ylim([yLimsPlot(1), yLimsPlot(2)]);
-    zlim([zLimsPlot(1), zLimsPlot(2)]);
-    tickData = [];
-    xticks(tickData);
-    tickData = [];
-    yticks(tickData);
-    tickData = [];
-    zticks(tickData);
-    hold off;
-    
-    tightInset = get(gca, 'TightInset');
-    set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
-                               (tightInset(2) + 0.00625), ...
-                               (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
-                               (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
-    pause(0.5);
-    hold off;
-    
-    % Save Figure
-    for i = 1:height(viewAngle)
-        view(viewAngle(i,:));
-        
-        if height(viewAngle) == 1
-            print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
-        else
-            print(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.png'], '-dpng', '-r300');
-            pause(0.5);
-        end
-        
-        if figSave
+    if surfaceNo == nSurfaces
+        title('{-----}', 'interpreter', 'latex');
+        subtitle(figTitle);
+        lightangle(0, 45);
+        axis on;
+        box on;
+        grid off;
+        view(viewAngle);
+        xlim([xLimsPlot(1), xLimsPlot(2)]);
+        ylim([yLimsPlot(1), yLimsPlot(2)]);
+        zlim([zLimsPlot(1), zLimsPlot(2)]);
+        tickData = [];
+        xticks(tickData);
+        tickData = [];
+        yticks(tickData);
+        tickData = [];
+        zticks(tickData);
+        hold off;
+
+        tightInset = get(gca, 'TightInset');
+        set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                                   (tightInset(2) + 0.00625), ...
+                                   (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                                   (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+        pause(0.5);
+        hold off;
+
+        % Save Figure
+        if multiView
+            multiAngle = [viewAngle; 0, 0; 0, 90; 90, 0];
             
-            if height(viewAngle) == 1
+            for i = 1:height(multiAngle)
+                view(multiAngle(i,:));
+                
+                print(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.png'], '-dpng', '-r300');
+                
+                pause(0.5);
+                
+                if figSave
+                    savefig(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.fig']);
+                end
+                
+            end
+            
+        else
+            print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+            
+            if figSave
                 savefig(gcf, [userpath, '/Output/Figures/', figName, '.fig']);
-            else
-                savefig(gcf, [userpath, '/Output/Figures/', figName, '_', num2str(i), '.fig']);
             end
             
         end
         
+    else
+        surfaceNo = surfaceNo + 1;
     end
     
 end

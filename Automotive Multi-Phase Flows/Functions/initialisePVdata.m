@@ -13,6 +13,7 @@
 % v1.0 - Initial Commit
 % v1.1 - Minor Update to Support Additional Versatility of 'velocityProcessing.m'
 % v2.0 - Update To Improve Consistency of Structures Across Repository
+% v2.1 - Update To Support Resolved Turbulence Kinetic Energy
 
 
 %% Supported OpenFOAM Cases
@@ -27,6 +28,7 @@
 
 % Pressure: 'p'
 % Velocity: 'U'
+% Resolved TKE: 'kResolved'
 
 
 %% Main Function
@@ -52,25 +54,24 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
     disp(['Case: ', caseID]);
 
     % Confirm Data Availability
-    if ~strcmp(field, 'p') && ~strcmp(field, 'U')
-        error('Invalid Field (Available Options: ''p'' or ''U'')');
+    if ~strcmp(field, 'p') && ~strcmp(field, 'kResolved') && ~strcmp(field, 'U')
+        error('Invalid Field (Available Options: ''p'', ''kResolved'', or ''U'')');
     end
 
     switch field
 
-        case 'p'
-            fieldLabel = 'Pressure';
+        case {'p', 'kResolved'}
+            fieldType = 'scalar';
             
-            dataFiles = dir([caseFolder, '/p_*.csv']);
-
         case 'U'
-            fieldLabel = 'Velocity';
-            dataFiles = dir([caseFolder, '/U_*.csv']);
+            fieldType = 'vector';
 
     end
     
+    dataFiles = dir([caseFolder, '/', field, '_*.csv']);
+    
     if isempty(dataFiles)
-        error(['Invalid Case Directory (No ', fieldLabel, ' Data Found)']);
+        error(['Invalid Case Directory (No ', field, ' Data Found)']);
     end
             
     
@@ -105,13 +106,13 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
         content = readmatrix([caseFolder, '/', dataFiles(i).name]);
         
         % Format Data
-        switch field
+        switch fieldType
 
-            case 'p'
+            case 'scalar'
                 PVdata.(plane).positionGrid = content(:,[1,2,3]);
-                PVdata.(plane).p.mean = content(:,4);
+                PVdata.(plane).(field).mean = content(:,4);
 
-            case 'U'
+            case 'vector'
                 PVdata.(plane).positionGrid = content(:,[1,2,3]);
                 PVdata.(plane).u.mean = content(:,4);
                 PVdata.(plane).v.mean = content(:,5);
@@ -156,12 +157,12 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
         
         PVdata.(plane).positionGrid = PVdata.(plane).positionGrid(index,:);
         
-        switch field
+        switch fieldType
             
-            case 'p'
-                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
+            case 'scalar'
+                PVdata.(plane).(field).mean = PVdata.(plane).(field).mean(index);
 
-            case 'U'
+            case 'vector'
                 PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
                 PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
                 PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);
@@ -171,12 +172,12 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
         % Remove Duplicate Entries
         [PVdata.(plane).positionGrid, index] = unique(PVdata.(plane).positionGrid, 'rows', 'stable');
         
-        switch field
+        switch fieldType
             
-            case 'p'
-                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
+            case 'scalar'
+                PVdata.(plane).(field).mean = PVdata.(plane).(field).mean(index);
 
-            case 'U'
+            case 'vector'
                 PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
                 PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
                 PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);
@@ -186,12 +187,12 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
         % Sort Position Grid for 'ndgrid' Compatibility
         [PVdata.(plane).positionGrid, index] = sortrows(PVdata.(plane).positionGrid, [3, 2, 1]);
         
-        switch field
+        switch fieldType
             
-            case 'p'
-                PVdata.(plane).p.mean = PVdata.(plane).p.mean(index);
+            case 'scalar'
+                PVdata.(plane).(field).mean = PVdata.(plane).(field).mean(index);
 
-            case 'U'
+            case 'vector'
                 PVdata.(plane).u.mean = PVdata.(plane).u.mean(index);
                 PVdata.(plane).v.mean = PVdata.(plane).v.mean(index);
                 PVdata.(plane).w.mean = PVdata.(plane).w.mean(index);

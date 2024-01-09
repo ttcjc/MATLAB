@@ -1,4 +1,4 @@
-%% Planar Velocity Processing v5.2
+%% Planar Velocity Processing v5.3
 % ----
 % Load, Process and Present Experimental and Numerical Planar Velocity Profiles
 
@@ -30,6 +30,7 @@ disp(' ');
 % v5.0 - Update To Improve Consistency of Structures Across Repository
 % v5.1 - Minor Update to Shift Preamble Into Separate Script
 % v5.2 - Updates To Correct Inconsistent Normalisation Throughout Repository
+% v5.3 - Removed Blockage Correction
 
 
 %% Select Data Format
@@ -111,7 +112,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -459,54 +460,6 @@ end
 
 disp(' ');
 
-% Perform Blockage Correction
-disp('    Performing Blockage Correction...');
-
-switch format
-    
-    case 'A'
-        
-        if strcmp(campaignID, 'Windsor_Upstream_2023')
-            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-            
-            for i = 1:height(planes)
-                uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
-                uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
-                uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
-            end
-            clear i;
-            
-        end
-
-end
-
-%     case 'B'
-%         
-%         if contains(caseName, 'Run_Test') || (contains(caseName, 'Windsor') && contains(caseName, 'Upstream'))
-%             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-%             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-%             
-%             for i = 1:height(planes)
-%                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean * (At / (At - Am));
-%                 uData.(planes{i}).v.mean = uData.(planes{i}).v.mean * (At / (At - Am));
-%                 uData.(planes{i}).w.mean = uData.(planes{i}).w.mean * (At / (At - Am));
-%                 
-%                 for j = 1:height(uData.(planes{i}).time)
-%                     uData.(planes{i}).u{j} = uData.(planes{i}).u{j} * (At / (At - Am));
-%                     uData.(planes{i}).v{j} = uData.(planes{i}).v{j} * (At / (At - Am));
-%                     uData.(planes{i}).w{j} = uData.(planes{i}).w{j} * (At / (At - Am));
-%                     uData.(planes{i}).uPrime{j} = uData.(planes{i}).uPrime{j} * (At / (At - Am));
-%                     uData.(planes{i}).vPrime{j} = uData.(planes{i}).vPrime{j} * (At / (At - Am));
-%                     uData.(planes{i}).wPrime{j} = uData.(planes{i}).wPrime{j} * (At / (At - Am));
-%                 end
-%                 
-%             end
-%             
-%         end
-
-disp(' ');
-
 % Calculate Vorticity
 disp('    Calculating Vorticity...');
 
@@ -814,169 +767,150 @@ disp('Map Presentation');
 disp('-----------------');
 
 disp(' ');
+        
+if plotMean || plotRMS || plotInst
 
-switch format
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        spatialRes = 0.5e-3;
+    else
+        spatialRes = 0.5e-3;
+    end
 
-    case {'A', 'C'}
-        
-        if plotMean || plotRMS
-            
-            if strcmp(campaignID, 'Windsor_fullScale')
-                spatialRes = 2e-3;
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                spatialRes = 0.5e-3;
-            else
-                spatialRes = 0.5e-3;
-            end
-            
-            if normDims
-                spatialRes = spatialRes / normLength;
-            end
-            
-            component = [];
-            mapPerim = [];
-            nPlanes = 1;
-            planeNo = 1;
-            figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-        end
-        
-        if plotMean
-            
-            for i = 1:height(plotPlanes)
-                disp(['    Presenting ', plotPlanes{i}, '...']);
-                
-                if contains(plotPlanes{i}, '_X_')
-                    orientation = 'YZ';
-                elseif contains(plotPlanes{i}, '_Y_')
-                    orientation = 'XZ';
-                else
-                    orientation = 'XY';
-                end
-        
-                positionData = uData.(plotPlanes{i}).positionGrid;
-                vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
-        
-                switch orientation
-        
-                    case 'YZ'
-                        xLimsPlot = [0.3; 4.6257662];
-                        yLimsPlot = [-0.5; 0.5];
-                        zLimsPlot = [0; 0.5];
-        
-                    case {'XZ', 'XY'}
-                        xLimsPlot = [0.3; 1.2];
-                        yLimsPlot = [-0.3; 0.3];
-                        zLimsPlot = [0; 0.5];
-                
-                end
-                
-                if ~normDims
+    if normDims
+        spatialRes = spatialRes / normLength;
+    end
 
-                    if strcmp(campaignID, 'Windsor_fullScale')
-                        xLimsPlot = round((xLimsPlot * 4.176), spacePrecision);
-                        yLimsPlot = round((yLimsPlot * 4.176), spacePrecision);
-                        zLimsPlot = round((zLimsPlot * 4.176), spacePrecision);
-                    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                        xLimsPlot = round((xLimsPlot * 1.044), spacePrecision);
-                        yLimsPlot = round((yLimsPlot * 1.044), spacePrecision);
-                        zLimsPlot = round((zLimsPlot * 1.044), spacePrecision);
-                    end
+    component = [];
+    mapPerim = [];
+    nPlanes = 1;
+    planeNo = 1;
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+end
+        
+if plotMean
 
-                end
-                
-                switch orientation
-        
-                    case 'YZ'
-                        xLimsData = uData.(plotPlanes{i}).positionGrid(1,1);
-                        yLimsData = yLimsPlot;
-                        zLimsData = zLimsPlot;
-        
-                    case 'XZ'
-                        xLimsData = xLimsPlot;
-                        yLimsData = uData.(plotPlanes{i}).positionGrid(1,2);
-                        zLimsData = zLimsPlot;
-        
-                    case 'XY'
-                        xLimsData = xLimsPlot;
-                        yLimsData = yLimsPlot;
-                        zLimsData = uData.(plotPlanes{i}).positionGrid(1,3);
-        
-                end
+    for i = 1:height(plotPlanes)
+        disp(['    Presenting ', plotPlanes{i}, '...']);
 
-                switch orientation
-                    
-                    case 'YZ'
-                        nComponents = 3;
-                        
-                    case {'XZ', 'XY'}
-                        nComponents = 2;
-                        
-                end
-                
-                figName = [plotPlanes{i}, '_', caseID];
-                cMap = viridis(32);
-                streamlines = true;
-                cLims = [0, 1];
-                                    
-                [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
-                                                       xLimsData, yLimsData, zLimsData, nComponents, component, ...
-                                                       mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
-                                                       streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-                                                       zLimsPlot, normDims, figSave);
-                
-                if plotVort
-                    scalarData = uData.(plotPlanes{i}).vorticity.mean;
-                    figName = [plotPlanes{i}, '_Vorticity_', caseID];
-                    cMap = cool2warm(32);
-                    contourlines = [];
-                    refPoint = [];
-                    cLims = [-1; 1];
-                    
-                    [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
-                                                           xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
-                                                           planeNo, fig, figName, cMap, geometry, contourlines, ...
-                                                           refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
-                                                           zLimsPlot, normDims, figSave);
-                end
-            end
-            
-            disp(' ');
+        if contains(plotPlanes{i}, '_X_')
+            orientation = 'YZ';
+        elseif contains(plotPlanes{i}, '_Y_')
+            orientation = 'XZ';
+        else
+            orientation = 'XY';
         end
 
+        positionData = uData.(plotPlanes{i}).positionGrid;
+        vectorData = [uData.(plotPlanes{i}).u.mean, uData.(plotPlanes{i}).v.mean, uData.(plotPlanes{i}).w.mean];
+
+        switch orientation
+            
+            case 'YZ'
+                xLimsPlot = [0.3; 4.625766283524905];
+                yLimsPlot = [-0.5; 0.5];
+                zLimsPlot = [0; 0.5];
+                
+            case {'XZ', 'XY'}
+                xLimsPlot = [0.3; 1.2];
+                yLimsPlot = [-0.3; 0.3];
+                zLimsPlot = [0; 0.5];
+                
+%                 xLimsPlot = [0.3; 0.9];
+%                 yLimsPlot = [0; 0.3];
+%                 zLimsPlot = [0; 0.5];
+                
+        end
+
+        if ~normDims
+            xLimsPlot = xLimsPlot * normLength;
+            yLimsPlot = yLimsPlot * normLength;
+            zLimsPlot = zLimsPlot * normLength;
+        end
+
+        switch orientation
+
+            case 'YZ'
+                xLimsData = uData.(plotPlanes{i}).positionGrid(1,1);
+                yLimsData = yLimsPlot;
+                zLimsData = zLimsPlot;
+
+            case 'XZ'
+                xLimsData = xLimsPlot;
+                yLimsData = uData.(plotPlanes{i}).positionGrid(1,2);
+                zLimsData = zLimsPlot;
+
+            case 'XY'
+                xLimsData = xLimsPlot;
+                yLimsData = yLimsPlot;
+                zLimsData = uData.(plotPlanes{i}).positionGrid(1,3);
+
+        end
+
+        switch orientation
+
+            case 'YZ'
+                nComponents = 3;
+
+            case {'XZ', 'XY'}
+                nComponents = 2;
+
+        end
+
+        figName = [plotPlanes{i}, '_', caseID];
+        cMap = viridis(32);
+        streamlines = true;
+        cLims = [0, 1];
+
+        [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
+                                               xLimsData, yLimsData, zLimsData, nComponents, component, ...
+                                               mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
+                                               streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                               zLimsPlot, normDims, figSave);
+
+        if plotVort
+            scalarData = uData.(plotPlanes{i}).vorticity.mean;
+            figName = [plotPlanes{i}, '_Vorticity_', caseID];
+            cMap = cool2warm(32);
+            contourlines = [];
+            refPoint = [];
+            cLims = [-1; 1];
+
+            [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
+                                                   xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
+                                                   planeNo, fig, figName, cMap, geometry, contourlines, ...
+                                                   refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                   zLimsPlot, normDims, figSave);
+        end
+        
+    end
+
+    disp(' ');
 end
 
-% switch format
-% 
-%     case 'B'
-% 
-%         if plotInst
-%             for i = 1:height(plotPlanes)
-%                 figHold = fig;
-%                 
-%                 for j = 1:nFrames
-%                     
-%                     if j ~= 1
-%                         clf(fig)
-%                         fig = figHold;
-%                     end
-% 
-%                     vectorData = [uData.(plotPlanes{i}).u{j}, uData.(plotPlanes{i}).v{j}, uData.(plotPlanes{i}).w{j}];
-%                     figTime = num2str(uData.(plotPlanes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
-%                     figName = [caseName, '_', plotPlanes{i}, '_T', erase(figTime, '.')];
-%                     figSubtitle = [figTime, ' \it{s}'];
-%                     
-%                     [fig, planeNo] = plotPlanarVectorField_legacy(orientation, xLimsData, yLimsData, zLimsData, positionData, ...
-%                                                                   vectorData, nComponents, component, mapPerim, ...
-%                                                                   nPlanes, planeNo, fig, figName, cMap, geometry, ...
-%                                                                   streamlines, xDims, yDims, zDims, figTitle, figSubtitle, ...
-%                                                                   cLims, xLimsPlot, yLimsPlot, zLimsPlot, normalise, figSave);
-%                 end
-%                 
-%             end
-%             
-%         end
-%         
-% end
+% NYI
+switch format
+    
+    case 'B'
+        
+        if plotRMS
+            disp('    Presenting RMS of Pressure Data...');
+            
+            % Do Stuff
+        end
+        
+        if plotInst
+            disp('    Presenting Instantaneous Pressure Data...');   
+            
+            % Do Stuff
+        end
+        
+end
+
+if ~plotMean && ~ plotRMS && ~plotInst
+    disp('    Skipping Map Presentation');
+end
 
 
 %% Local Functions

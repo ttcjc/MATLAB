@@ -1,8 +1,16 @@
-%% Probe Data Initialisation v2.0
+%% Probe Data Initialisation v2.1
 % ----
 % Initialisation of OpenFOAM v7 Probe Data for Further Processing
 % ----
-% Usage: [] = initialiseProbeData();
+% Usage: [caseFolder, campaignID, caseID, timeDirs, deltaT, ...
+%         timePrecision, dataID, probeData, sampleInt] = initialiseProbeData(saveLoc, nProc, ...
+%                                                                            probeType, probeRegion);
+%
+%        'saveLoc'     -> Start of File Path, Stored as a String
+%        'nProc'       -> Number of Processors Used for Parallel Collation
+%        'probeType'   -> Probe Type, Stored as a String (See Supported Probe Types)
+%        'probeRegion' -> Probe Region, Stored as a String (See OpenFOAM case)
+
 
 %% Changelog
 
@@ -10,6 +18,7 @@
 % v1.1 - Minor Update to Support Additional Versatility of 'velocityProcessing.m'
 % v1.2 - Added Support for Volumetric or Planar Data Extraction
 % v2.0 - Update To Merge Functionality of 'initialiseVelocityProbeData' and 'initialisePressureProbeData'
+% v2.1 - Offloaded Planar Data Extraction to 'planarProbeDataExtraction'
 
 
 %% Supported OpenFOAM Campaigns
@@ -18,11 +27,10 @@
 % Windsor_fullScale
 
 
-%% Supported Processing Formats
+%% Supported Probe Types
 
-% Volumetric:       'volume'
-% Multiple Planes:  'multiPlane'
-% Isolated Plane:   'singlePlane'
+% Pressure: 'pProbes'
+% Velocity: 'uProbes'
 
 
 %% Main Function
@@ -30,8 +38,8 @@
 %#ok<*OR2>
 
 function [caseFolder, campaignID, caseID, timeDirs, deltaT, ...
-          timePrecision, dataID, probeData, sampleInt] = initialiseProbeData(saveLoc, nProc, probeType, ...
-                                                                             probeRegion, extractFormat)
+          timePrecision, dataID, probeData, sampleInt] = initialiseProbeData(saveLoc, nProc, ...
+                                                                             probeType, probeRegion)
     
     % Select Case
     disp('Case Selection');
@@ -103,40 +111,5 @@ function [caseFolder, campaignID, caseID, timeDirs, deltaT, ...
         end
     
     end
-    
-    if strcmp(extractFormat, 'volume')
-        return;
-    end
-    
-    disp(' ');
-    disp(' ');
-    
-    % Extract Planar Probe Data
-    if strcmp(extractFormat, 'singlePlane')
-        volumeSlice = identifyVolumeSlices(probeData.positionGrid, spacePrecision, false, false);
-    else
-        volumeSlice = identifyVolumeSlices(probeData.positionGrid, spacePrecision, true, false);
-    end
-    
-    switch orientation
-        
-        case 'YZ'
-            index = find((probeData.positionGrid(:,1) == volumeSlice.xLims) & ...
-                         ((probeData.positionGrid(:,2) >= volumeSlice.yLims(1)) & ...
-                          (probeData.positionGrid(:,2) <= volumeSlice.yLims(2))) & ...
-                         ((probeData.positionGrid(:,3) >= volumeSlice.zLims(1)) & ...
-                          (probeData.positionGrid(:,3) <= volumeSlice.zLims(2))));
-        
-        case 'XZ'
-        
-        case 'XY'
-            
-    end
-    
-    % Collate Planar Probe Data
-    probeData.positionGrid = probeData.positionGrid(index,:);
-    probeData.u = probeData.u(index);
-    probeData.v = probeData.v(index);
-    probeData.w = probeData.w(index);
     
 end

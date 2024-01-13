@@ -113,6 +113,7 @@ disp(' ');
 % Map Raw Data Onto Uniform Grid
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
+% Set Target Spatial Resolution
 if strcmp(campaignID, 'Windsor_fullScale')
     cellSize.target = 4e-3;
 elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -162,7 +163,8 @@ for i = 1:height(planes)
             fieldData.(planes{i}).positionGrid = zeros([height(y(:)),3]);
             fieldData.(planes{i}).positionGrid(:,1) = xLimsData;
             fieldData.(planes{i}).positionGrid(:,[2,3]) = [y(:), z(:)];
-
+            
+            % Perform Interpolation
             fieldInterp = scatteredInterpolant(yOrig, zOrig, fieldData.(planes{i}).(field).mean, ...
                                                'linear', 'none');
 
@@ -198,7 +200,8 @@ for i = 1:height(planes)
             fieldData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
             fieldData.(planes{i}).positionGrid(:,2) = yLimsData;
             fieldData.(planes{i}).positionGrid(:,[1,3]) = [x(:), z(:)];
-
+            
+            % Perform Interpolation
             fieldInterp = scatteredInterpolant(xOrig, zOrig, fieldData.(planes{i}).(field).mean, ...
                                                'linear', 'none');
 
@@ -234,7 +237,8 @@ for i = 1:height(planes)
             fieldData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
             fieldData.(planes{i}).positionGrid(:,3) = zLimsData;
             fieldData.(planes{i}).positionGrid(:,[1,2]) = [x(:), y(:)];
-
+            
+            % Perform Interpolation
             fieldInterp = scatteredInterpolant(xOrig, yOrig, fieldData.(planes{i}).(field).mean, ...
                                                'linear', 'none');
 

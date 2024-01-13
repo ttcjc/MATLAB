@@ -45,7 +45,7 @@ disp(' ');
 %% Initialise Case
 
 [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
+ xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -623,7 +623,7 @@ disp(' ');
 disp('    Generating Fluctuating Spray Maps...');
 
 % Calculate Instantaneous Field Fluctuations
-disp('        Calculating Instantaneous Field Fluctuations...');
+disp('        Calculating Instantaneous Field Fluctuations');
 
 % Initialise Progress Bar
 wB = waitbar(0, 'Calculating Instantaneous Field Fluctuations', 'name', 'Progress');
@@ -649,10 +649,10 @@ clear i;
 delete(wB);
 
 % Calculate RMS of Field Variables
-disp('        Calculating RMS of Field Variables');
+disp('        Calculating RMS of Field Fluctuations');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating RMS of Field Variables', 'name', 'Progress');
+wB = waitbar(0, 'Calculating RMS of Field Fluctuations', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
@@ -889,13 +889,13 @@ if plotMean || plotRMS || plotInst
         delete(wB);
     end
     
-    % Normalise Contaminant Maps
+    % Normalise Spray Density
     if normDensity
         disp(' ');
 
-        disp('    Normalising Area Density...');
+        disp('    Normalising Spray Density...');
 
-        wB = waitbar(0, 'Normalising Area Density', 'name', 'Progress');
+        wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
 
         mapData.areaDensity.mean = mapData.areaDensity.mean / normValue;

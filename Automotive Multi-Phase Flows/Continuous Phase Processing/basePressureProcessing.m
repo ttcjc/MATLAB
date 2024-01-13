@@ -231,6 +231,7 @@ pData.positionGrid = zeros([height(y(:)),3]);
 pData.positionGrid(:,1) = xLimsData;
 pData.positionGrid(:,[2,3]) = [y(:), z(:)];
 
+% Perform Interpolation
 switch format
     
     case 'A'

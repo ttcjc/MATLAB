@@ -232,17 +232,17 @@ end
 switch format
     
     case 'A' % 1 L
-        xLimsData = [0.3; 1.4628831] * normLength;
+        xLimsData = [0.3; 1.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
         
     case 'B' % 2 L
-        xLimsData = [0.3; 2.4628831] * normLength;
+        xLimsData = [0.3; 2.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
         
     case 'C' % 4 L
-        xLimsData = [0.3; 4.4628831] * normLength;
+        xLimsData = [0.3; 4.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
 

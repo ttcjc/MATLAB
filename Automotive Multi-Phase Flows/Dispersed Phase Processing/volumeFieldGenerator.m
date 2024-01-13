@@ -14,7 +14,7 @@ cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 normDims = true; % Normalise Spatial Dimensions
 
 normDensity = true; % Normalise Area Density in Plots
-    normValue = 1; % Windsor_SB_wW_Upstream_SC
+    normValue = 0.515984855628156; % Windsor_SB_wW_Upstream_SC
 
 figSave = false; % Save .fig File(s)
 
@@ -28,7 +28,7 @@ disp(' ');
 
 %% Changelog
 
-% v1.0 - Initial Commit
+% v1.0 - Origial Commit
 % v1.1 - Updated calls to 'globalPos' to 'positionCartesian'
 % v1.2 - Updated to Support Changes to 'timeDirectories.m'
 % v2.0 - Rewritten to Follow Recent Lagrangian Processing Structure Changes
@@ -46,7 +46,7 @@ disp(' ');
 %% Initialise Case
 
 [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData;
+ xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -232,17 +232,17 @@ end
 switch format
     
     case 'A' % 1 L
-        xLimsData = [0.3; 1.4628831] * normLength;
+        xLimsData = [0.3; 1.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
         
     case 'B' % 2 L
-        xLimsData = [0.3; 2.4628831] * normLength;
+        xLimsData = [0.3; 2.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
         
     case 'C' % 4 L
-        xLimsData = [0.3; 4.4628831] * normLength;
+        xLimsData = [0.3; 4.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
 
@@ -415,10 +415,9 @@ d32 = nParticles; % Sauter Mean Diameter in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
 
 d_tmp = zeros([nCells,1]);
-nParticle = cellfun(@double, LagData.nParticle, 'uniformOutput', false);
-d = cellfun(@double, LagData.d, 'uniformOutput', false);
+nParticle = cellfun(@double, LagData.nParticle, 'uniformOutput', false);  LagData.nParticle = -1;
+d = cellfun(@double, LagData.d, 'uniformOutput', false);  LagData.d = -1;
 cellVolume = cellSize.volume;
-clear LagData;
 parfor i = 1:nTimes
     
     if totalParticles(i) > 0
@@ -448,8 +447,10 @@ parfor i = 1:nTimes
         d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
         
         % Set Empty Cells Back to Zero
-        d32{i}(isnan(d32{i})) = 0;
-        d10{i}(isnan(d10{i})) = 0;
+        indexNaN = isnan(d10{i});
+        
+        d32{i}(indexNaN) = 0;
+        d10{i}(indexNaN) = 0;
     end
     
     % Make Arrays Sparse
@@ -466,9 +467,11 @@ parfor i = 1:nTimes
     % Update Waitbar
     send(dQ, []);
 end
-clear index nParticle d d_tmp;
+clear index d_tmp nParticle d cellVolume;
 
 delete(wB);
+
+clear LagData index;
 
 volumeData.nParticles.inst = nParticles; clear nParticles;
 volumeData.density.inst = density; clear density;
@@ -693,7 +696,29 @@ if plotMean || plotInst
 
         volumeData.positionGrid = volumeData.positionGrid / normLength;
     end
+    
+    % Normalise Spray Density
+    if normDensity
+        disp(' ');
 
+        disp('    Normalising Spray Density...');
+
+        wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        volumeData.density.mean = volumeData.density.mean / normValue;
+
+        for i = 1:nTimes
+            volumeData.density.inst{i} = volumeData.density.inst{i} / normValue;
+
+            % Update Waitbar
+            waitbar((i / nTimes), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
 end
 
 disp(' ');
@@ -713,10 +738,12 @@ if plotMean || plotInst
                  height(unique(volumeData.positionGrid(:,3)))];
              
     spatialRes = cellSize.target / 2;
-    xInit = reshape(volumeData.positionGrid(:,1), gridShape);
-    yInit = reshape(volumeData.positionGrid(:,2), gridShape);
-    zInit = reshape(volumeData.positionGrid(:,3), gridShape);
+    xOrig = reshape(volumeData.positionGrid(:,1), gridShape);
+    yOrig = reshape(volumeData.positionGrid(:,2), gridShape);
+    zOrig = reshape(volumeData.positionGrid(:,3), gridShape);
     POD = false;
+    nSurfaces = 1;
+    surfaceNo = 1;
     
     if strcmp(campaignID, 'Windsor_fullScale')
         
@@ -742,20 +769,22 @@ if plotMean || plotInst
         cMap = graphColours(1);
     end
     
+    viewAngle = [30, 30];
+    
     switch format
 
         case 'A' % 1 L
-            xLimsPlot = [0.3; 1.5128831];
+            xLimsPlot = [0.3; 1.625766283524905];
             yLimsPlot = [-0.55; 0.55];
             zLimsPlot = [0; 0.55];
 
         case 'B' % 2 L
-            xLimsPlot = [0.3; 2.5128831];
+            xLimsPlot = [0.3; 2.625766283524905];
             yLimsPlot = [-0.55; 0.55];
             zLimsPlot = [0; 0.55];
 
         case 'C' % 4 L
-            xLimsPlot = [0.3; 4.5128831];
+            xLimsPlot = [0.3; 4.625766283524905];
             yLimsPlot = [-0.55; 0.55];
             zLimsPlot = [0; 0.55];
 
@@ -772,25 +801,19 @@ end
 if plotMean
     disp('    Presenting Time-Averaged Volume Field...');
     
-    fieldData = reshape(full(volumeData.density.mean / max(volumeData.density.mean)), gridShape);
+    fieldData = reshape(full(volumeData.density.mean), gridShape);
     
     if strcmp(campaignID, 'Windsor_fullScale')
-        isoValue = [1.5e-3; 2.5e-5]; % Normalised
+        isoValue = -1;
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        isoValue = [1.5e-3; 2.5e-5]; % Normalised
+        isoValue = [1.25e-3; 1.25e-4];
     else
-        isoValue = 1e-3;
+        isoValue = 1e-4 * max(volumeData.density.mean);
     end
     
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    multiView = true;
     
-%     viewAngle = [0, 0;
-%                  0, 90;
-%                  90, 0;
-%                  30, 30];
-    
-       viewAngle = [30, 30];
-             
     for i = 1:height(isoValue)
         
         switch format
@@ -806,9 +829,10 @@ if plotMean
 
         end
         
-        fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
-                              POD, fieldData, fig, figName, geometry, isoValue(i), cMap, figTitle, ...
-                              viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+        [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                           fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
         
     end
     clear i;
@@ -820,14 +844,14 @@ if plotInst
     disp('    Presenting Instantaneous Volume Field...');
     
     if strcmp(campaignID, 'Windsor_fullScale')
-        isoValue = 5e-3; % Normalised
+        isoValue = -1;
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        isoValue = 5e-3; % Normalised
+        isoValue = 2.5e-3;
     else
-        isoValue = 1e-3;
+        isoValue = 1e-3 * max(volumeData.density.mean);
     end
     
-    viewAngle = [30, 30];
+    multiView = false;
     
     for i = 1:height(isoValue)
         figHold = fig;
@@ -839,7 +863,7 @@ if plotInst
                 fig = figHold;
             end
             
-            fieldData = reshape(full(volumeData.density.inst{j} / max(volumeData.density.mean)), gridShape);
+            fieldData = reshape(full(volumeData.density.inst{j}), gridShape);
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
 
             switch format
@@ -860,9 +884,10 @@ if plotInst
 
             figTitle = ['{', figTime, ' \it{s}}'];
             
-            fig = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, xInit, yInit, zInit, ...
-                                  POD, fieldData, fig, figName, geometry, isoValue(i), cMap, figTitle, ...
-                                  viewAngle, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+            [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                               xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                               fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                               multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 
         end
         clear j;

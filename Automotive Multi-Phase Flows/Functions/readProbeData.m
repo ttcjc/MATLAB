@@ -2,8 +2,20 @@
 % ----
 % Collates and Optionally Saves OpenFOAM v7 Probe Data Generated using 'PODmeshGenerator.m'
 % ----
-% Usage: [] = readProbeData();
-
+% Usage: [dataID, probeData, sampleInt] = readProbeData(saveLoc, caseFolder, campaignID, caseID, ...
+%                                                       timeDirs, deltaT, timePrecision, ...
+%                                                       probeType, probeRegion, nProc);
+%
+%        'saveLoc'       -> Start of File Path, Stored as a String
+%        'caseFolder'    -> Case Path, Stored as s String
+%        'campaignID'    -> Campaign ID, Stored as a String
+%        'caseID'        -> Case Name, Stored as a String
+%        'timeDirs'      -> Time Directories, Obtained With 'timeDirectories.m'
+%        'deltaT'        -> Time Delta Between Directiories, Obtained With 'timeDirectories.m'
+%        'timePrecision' -> Required Rounding Precision for 'deltaT', Obtained With 'timeDirectories.m'
+%        'probeType'     -> Probe Type, Stored as a String (See Supported Probe Types)
+%        'probeRegion'   -> Probe Region, Stored as a String (See OpenFOAM case)
+%        'nProc'         -> Number of Processors Used for Parallel Collation
 
 %% Changelog
 
@@ -21,8 +33,8 @@
 
 %% Supported Probe Types
 
-% Pressure: 'probesPressure'
-% Velocity: 'probesVelocity'
+% Pressure: 'pProbes'
+% Velocity: 'uProbes'
 
 
 %% Main Function
@@ -162,12 +174,12 @@ function [dataID, probeData, sampleInt] = readProbeData(saveLoc, caseFolder, cam
     % Identify Probe Points
     switch probeType
 
-        case 'probesPressure'
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', ...
+        case 'pProbes'
+            fileID = fopen([caseFolder, '/postProcessing/probesPressure/', ...
                            num2str(probeData.time(1), '%.7g'), '/', probeRegion, '_p.xy']);
             
-        case 'probesVelocity'
-            fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', ...
+        case 'uProbes'
+            fileID = fopen([caseFolder, '/postProcessing/probesVelocity/', ...
                            num2str(probeData.time(1), '%.7g'), '/', probeRegion, '_U.xy']);
             
     end
@@ -181,7 +193,7 @@ function [dataID, probeData, sampleInt] = readProbeData(saveLoc, caseFolder, cam
     disp(' ');
     
     % Collate Instantaneous Field Data
-    disp('    Collating Instantaneous Field Data');
+    disp('    Collating Instantaneous Field Data...');
     
     % Initialise Progress Bar
     wB = waitbar(0, 'Collating Instantaneous Field Data', 'name', 'Progress');
@@ -194,30 +206,30 @@ function [dataID, probeData, sampleInt] = readProbeData(saveLoc, caseFolder, cam
     % Perform Collation
     switch probeType
 
-        case 'probesPressure'
+        case 'pProbes'
             p = cell(nTimes,1);
 
             time = probeData.time;
             parfor i = 1:nTimes
-                p{i} = readInstPressureData(caseFolder, probeType, ...
-                                            num2str(time(i), '%.7g'), probeRegion, index);
+                p{i} = readInstPressureData(caseFolder, num2str(time(i), '%.7g'), ...
+                                            probeRegion, index);
                 
                 % Update Waitbar
                 send(dQ, []);
             end
             clear time;
             
-            probeData.p = p; clear p;
+            probeData.p.inst = p; clear p;
             
-        case 'probesVelocity'
+        case 'uProbes'
             u = cell(height(probeData.time),1);
             v = cell(height(probeData.time),1);
             w = cell(height(probeData.time),1);
 
             time = probeData.time;
             parfor i = 1:nTimes
-                [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, probeType, ...
-                                                          num2str(time(i), '%.7g'), probeRegion, index);
+                [u{i}, v{i}, w{i}] = readInstVelocityData(caseFolder, num2str(time(i), '%.7g'), ...
+                                                          probeRegion, index);
                 
                 % Update Waitbar
                 send(dQ, []);
@@ -235,10 +247,10 @@ function [dataID, probeData, sampleInt] = readProbeData(saveLoc, caseFolder, cam
     % Order Struct Fields
     switch probeType
         
-        case 'probesPressure'
+        case 'pProbes'
             probeData = orderfields(probeData, {'positionGrid', 'time', 'p'});
             
-        case 'probesVelocity'
+        case 'uProbes'
             probeData = orderfields(probeData, {'positionGrid', 'time', 'u', 'v', 'w'});
             
     end
@@ -324,9 +336,9 @@ function sampleInt = inputFreq(origFreq)
 end
 
 
-function  p = readInstPressureData(caseFolder, probeType, time, probeRegion, index)
+function  p = readInstPressureData(caseFolder, time, probeRegion, index)
 
-    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', time, '/', probeRegion, '_p.xy']);
+    fileID = fopen([caseFolder, '/postProcessing/probesPressure/', time, '/', probeRegion, '_p.xy']);
     content = cell2mat(textscan(fileID, '%*f32 %*f32 %*f32 %f32', 'delimiter', '\n'));
     fclose(fileID);
 
@@ -335,9 +347,9 @@ function  p = readInstPressureData(caseFolder, probeType, time, probeRegion, ind
 end
 
 
-function  [u, v, w] = readInstVelocityData(caseFolder, probeType, time, probeRegion, index)
+function  [u, v, w] = readInstVelocityData(caseFolder, time, probeRegion, index)
 
-    fileID = fopen([caseFolder, '/postProcessing/', probeType, '/', time, '/', probeRegion, '_U.xy']);
+    fileID = fopen([caseFolder, '/postProcessing/probesVelocity/', time, '/', probeRegion, '_U.xy']);
     content = cell2mat(textscan(fileID, '%*f32 %*f32 %*f32 %f32 %f32 %f32', 'delimiter', '\n'));
     fclose(fileID);
 

@@ -127,7 +127,7 @@ function [fig, PODdata, modesEnergetic, modes90, Ns, Nt] = performPOD(fig, PODda
     pause(0.5);
     hold on;
     set(gca, 'positionConstraint', 'outerPosition', ...
-             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+             'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
     
     % Plot Mode Energies
     plot(PODdata.POD.modeEnergy(1:49), 'color', graphColours(1), 'lineWidth', 2)

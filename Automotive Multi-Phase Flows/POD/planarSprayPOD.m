@@ -8,9 +8,9 @@
 
 run preamble;
 
-normDims = true; % Normalise Spatial Dimensions in Plots
-
 flipMode = true; % Present Both Orientations of Mode(s)
+
+normDims = true; % Normalise Spatial Dimensions in Plots
 
 figSave = false; % Save .fig File(s)
 

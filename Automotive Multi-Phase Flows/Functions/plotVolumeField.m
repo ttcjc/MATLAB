@@ -3,15 +3,15 @@
 % Plots Previously Processed Volume Fields
 % ----
 % Usage: [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
-%                                           xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+%                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
 %                                           fig, figName, geometry, isoValue, cMap, figTitle, viewAngle, ...
 %                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 %
-%        '*LimsData'   -> Contour Plot Limits [Dimensions of '*Init']
-%        'spatialRes'  -> Target Grid Spacing [Dimensions of '*Init']
-%        '*Init'       -> Initial 3D Arrays of Cartesian Positions
+%        '*LimsData'   -> Contour Plot Limits [Dimensions of '*Orig']
+%        'spatialRes'  -> Target Grid Spacing [Dimensions of '*Orig']
+%        '*Orig'       -> Origial 3D Arrays of Cartesian Positions
 %        'POD'         -> POD Mode Presentation [True/False]
-%        'fieldData'   -> 3D Array of Field Data @ '*Init' Points
+%        'fieldData'   -> 3D Array of Field Data @ '*Orig' Points
 %        'nSurfaces'   -> Number of Isosurfaces in a Multi-Surface Figure
 %        'surfaceNo'   -> Current Surface Number
 %        'fig'         -> Figure Number
@@ -22,13 +22,13 @@
 %        'figTitle'    -> Figure Title
 %        'viewAngle'   -> Default Viewing Angle
 %        'multiView'   -> Plot Additional Views Normal to Each Co-Ordinate Axis [True/False]
-%        '*LimsPlot'   -> 3D Axes Limits [Dimensions of '*Init']
+%        '*LimsPlot'   -> 3D Axes Limits [Dimensions of '*Orig']
 %        'figSave'     -> Save .fig File [True/False]
 
 
 %% Changelog
 
-% v1.0 - Initial Commit
+% v1.0 - Origial Commit
 % v2.0 - Rewrite, Accommodating New OpenFOAM Data Formats
 % v2.1 - Cleaned-up POD Functionality
 % v2.2 - Rename and Minor Formatting Updates
@@ -41,7 +41,7 @@
 %% Main Function
 
 function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
-                                            xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+                                            xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
                                             fig, figName, geometry, isoValue, cMap, figTitle, viewAngle, ...
                                             multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave)
     
@@ -55,9 +55,9 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
                        zLimsData(1):cellSizeZ:zLimsData(2));
     
     % Convert From 'ndgrid' to 'meshgrid' Format
-    xInit = permute(xInit, [2,1,3]);
-    yInit = permute(yInit, [2,1,3]);
-    zInit = permute(zInit, [2,1,3]);
+    xOrig = permute(xOrig, [2,1,3]);
+    yOrig = permute(yOrig, [2,1,3]);
+    zOrig = permute(zOrig, [2,1,3]);
     x = permute(x, [2,1,3]);
     y = permute(y, [2,1,3]);
     z = permute(z, [2,1,3]);
@@ -67,17 +67,17 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
         
         for i = 1:height(fieldData)
             fieldData{i} = permute(fieldData{i}, [2,1,3]);
-            fieldData{i} = interp3(xInit, yInit, zInit, fieldData{i}, x, y, z);
+            fieldData{i} = interp3(xOrig, yOrig, zOrig, fieldData{i}, x, y, z);
             fieldData{i} = smooth3(fieldData{i}, 'box', 3);
         end
         
     else
         fieldData = permute(fieldData, [2,1,3]);
-        fieldData = interp3(xInit, yInit, zInit, fieldData, x, y, z);
+        fieldData = interp3(xOrig, yOrig, zOrig, fieldData, x, y, z);
         fieldData = smooth3(fieldData, 'box', 3);
     end
     
-    % Initialise Figure
+    % Origialise Figure
     if surfaceNo == 1
         fig = fig + 1;
         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...

@@ -18,8 +18,8 @@
 %% Supported Formats
 
 % Primary Time Directories: 'global'
-% Pressure Probe Time Directories: 'probesPressure'
-% Velocity Probe Time Directories: 'probesVelocity'
+% Pressure Probe Time Directories: 'pProbes'
+% Velocity Probe Time Directories: 'uProbes'
 
 
 %% Main Function
@@ -39,7 +39,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
                 error('Invalid Case Directory (Unexpected File Structure)');
             end
 
-        case 'probesPressure'
+        case 'pProbes'
             
             if exist([caseFolder, '/postProcessing/probesPressure'], 'dir')
                 timeDirs = dir([caseFolder, '/postProcessing/probesPressure']);
@@ -47,7 +47,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
                 error('Invalid Case Directory (No Pressure Probe Data Found)');
             end
         
-        case 'probesVelocity'
+        case 'uProbes'
             
             if exist([caseFolder, '/postProcessing/probesVelocity'], 'dir')
                 timeDirs = dir([caseFolder, '/postProcessing/probesVelocity']);
@@ -56,7 +56,7 @@ function [timeDirs, deltaT, timePrecision] = timeDirectories(caseFolder, format)
             end
         
         otherwise
-            error('Invalid Format (Available Options: ''global'', ''probesPressure'' or ''probesVelocity'')');
+            error('Invalid Format (Available Options: ''global'', ''pProbes'' or ''uProbes'')');
 
     end
 

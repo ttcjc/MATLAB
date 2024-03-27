@@ -11,10 +11,11 @@ run preamble;
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
-normDims = true; % Normalise Spatial Dimensions
+normDensity = false; % Normalise Area Density in Plots
 
-normDensity = true; % Normalise Area Density in Plots
-    normValue = 0.515984855628156; % Windsor_SB_wW_Upstream_SC
+refValue = 0.001496743092162; % Windsor_SB_wW_Upstream_SC
+
+normDims = true; % Normalise Spatial Dimensions
 
 figSave = false; % Save .fig File(s)
 
@@ -232,19 +233,19 @@ end
 switch format
     
     case 'A' % 1 L
-        xLimsData = [0.3; 1.462883141762452] * normLength;
-        yLimsData = [-0.5; 0.5] * normLength;
-        zLimsData = [0; 0.5] * normLength;
+        xLimsData = [-0.537116858237548; 1.462883141762452] * normLength;
+        yLimsData = [-0.4; 0.4] * normLength;
+        zLimsData = [0; 0.4] * normLength;
         
     case 'B' % 2 L
-        xLimsData = [0.3; 2.462883141762452] * normLength;
+        xLimsData = [-0.537116858237548; 2.462883141762452] * normLength;
         yLimsData = [-0.5; 0.5] * normLength;
         zLimsData = [0; 0.5] * normLength;
         
     case 'C' % 4 L
-        xLimsData = [0.3; 4.462883141762452] * normLength;
-        yLimsData = [-0.5; 0.5] * normLength;
-        zLimsData = [0; 0.5] * normLength;
+        xLimsData = [-0.537116858237548; 4.462883141762452] * normLength;
+        yLimsData = [-0.6; 0.6] * normLength;
+        zLimsData = [0; 0.6] * normLength;
 
 end
 
@@ -290,7 +291,7 @@ clear d positionCartesian;
 delete(wB);
 
 % Remove Unnecessary Data
-disp('        Removing Unnecessary Data...');
+disp('        Removing Unnecessary Data');
 
 LagFields = fieldnames(LagData);
 reqFields = {'time'; 'd'; 'nParticle'; 'positionCartesian'};
@@ -412,6 +413,8 @@ parforWaitBar(wB, nTimes);
 nParticles = cell(nTimes,1); nParticles(:) = {zeros([nCells,1])}; % Number of Particles in Cell
 density = nParticles; % Spray Density in Cell
 d32 = nParticles; % Sauter Mean Diameter in Cell
+% d30 = nParticles; % Volume Mean Diameter in Cell
+% d20 = nParticles; % Area Mean Diameter in Cell
 d10 = nParticles; % Arithmetic Mean Diameter in Cell
 
 d_tmp = zeros([nCells,1]);
@@ -434,8 +437,14 @@ parfor i = 1:nTimes
             d30(index{i}(j)) = d30(index{i}(j)) + ...
                                (nParticle{i}(j) * (d{i}(j)^3));
             
+%             d30{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
+%                                   (nParticle{i}(j) * (d{i}(j)^3));
+            
             d20(index{i}(j)) = d20(index{i}(j)) + ...
                                (nParticle{i}(j) * (d{i}(j)^2));
+            
+%             d20{i}(index{i}(j)) = d20{i}(index{i}(j)) + ...
+%                                   (nParticle{i}(j) * (d{i}(j)^2));
             
             d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
                                   (nParticle{i}(j) * d{i}(j));
@@ -444,12 +453,17 @@ parfor i = 1:nTimes
         % Calculate Derived Variables
         density{i} = (1000 * density{i}) / cellVolume;
         d32{i} = (d30 ./ d20) * 1e6;
+%         d32{i} = (d30{i} ./ d20{i}) * 1e6;
+%         d30{i} = ((d30{i} ./ nParticles{i}).^(1 / 3)) * 1e6;
+%         d20{i} = ((d20{i} ./ nParticles{i}).^(1 / 2)) * 1e6;
         d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
         
         % Set Empty Cells Back to Zero
         indexNaN = isnan(d10{i});
         
         d32{i}(indexNaN) = 0;
+%         d30{i}(indexNaN) = 0;
+%         d20{i}(indexNaN) = 0;
         d10{i}(indexNaN) = 0;
     end
     
@@ -457,6 +471,8 @@ parfor i = 1:nTimes
     nParticles{i} = sparse(nParticles{i});
     density{i} = sparse(density{i});
     d32{i} = sparse(d32{i});
+%     d30{i} = sparse(d30{i});
+%     d20{i} = sparse(d20{i});
     d10{i} = sparse(d10{i});
     
     % Remove Unnecessary Data
@@ -467,7 +483,7 @@ parfor i = 1:nTimes
     % Update Waitbar
     send(dQ, []);
 end
-clear index d_tmp nParticle d cellVolume;
+clear d_tmp nParticle d cellVolume;
 
 delete(wB);
 
@@ -476,6 +492,8 @@ clear LagData index;
 volumeData.nParticles.inst = nParticles; clear nParticles;
 volumeData.density.inst = density; clear density;
 volumeData.d32.inst = d32; clear d32;
+% volumeData.d30.inst = d30; clear d30;
+% volumeData.d20.inst = d20; clear d20;
 volumeData.d10.inst = d10; clear d10;
 
 disp(' ');
@@ -494,12 +512,16 @@ wB.Children.Title.Interpreter = 'none';
 volumeData.nParticles.mean = sparse(nCells,1);
 volumeData.density.mean = volumeData.nParticles.mean;
 volumeData.d32.mean = volumeData.nParticles.mean;
+% volumeData.d30.mean = volumeData.nParticles.mean;
+% volumeData.d20.mean = volumeData.nParticles.mean;
 volumeData.d10.mean = volumeData.nParticles.mean;
 
 for i = 1:nTimes
     volumeData.nParticles.mean = volumeData.nParticles.mean + volumeData.nParticles.inst{i};
     volumeData.density.mean = volumeData.density.mean + volumeData.density.inst{i};
     volumeData.d32.mean = volumeData.d32.mean + volumeData.d32.inst{i};
+%     volumeData.d30.mean = volumeData.d30.mean + volumeData.d30.inst{i};
+%     volumeData.d20.mean = volumeData.d20.mean + volumeData.d20.inst{i};
     volumeData.d10.mean = volumeData.d10.mean + volumeData.d10.inst{i};
 
     % Update Waitbar
@@ -512,6 +534,8 @@ delete(wB);
 volumeData.nParticles.mean = volumeData.nParticles.mean / nTimes;
 volumeData.density.mean = volumeData.density.mean / nTimes;
 volumeData.d32.mean = volumeData.d32.mean / nTimes;
+% volumeData.d30.mean = volumeData.d30.mean / nTimes;
+% volumeData.d20.mean = volumeData.d20.mean / nTimes;
 volumeData.d10.mean = volumeData.d10.mean / nTimes;
 
 %%%%
@@ -672,7 +696,7 @@ if plotMean || plotInst
     if normDims
         disp(' ');
 
-        disp('    Normalising Spatial Dimensions...');
+        disp('Normalising Spatial Dimensions...');
 
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -701,15 +725,15 @@ if plotMean || plotInst
     if normDensity
         disp(' ');
 
-        disp('    Normalising Spray Density...');
+        disp('Normalising Spray Density...');
 
         wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
 
-        volumeData.density.mean = volumeData.density.mean / normValue;
+        volumeData.density.mean = volumeData.density.mean / refValue;
 
         for i = 1:nTimes
-            volumeData.density.inst{i} = volumeData.density.inst{i} / normValue;
+            volumeData.density.inst{i} = volumeData.density.inst{i} / refValue;
 
             % Update Waitbar
             waitbar((i / nTimes), wB);
@@ -748,9 +772,13 @@ if plotMean || plotInst
     if strcmp(campaignID, 'Windsor_fullScale')
         
         if strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-            cMap = graphColours(2);
+            cMap = graphColours(4);
         elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-            cMap = graphColours(3);
+            cMap = graphColours(5);
+        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_halfTread')
+            cMap = graphColours(6);
+        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_20deg')
+            cMap = graphColours(7);
         end
         
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -774,19 +802,19 @@ if plotMean || plotInst
     switch format
 
         case 'A' % 1 L
-            xLimsPlot = [0.3; 1.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 1.562883141762452];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
 
         case 'B' % 2 L
-            xLimsPlot = [0.3; 2.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 2.562883141762452];
+            yLimsPlot = [-0.6; 0.6];
+            zLimsPlot = [0; 0.6];
 
         case 'C' % 4 L
-            xLimsPlot = [0.3; 4.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 4.562883141762452];
+            yLimsPlot = [-0.7; 0.7];
+            zLimsPlot = [0; 0.7];
 
     end
     
@@ -799,18 +827,15 @@ if plotMean || plotInst
 end
     
 if plotMean
-    disp('    Presenting Time-Averaged Volume Field...');
+    disp('Presenting Time-Averaged Volume Field...');
     
-    fieldData = reshape(full(volumeData.density.mean), gridShape);
-    
-    if strcmp(campaignID, 'Windsor_fullScale')
-        isoValue = -1;
-    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        isoValue = [1.25e-3; 1.25e-4];
+    if normDensity
+        fieldData = reshape((full(volumeData.density.mean) * 100), gridShape);
     else
-        isoValue = 1e-4 * max(volumeData.density.mean);
+        fieldData = reshape(((full(volumeData.density.mean) / prctile(full(volumeData.density.mean), 99)) * 100), gridShape);
     end
     
+    isoValue = [20; 2; 0.2];
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     multiView = true;
     
@@ -819,13 +844,13 @@ if plotMean
         switch format
 
             case 'A'
-                figName = ['NW_Average_Density_', num2str(isoValue(i)), '_', caseID];
+                figName = ['NW_Average_Density_', num2str(isoValue(i)), '%_', caseID];
 
             case 'B'
-                figName = ['MW_Average_Density_', num2str(isoValue(i)), '_', caseID];
+                figName = ['MW_Average_Density_', num2str(isoValue(i)), '%_', caseID];
 
             case 'C'
-                figName = ['FW_Average_Density_', num2str(isoValue(i)), '_', caseID];
+                figName = ['FW_Average_Density_', num2str(isoValue(i)), '%_', caseID];
 
         end
         
@@ -841,16 +866,9 @@ if plotMean
 end
 
 if plotInst
-    disp('    Presenting Instantaneous Volume Field...');
+    disp('Presenting Instantaneous Volume Field...');
     
-    if strcmp(campaignID, 'Windsor_fullScale')
-        isoValue = -1;
-    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        isoValue = 2.5e-3;
-    else
-        isoValue = 1e-3 * max(volumeData.density.mean);
-    end
-    
+    isoValue = 1;
     multiView = false;
     
     for i = 1:height(isoValue)
@@ -863,21 +881,27 @@ if plotInst
                 fig = figHold;
             end
             
-            fieldData = reshape(full(volumeData.density.inst{j}), gridShape);
+            if normDensity
+                fieldData = reshape(full(volumeData.density.inst{j}), gridShape);
+            else
+                fieldData = reshape((full(volumeData.density.inst{j}) / ...
+                                    prctile(full(volumeData.density.mean), 99)), gridShape);
+            end
+            
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
 
             switch format
 
                 case 'A'
-                    figName = ['NW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                    figName = ['NW_Inst_Density_', num2str(isoValue(i)), '%_T'...
                                erase(figTime, '.'), '_', caseID];
                     
                 case 'B'
-                    figName = ['MW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                    figName = ['MW_Inst_Density_', num2str(isoValue(i)), '%_T'...
                                erase(figTime, '.'), '_', caseID];
                     
                 case 'C'
-                    figName = ['FW_Inst_Density_', num2str(isoValue(i)), '_T'...
+                    figName = ['FW_Inst_Density_', num2str(isoValue(i)), '%_T'...
                                erase(figTime, '.'), '_', caseID];
 
             end
@@ -899,8 +923,8 @@ if plotInst
 end
 
 if ~plotMean && ~plotInst
-    disp('    Skipping Volume Field Presentation');
-
+    disp('Skipping Volume Field Presentation');
+    
     disp(' ');
 end
 

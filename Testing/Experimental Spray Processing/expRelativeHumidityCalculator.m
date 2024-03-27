@@ -1,8 +1,4 @@
-clA;
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
-
+run preamble;
 
 caseFolders = dir('~/Downloads/experimentalSpray/OGI/');
 
@@ -103,25 +99,31 @@ end
 
 index15 = find(strcmp(testData(:,1), '15/08/22'));
 min15 = min(phi(index15));
+mean15 = mean(phi(index15));
 max15 = max(phi(index15));
 
 index16 = find(strcmp(testData(:,1), '16/08/22'));
 min16 = min(phi(index16));
+mean16 = mean(phi(index16));
 max16 = max(phi(index16));
 
 index17 = find(strcmp(testData(:,1), '17/08/22'));
 min17 = min(phi(index17));
+mean17 = mean(phi(index17));
 max17 = max(phi(index17));
 
 index18 = find(strcmp(testData(:,1), '18/08/22'));
 min18 = min(phi(index18));
+mean18 = mean(phi(index18));
 max18 = max(phi(index18));
 
 index19 = find(strcmp(testData(:,1), '19/08/22'));
 min19 = min(phi(index19));
+mean19 = mean(phi(index19));
 max19 = max(phi(index19));
 
 minVals = [min15; min16; min17; min18; min19];
+meanVals = [mean15; mean16; mean17; mean18; mean19];
 maxVals = [max15; max16; max17; max18; max19];
 
 
@@ -129,19 +131,20 @@ maxVals = [max15; max16; max17; max18; max19];
 fig = fig + 1;
 figName = 'Relative_Humidity_Variation';
 set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                 'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+             'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
 pause(0.5);
 hold on;
-set(gca, 'positionConstraint', 'outerPosition', ...
-         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 20, 'layer', 'top');
+set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 
 % Plot
 for i = 1:height(minVals)
-    plot([i, i], [minVals(i), maxVals(i)], 'lineStyle', '-', 'lineWidth', 2, 'color', '#4A1863')
+    plot([i, i], [minVals(i), maxVals(i)], 'lineStyle', '-', 'lineWidth', 2, 'color', graphColours(1))
 end
 
-plot(minVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', '#4A1863');
-plot(maxVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', '#4A1863');
+plot(minVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
+% plot(meanVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 10, 'color', graphColours(1));
+plot(maxVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
@@ -157,7 +160,7 @@ yticks(20:20:80);
 % ytickformat('%+.2g');
 % ztickformat('%+.2g');
 xlabel({'{Test Period}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$\varphi$ (\%)}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$\varphi$ $(\%)$}'}, 'interpreter', 'latex');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

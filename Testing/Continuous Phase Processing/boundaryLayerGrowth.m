@@ -66,12 +66,15 @@ set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 
          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 
 % Plot Mean Profiles
-plot(crickmoreCFD_A(:,2), crickmoreCFD_A(:,1), 'color', graphColours(1), 'lineWidth', 2);
-plot(luckhurstCFD_A(:,2), luckhurstCFD_A(:,1), 'color', graphColours(2), 'lineWidth', 2);
-plot(luckhurstExp_A(:,2), luckhurstExp_A(:,1), 'color', graphColours(3), 'lineWidth', 2, ...
+plot(luckhurstExp_A(:,2), luckhurstExp_A(:,1), 'color', graphColours(7), 'lineWidth', 2, ...
                                                                          'lineStyle', 'none', ...
                                                                          'marker', 'o', ...
                                                                          'markerSize', 5);
+
+plot(crickmoreCFD_A(:,2), crickmoreCFD_A(:,1), 'color', graphColours(1), 'lineWidth', 2);
+
+plot(luckhurstCFD_A(:,2), luckhurstCFD_A(:,1), 'color', graphColours(2), 'lineWidth', 2);
+
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
@@ -79,19 +82,19 @@ subtitle('{ }');
 axis on;
 box on;
 grid off;
-xlim([0; 1.1]);
+xlim([0; 1.05]);
 ylim([0; 0.08]);
-tickData = (0.22:0.22:0.88);
+tickData = (0.21:0.21:0.84);
 xticks(tickData);
 tickData = (0.016:0.016:0.064);
 yticks(tickData);
 xtickformat('%.2f');
 ytickformat('%.3f');
-xlabel({'{$U_{_{n}}$}'; '{-----}'}, 'interpreter', 'latex');
+xlabel({'{$|\vec{u}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
 ylabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
-legend({'Numerical (Crickmore)', 'Numerical (Luckhurst)', 'Experimental (Luckhurst)'}, ...
+legend({'Experimental (Luckhurst)', 'Numerical (Crickmore)', 'Numerical (Luckhurst)'}, ...
        'location', 'northWest', 'orientation', 'vertical', 'interpreter', 'latex', ...
-       'fontSize', 16, 'box', 'off')
+       'fontSize', 18, 'box', 'off')
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...
@@ -117,12 +120,15 @@ set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 
          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 
 % Plot Mean Profiles
-plot(crickmoreCFD_B(:,2), crickmoreCFD_B(:,1), 'color', graphColours(1), 'lineWidth', 2);
-plot(luckhurstCFD_B(:,2), luckhurstCFD_B(:,1), 'color', graphColours(2), 'lineWidth', 2);
-plot(luckhurstExp_B(:,2), luckhurstExp_B(:,1), 'color', graphColours(3), 'lineWidth', 2, ...
+plot(luckhurstExp_B(:,2), luckhurstExp_B(:,1), 'color', graphColours(7), 'lineWidth', 2, ...
                                                                          'lineStyle', 'none', ...
                                                                          'marker', 'o', ...
                                                                          'markerSize', 5);
+
+plot(crickmoreCFD_B(:,2), crickmoreCFD_B(:,1), 'color', graphColours(1), 'lineWidth', 2);
+
+plot(luckhurstCFD_B(:,2), luckhurstCFD_B(:,1), 'color', graphColours(2), 'lineWidth', 2);
+
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
@@ -130,19 +136,19 @@ subtitle('{ }');
 axis on;
 box on;
 grid off;
-xlim([0; 1.1]);
+xlim([0; 1.05]);
 ylim([0; 0.08]);
-tickData = (0.22:0.22:0.88);
+tickData = (0.21:0.21:0.84);
 xticks(tickData);
 tickData = (0.016:0.016:0.064);
 yticks(tickData);
 xtickformat('%.2f');
 ytickformat('%.3f');
-xlabel({'{$U_{_{n}}$}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
-legend({'Numerical (Crickmore)', 'Numerical (Luckhurst)', 'Experimental (Luckhurst)'}, ...
+xlabel({'{$|\vec{u}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
+legend({'Experimental (Luckhurst)', 'Numerical (Crickmore)', 'Numerical (Luckhurst)'}, ...
        'location', 'northWest', 'orientation', 'vertical', 'interpreter', 'latex', ...
-       'fontSize', 16, 'box', 'off')
+       'fontSize', 18, 'box', 'off')
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

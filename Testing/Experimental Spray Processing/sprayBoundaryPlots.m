@@ -1,17 +1,13 @@
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
+run preamble;
 
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
+refValue = 0.0052166;
 
 figSave = false; % Save .fig File(s);
 
 %%%
 
 % Select Relevant Geometry and Define Bounding Box
-[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 parts = fieldnames(geometry);
 for i = 1:height(parts)
@@ -19,40 +15,46 @@ for i = 1:height(parts)
 end
 clear i parts;
 
+xDims = xDims / normLength;
+yDims = yDims / normLength;
+zDims = zDims / normLength;
+
 
 %%
 
-% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
-% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
-% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
+caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
+caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
+caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
+caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
+% caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
-% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
-% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
-% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
+% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
+% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
+% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
+% caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
+% caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
-caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15_normDims.mat';
-caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15_normDims.mat';
-caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15_normDims.mat';
-caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_04/T0067_T120000_F15_normDims.mat';
-caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_05/T0067_T120000_F15_normDims.mat';
-caseF = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_600s_03Hz_01/T0333_T600000_F3_normDims.mat';
+% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
+% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
+% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
+% caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
+% caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
 % Load Data
-R2R.mapDataA = load(caseA, 'mapData').mapData;
+% R2R.mapDataA = load(caseA, 'mapData').mapData;
 R2R.mapDataB = load(caseB, 'mapData').mapData;
-R2R.mapDataC = load(caseC, 'mapData').mapData;
-R2R.mapDataD = load(caseD, 'mapData').mapData;
-R2R.mapDataE = load(caseE, 'mapData').mapData;
-R2R.mapDataF = load(caseF, 'mapData').mapData;
+% R2R.mapDataC = load(caseC, 'mapData').mapData;
+% R2R.mapDataD = load(caseD, 'mapData').mapData;
+% R2R.mapDataE = load(caseE, 'mapData').mapData;
 
 sprayMaps = fieldnames(R2R);
 
 
 %%
 
-xLimsData = R2R.mapDataA.positionGrid(1,1);
-yLimsData = [min(R2R.mapDataA.positionGrid(:,2)); max(R2R.mapDataA.positionGrid(:,2))];
-zLimsData = [min(R2R.mapDataA.positionGrid(:,3)); max(R2R.mapDataA.positionGrid(:,3))];
+xLimsData = R2R.(sprayMaps{1}).positionGrid(1,1);
+yLimsData = [min(R2R.(sprayMaps{1}).positionGrid(:,2)); max(R2R.(sprayMaps{1}).positionGrid(:,2))];
+zLimsData = [min(R2R.(sprayMaps{1}).positionGrid(:,3)); max(R2R.(sprayMaps{1}).positionGrid(:,3))];
 
 xLimsPlot = [0.3; 4.6257662];
 yLimsPlot = [-0.5; 0.5];
@@ -60,11 +62,11 @@ zLimsPlot = [0; 0.5];
 
 spatialRes = 0.5e-3 / normLength;
     
-positionData = R2R.mapDataA.positionGrid;
+positionData = R2R.(sprayMaps{1}).positionGrid / normLength;
 
 figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
 
-figName = 'Spray_Boundary_Variation_RSST_1.0L';
+figName = 'Run_2_Run_Variation_Boundary';
 
 contourlines = [0.02; 0.02];
 
@@ -99,7 +101,7 @@ end
 for i = 1:height(sprayMaps)
     sprayMap = sprayMaps{i};
     
-    scalarData = R2R.(sprayMap).density.mean;
+    scalarData = R2R.(sprayMap).density.mean / refValue;
     
     % Reshape Data for Improved Interpolation Performance
     gridShape = [height(unique(positionData(:,2))), ...
@@ -134,6 +136,21 @@ for i = 1:height(sprayMaps)
     set(contours, 'edgeColor', graphColours(i), 'lineStyle', '-', 'lineWidth', 2);
 end
 
+% % Plot Sample Points for Convergence Testing
+% for i = 1:height(index)
+%     plot3(positionData(index(i),1), positionData(index(i),2), positionData(index(i),3), ...
+%           'lineStyle', 'none', 'marker', 'o', 'markerSize', 7.5, 'markerFaceColor', graphColours(i), ...
+%           'markerEdgeColor', graphColours(i));
+% end
+% clear i;
+
+% Plot Dummy Data for Legend
+dummyData = zeros([height(sprayMaps),1]);
+dummyData(1) = plot(NaN, NaN, 'color', graphColours(1), 'lineWidth', 2);
+dummyData(2) = plot(NaN, NaN, 'color', graphColours(2), 'lineWidth', 2);
+dummyData(3) = plot(NaN, NaN, 'color', graphColours(3), 'lineWidth', 2);
+dummyData(4) = plot(NaN, NaN, 'color', graphColours(4), 'lineWidth', 2);
+
 title('{-----}', 'interpreter', 'latex');
 subtitle(figTitle);
 lightangle(90, 45);
@@ -153,20 +170,20 @@ zticks(tickData(2:(end-1)));
 xtickformat('%+.2g');
 ytickformat('%+.2g');
 ztickformat('%+.2g');
-
-if normDims
-    ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-    zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
-else
-    ylabel({'{$y$ ($m$)}'; '{-----}'}, 'interpreter', 'latex');
-    zlabel({'{-----}'; '{$z$ ($m$)}'}, 'interpreter', 'latex');
-end
-
+ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
+zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...
                            (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
                            (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+legProps = legend(dummyData, {'Run 1', ...
+                              'Run 2', ...
+                              'Run 3', ...
+                              'Run 4'}, ...
+                             'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
+                             'fontSize', 18, 'box', 'off');
+legProps.Position(2) = legProps.Position(2) - 0.2878;
 pause(0.5);
 hold off;
 

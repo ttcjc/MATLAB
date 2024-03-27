@@ -14,6 +14,7 @@
 % v1.1 - Minor Update to Support Additional Versatility of 'velocityProcessing.m'
 % v2.0 - Update To Improve Consistency of Structures Across Repository
 % v2.1 - Update To Support Resolved Turbulence Kinetic Energy
+% v2.2 - Update To Support Total Pressure Coefficient
 
 
 %% Supported OpenFOAM Cases
@@ -26,8 +27,9 @@
 
 %% Supported Fields
 
-% Pressure: 'p'
 % Velocity: 'U'
+% Pressure: 'p'
+% Total Pressure Coefficient: 'CpT'
 % Resolved TKE: 'kResolved'
 
 
@@ -54,13 +56,13 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
     disp(['Case: ', caseID]);
 
     % Confirm Data Availability
-    if ~strcmp(field, 'p') && ~strcmp(field, 'kResolved') && ~strcmp(field, 'U')
+    if ~any(strcmp(field, {'U', 'p', 'CpT', 'kResolved'}))
         error('Invalid Field (Available Options: ''p'', ''kResolved'', or ''U'')');
     end
 
     switch field
 
-        case {'p', 'kResolved'}
+        case {'p', 'CpT', 'kResolved'}
             fieldType = 'scalar';
             
         case 'U'
@@ -103,7 +105,26 @@ function [campaignID, caseID, PVdata] = initialisePVdata(saveLoc, field)
         end
     
         % Load Data
-        content = readmatrix([caseFolder, '/', dataFiles(i).name]);
+        content = importdata([caseFolder, '/', dataFiles(i).name]);
+        
+        % Sort Columns
+        index = find(strcmp(content.colheaders, '"Points:0"'));
+        
+        if index ~= 1
+            
+            switch fieldType
+                
+                case 'scalar'
+                    content = content.data(:,[2,3,4,1]);
+                    
+                case 'vector'
+                    content = content.data(:,[4,5,6,1,2,3]);
+                    
+            end
+            
+        else
+            content = content.data;
+        end
         
         % Format Data
         switch fieldType

@@ -1,65 +1,94 @@
-clc;
-close all;
+run preamble;
 
-% Figure Setup
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
+
+
+%%
+
+xLimsData = [-0.537116858237548; 4.462883141762452];
+yLimsData = [-0.6; 0.6];
+zLimsData = [0; 0.6];
+
+xLimsPlot = [-0.637116858237548; 4.562883141762452];
+yLimsPlot = [-0.7; 0.7];
+zLimsPlot = [0; 0.7];
+
+planePosition = 1.949 / normLength;
+
+positionsPlane = [
+                  planePosition, yLimsData(1), zLimsData(1);
+                  planePosition, yLimsData(1), zLimsData(2);
+                  planePosition, yLimsData(2), zLimsData(2);
+                  planePosition, yLimsData(2), zLimsData(1);
+                  planePosition, yLimsData(1), zLimsData(1);
+                 ];
+
+positionsSensor = [18.637, 0, 0.76] / normLength;
+
+positionsRay = dsearchn((volumeData.positionGrid(:,[2,3]) / normLength), ([0, 0.76] / normLength));
+positionsRay = [planePosition, (volumeData.positionGrid(positionsRay, [2,3]) / normLength)];
+
+
+%%
+
+% Initialise Figure
 fig = fig + 1;
-set(figure(fig), 'color', [1, 1, 1], 'outerPosition', [25, 25, 850, 850], 'name', 'Rays');
-set(gca, 'dataAspectRatio', [1, 1, 1], 'lineWidth', 2, 'fontName', 'LM Mono 12', ...
-         'fontSize', 20, 'layer', 'top');
-lighting gouraud;
+figName = 'LoS_Projection';
+set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                 'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+pause(0.5);
 hold on;
+set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+lighting gouraud;
 
-% Geometry Plotting
-if ~isempty(geometry)
-    parts = fieldnames(geometry);
-
-    for i = 1:height(parts)
-        patch('faces', geometry.(parts{i}).faces, ...
-              'vertices', geometry.(parts{i}).vertices, ...
-              'faceColor', [0.5, 0.5, 0.5], ...
-              'edgeColor', [0.5, 0.5, 0.5], ...
-              'lineStyle', 'none');
-    end
-
+% Plot Geometry
+parts = fieldnames(geometry);
+for i = 1:height(parts)
+    patch('faces', geometry.(parts{i}).faces, ...
+          'vertices', (geometry.(parts{i}).vertices / normLength), ...
+          'faceColor', [0.5, 0.5, 0.5], ...
+          'edgeColor', [0.5, 0.5, 0.5], ...
+          'lineStyle', 'none');
 end
+clear i parts;
 
-y = unique(LOSdata.positionGrid(:,2));
-y = y(20:20:140);
-z = unique(LOSdata.positionGrid(:,3));
-z = z(20:20:80);
-x = ones(size(z)) * LOSdata.positionGrid(1,1);
+% Plot Ray Projection
+plot3(positionsSensor(:,1), positionsSensor(:,2), positionsSensor(:,3), 'lineStyle', 'none', ...
+                                                                        'marker', 'o', ...
+                                                                        'markerSize', 10, ...
+                                                                        'markerFaceColor', graphColours(2), ...
+                                                                        'markerEdgeColor', graphColours(2));
 
-[x,y,z] = ndgrid(x,y,z);
+plot3(positionsPlane(:,1), positionsPlane(:,2), positionsPlane(:,3), 'lineStyle', '-', ...
+                                                                     'lineWidth', 2, ...
+                                                                     'color', graphColours(2));
 
-positions = [x(:), y(:), z(:)];
-
-plane = [
-         LOSdata.positionGrid(1,1), min(LOSdata.positionGrid(:,2)), min(LOSdata.positionGrid(:,3));
-         LOSdata.positionGrid(1,1), min(LOSdata.positionGrid(:,2)), max(LOSdata.positionGrid(:,3));
-         LOSdata.positionGrid(1,1), max(LOSdata.positionGrid(:,2)), max(LOSdata.positionGrid(:,3));
-         LOSdata.positionGrid(1,1), max(LOSdata.positionGrid(:,2)), min(LOSdata.positionGrid(:,3));
-         LOSdata.positionGrid(1,1), min(LOSdata.positionGrid(:,2)), min(LOSdata.positionGrid(:,3));
-        ];
-
-LOSdata.originPoint(2) = 0;
-
-% Data Plotting
-scatter3(LOSdata.originPoint(1), LOSdata.originPoint(2), LOSdata.originPoint(3), 100, ([230, 0, 126] / 255), 'filled');
-plot3(plane(:,1), plane(:,2), plane(:,3), 'color', ([230, 0, 126] / 255), 'lineWidth', 2);
-
-for i = 1:height(positions)
-    plot3([LOSdata.originPoint(1); positions(i,1)], ...
-          [LOSdata.originPoint(2); positions(i,2)], ...
-          [LOSdata.originPoint(3); positions(i,3)], ...
-          'color', ([74, 24, 99, 127.5] / 255), 'lineWidth', 2);
+for i = 1:height(positionsRay)
+    plot3([positionsSensor(:,1); positionsRay(i,1)], ...
+          [positionsSensor(:,2); positionsRay(i,2)], ... 
+          [positionsSensor(:,3); positionsRay(i,3)], 'lineStyle', '-', ...
+                                                     'lineWidth', 4, ...
+                                                     'color', ([74, 24, 99] / 255));
 end
+clear i;
 
-% Figure Formatting
-title(figTitle, 'color', ([254, 254, 254] / 255));
-subtitle(figSubtitle);
+% for i = 1:4
+%     plot3([positionsSensor(:,1); positionsPlane(i,1)], ...
+%           [positionsSensor(:,2); positionsPlane(i,2)], ... 
+%           [positionsSensor(:,3); positionsPlane(i,3)], 'lineStyle', '-', ...
+%                                                        'lineWidth', 2, ...
+%                                                        'color', ([74, 24, 99, 127.5] / 255));
+% end
+% clear i;
+
+% Format Figure
+title('{-----}', 'interpreter', 'latex');
+subtitle('{ }');
 lightangle(0, 45);
 axis on;
 box on;
+grid off;
 view([30, 30]);
 xlim([xLimsPlot(1), xLimsPlot(2)]);
 ylim([yLimsPlot(1), yLimsPlot(2)]);
@@ -70,9 +99,12 @@ tickData = [];
 yticks(tickData);
 tickData = [];
 zticks(tickData);
-set(gca, 'outerPosition', [0.05, 0.05, 0.9, 0.9]);
+tightInset = get(gca, 'TightInset');
+set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                           (tightInset(2) + 0.00625), ...
+                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+pause(0.5);
 hold off;
 
-pause(2);
-exportgraphics(gca, '~/MATLAB/Output/Figures/Rays.png', 'resolution', 300);
-savefig(gcf, '~/MATLAB/Output/Figures/Rays.fig')
+print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');

@@ -8,6 +8,8 @@
 
 run preamble;
 
+%#ok<*UNRCH>
+
 flipMode = true; % Present Both Orientations of Mode(s)
 
 normDims = true; % Normalise Spatial Dimensions in Plots
@@ -183,7 +185,7 @@ disp(' ');
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -388,13 +390,13 @@ while ~valid
             case 'A'
                 disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/base/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', '-v7.3', '-noCompression');
                 disp('        Success');
                  
             case 'B'
                 disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat']);
                 save([saveLoc, '/Numerical/MATLAB/planarSprayPOD/', campaignID, '/', caseID, '/', planeID, '/', field, '/', dataID, '.mat'], ...
-                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dataFormat', '-v7.3', '-noCompression');
+                      'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', 'dLims', 'dataFormat', '-v7.3', '-noCompression');
                 disp('        Success');
             
             case 'C'
@@ -455,7 +457,7 @@ if plotModes
     if normDims
         disp(' ');
 
-        disp('    Normalising Spatial Dimensions...');
+        disp('Normalising Spatial Dimensions...');
 
         wB = waitbar(0, 'Normalising Spatial Dimensions', 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
@@ -571,7 +573,7 @@ if plotModes
     for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
 
-        scalarData = rescale(PODdata.POD.phi(:,i), -1, 1);
+        scalarData = PODdata.POD.phi(:,i) / max(abs(PODdata.POD.phi(:,i)));
 
         switch format
 
@@ -605,8 +607,13 @@ if plotModes
     end
     clear i;
     
-else
+    disp(' ');
+end
+    
+if ~plotModes
     disp('Skipping Mode Presentation');
+    
+    disp(' ');
 end
 
 

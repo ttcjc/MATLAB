@@ -1,4 +1,4 @@
-%% Planar Scalar Field Processing v1.0
+%% Planar Scalar Field Processing v1.1
 % ----
 % Load, Process and Present Numerical Planar Scalar Fields
 
@@ -13,11 +13,12 @@ figSave = false; % Save .fig File(s)
 
 fieldList = {
              'p'
+             'CpT'
              'kResolved'
             };
 
 disp('===================================');
-disp('Planar Scalar Field Processing v1.0');
+disp('Planar Scalar Field Processing v1.1');
 disp('===================================');
 
 disp(' ');
@@ -27,11 +28,12 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Initial Commit
+% v1.1 - Update To Support Total Pressure Coefficient
 
 
 %% Select Variable of Interest
 
-disp('Select Variable for Decomposition...');
+disp('Select Variable to Present...');
 
 valid = false;
 while ~valid
@@ -354,8 +356,6 @@ disp(' ');
 
 if plotMean
     
-    orientation = 'YZ';
-    
     if strcmp(campaignID, 'Windsor_fullScale')
         spatialRes = 2e-3;
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -368,17 +368,27 @@ if plotMean
         spatialRes = spatialRes / normLength;
     end
     
+    if strcmp(field, 'CpT')
+        cMap = plasma(32);
+        cLims = [-0.8; 1]; % cLims = [-1.2; 1];
+    elseif strcmp(field, 'kResolved')
+        cMap = cool2warm(32);
+        cLims = [0.6; 1];
+    else
+        cMap = viridis(32);
+        cLims = 'auto';
+    end
+        
     mapPerim = [];
     nPlanes = 1;
     planeNo = 1;
-    cMap = cool2warm(32);
     contourlines = [];
     refPoint = [];
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    cLims = [0.6; 1];
+    
     
     for i = 1:height(plotPlanes)
-        disp(['    Presenting ', plotPlanes{i}, ' Field Data...']);
+        disp(['Presenting ', plotPlanes{i}, ' Field Data...']);
         
         if contains(plotPlanes{i}, '_X_')
             orientation = 'YZ';
@@ -439,6 +449,13 @@ if plotMean
                                                zLimsPlot, normDims, figSave);
     end
     
-else
-    disp('    Skipping Map Presentation');
+    disp(' ');
 end
+    
+if ~plotMean
+    disp('Skipping Map Presentation...');
+    
+    disp(' ');
+end
+
+

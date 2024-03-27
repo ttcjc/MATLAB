@@ -30,8 +30,8 @@ disp(' ');
 % v5.0 - Update To Improve Consistency of Structures Across Repository
 % v5.1 - Minor Update to Shift Preamble Into Separate Script
 % v5.2 - Updates To Correct Inconsistent Normalisation Throughout Repository
-% v5.3 - Removed Blockage Correction
 % v6.0 - Added Support for Instantaneous Velocity Processing
+% v6.1 - Implemented Blockage Correction
 
 
 %% Select Data Format
@@ -218,12 +218,28 @@ disp(' ');
 disp('    Mapping Raw Data Onto Uniform Grid...');
 
 % Set Target Spatial Resolution
-if strcmp(campaignID, 'Windsor_fullScale')
-    targetSize = 4e-3;
-elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-    targetSize = 1e-3;
-else
-    targetSize = 1e-3;
+switch format
+    
+    case {'A', 'C'}
+        
+        if strcmp(campaignID, 'Windsor_fullScale')
+            targetSize = 4e-3;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            targetSize = 1e-3;
+        else
+            targetSize = 1e-3;
+        end
+        
+    case 'B'
+        
+        if strcmp(campaignID, 'Windsor_fullScale')
+            targetSize = 64e-3;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            targetSize = 8e-3;
+        else
+            targetSize = 8e-3;
+        end
+        
 end
 
 for i = 1:height(planes)
@@ -288,21 +304,30 @@ for i = 1:height(planes)
                                                        uData.(planes{i}).positionGrid(:,3));
 
                 case 'B'
+                    gridShape = [height(unique(yOrig)), ...
+                                 height(unique(zOrig))];
+                    
+                    yOrig = reshape(yOrig, gridShape);
+                    zOrig = reshape(zOrig, gridShape);
                     
                     for j = 1:nTimes
-                        uInterp = scatteredInterpolant(yOrig, zOrig, double(uData.(planes{i}).u.inst{j}), ...
-                                                       'linear', 'none');
-                        vInterp = scatteredInterpolant(yOrig, zOrig, double(uData.(planes{i}).v.inst{j}), ...
-                                                       'linear', 'none');
-                        wInterp = scatteredInterpolant(yOrig, zOrig, double(uData.(planes{i}).w.inst{j}), ...
-                                                       'linear', 'none');
+                        uInterp = griddedInterpolant(yOrig, zOrig, double(reshape(uData.(planes{i}).u.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        vInterp = griddedInterpolant(yOrig, zOrig, double(reshape(uData.(planes{i}).v.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        wInterp = griddedInterpolant(yOrig, zOrig, double(reshape(uData.(planes{i}).w.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
 
-                        uData.(planes{i}).u.inst{j} = single(uInterp(uData.(planes{i}).positionGrid(:,2), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
-                        uData.(planes{i}).v.inst{j} = single(vInterp(uData.(planes{i}).positionGrid(:,2), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
-                        uData.(planes{i}).w.inst{j} = single(wInterp(uData.(planes{i}).positionGrid(:,2), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
+                        uData.(planes{i}).u.inst{j} = uInterp(uData.(planes{i}).positionGrid(:,2), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        uData.(planes{i}).v.inst{j} = vInterp(uData.(planes{i}).positionGrid(:,2), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        uData.(planes{i}).w.inst{j} = wInterp(uData.(planes{i}).positionGrid(:,2), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        
+                        uData.(planes{i}).u.inst{j} = single(uData.(planes{i}).u.inst{j}(:));
+                        uData.(planes{i}).v.inst{j} = single(uData.(planes{i}).v.inst{j}(:));
+                        uData.(planes{i}).w.inst{j} = single(uData.(planes{i}).w.inst{j}(:));
                     end
                     clear j;
                     
@@ -325,26 +350,27 @@ for i = 1:height(planes)
                     zLimsData = [0.035; 0.354];
                     
             end
-
+            
             % Adjust Uniform Cell Size to Fit Region of Interest
             nPx = (diff(xLimsData) / targetSize) + 1;
             nPz = (diff(zLimsData) / targetSize) + 1;
-
+            
             sizeX = diff(linspace(xLimsData(1), xLimsData(2), nPx));
             sizeZ = diff(linspace(zLimsData(1), zLimsData(2), nPz));
-
+            
+            cellSize.(planes{i}).target = targetSize;
             cellSize.(planes{i}).x = sizeX(1); clear sizeX;
             cellSize.(planes{i}).y = targetSize;
             cellSize.(planes{i}).z = sizeZ(1); clear sizeZ;
             cellSize.(planes{i}).area = cellSize.(planes{i}).x * cellSize.(planes{i}).z;
-
+            
             xOrig = double(uData.(planes{i}).positionGrid(:,1));
             zOrig = double(uData.(planes{i}).positionGrid(:,3));
-
+            
             % Generate Grid
             [x, z] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
                             linspace(zLimsData(1), zLimsData(2), nPz));
-
+            
             uData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
             uData.(planes{i}).positionGrid(:,2) = yLimsData;
             uData.(planes{i}).positionGrid(:,[1,3]) = [x(:), z(:)];
@@ -359,7 +385,7 @@ for i = 1:height(planes)
                                                    'linear', 'none');
                     wInterp = scatteredInterpolant(xOrig, zOrig, uData.(planes{i}).w.mean, ...
                                                    'linear', 'none');
-
+                    
                     uData.(planes{i}).u.mean = uInterp(uData.(planes{i}).positionGrid(:,1), ...
                                                        uData.(planes{i}).positionGrid(:,3));
                     uData.(planes{i}).v.mean = vInterp(uData.(planes{i}).positionGrid(:,1), ...
@@ -368,21 +394,30 @@ for i = 1:height(planes)
                                                        uData.(planes{i}).positionGrid(:,3));
 
                 case 'B'
+                    gridShape = [height(unique(xOrig)), ...
+                                 height(unique(zOrig))];
+                    
+                    xOrig = reshape(xOrig, gridShape);
+                    zOrig = reshape(zOrig, gridShape);
                     
                     for j = 1:nTimes
-                        uInterp = scatteredInterpolant(xOrig, zOrig, double(uData.(planes{i}).u.inst{j}), ...
-                                                       'linear', 'none');
-                        vInterp = scatteredInterpolant(xOrig, zOrig, double(uData.(planes{i}).v.inst{j}), ...
-                                                       'linear', 'none');
-                        wInterp = scatteredInterpolant(xOrig, zOrig, double(uData.(planes{i}).w.inst{j}), ...
-                                                       'linear', 'none');
+                        uInterp = griddedInterpolant(xOrig, zOrig, double(reshape(uData.(planes{i}).u.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        vInterp = griddedInterpolant(xOrig, zOrig, double(reshape(uData.(planes{i}).v.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        wInterp = griddedInterpolant(xOrig, zOrig, double(reshape(uData.(planes{i}).w.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
 
-                        uData.(planes{i}).u.inst{j} = single(uInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
-                        uData.(planes{i}).v.inst{j} = single(vInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
-                        uData.(planes{i}).w.inst{j} = single(wInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,3)));
+                        uData.(planes{i}).u.inst{j} = uInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        uData.(planes{i}).v.inst{j} = vInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        uData.(planes{i}).w.inst{j} = wInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,3));
+                        
+                        uData.(planes{i}).u.inst{j} = single(uData.(planes{i}).u.inst{j}(:));
+                        uData.(planes{i}).v.inst{j} = single(uData.(planes{i}).v.inst{j}(:));
+                        uData.(planes{i}).w.inst{j} = single(uData.(planes{i}).w.inst{j}(:));
                     end
                     clear j;
                     
@@ -409,22 +444,23 @@ for i = 1:height(planes)
             % Adjust Uniform Cell Size to Fit Region of Interest
             nPx = (diff(xLimsData) / targetSize) + 1;
             nPy = (diff(yLimsData) / targetSize) + 1;
-
+            
             sizeX = diff(linspace(xLimsData(1), xLimsData(2), nPx));
             sizeY = diff(linspace(yLimsData(1), yLimsData(2), nPy));
-
+            
+            cellSize.(planes{i}).target = targetSize;
             cellSize.(planes{i}).x = sizeX(1); clear sizeX;
             cellSize.(planes{i}).y = sizeY(1); clear sizeY;
             cellSize.(planes{i}).z = targetSize;
             cellSize.(planes{i}).area = cellSize.(planes{i}).x * cellSize.(planes{i}).y;
-
+            
             xOrig = double(uData.(planes{i}).positionGrid(:,1));
             yOrig = double(uData.(planes{i}).positionGrid(:,2));
-
+            
             % Generate Grid
             [x, y] = ndgrid(linspace(xLimsData(1), xLimsData(2), nPx), ...
                             linspace(yLimsData(1), yLimsData(2), nPy));
-
+            
             uData.(planes{i}).positionGrid = zeros([height(x(:)),3]);
             uData.(planes{i}).positionGrid(:,3) = zLimsData;
             uData.(planes{i}).positionGrid(:,[1,2]) = [x(:), y(:)];
@@ -448,28 +484,37 @@ for i = 1:height(planes)
                                                        uData.(planes{i}).positionGrid(:,2));
 
                 case 'B'
+                    gridShape = [height(unique(xOrig)), ...
+                                 height(unique(yOrig))];
+                    
+                    xOrig = reshape(xOrig, gridShape);
+                    yOrig = reshape(yOrig, gridShape);
                     
                     for j = 1:nTimes
-                        uInterp = scatteredInterpolant(xOrig, yOrig, double(uData.(planes{i}).u.inst{j}), ...
-                                                       'linear', 'none');
-                        vInterp = scatteredInterpolant(xOrig, yOrig, double(uData.(planes{i}).v.inst{j}), ...
-                                                       'linear', 'none');
-                        wInterp = scatteredInterpolant(xOrig, yOrig, double(uData.(planes{i}).w.inst{j}), ...
-                                                       'linear', 'none');
+                        uInterp = griddedInterpolant(xOrig, yOrig, double(reshape(uData.(planes{i}).u.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        vInterp = griddedInterpolant(xOrig, yOrig, double(reshape(uData.(planes{i}).v.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
+                        wInterp = griddedInterpolant(xOrig, yOrig, double(reshape(uData.(planes{i}).w.inst{j}, gridShape)), ...
+                                                     'linear', 'none');
 
-                        uData.(planes{i}).u.inst{j} = single(uInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,2)));
-                        uData.(planes{i}).v.inst{j} = single(vInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,2)));
-                        uData.(planes{i}).w.inst{j} = single(wInterp(uData.(planes{i}).positionGrid(:,1), ...
-                                                                     uData.(planes{i}).positionGrid(:,2)));
+                        uData.(planes{i}).u.inst{j} = uInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,2));
+                        uData.(planes{i}).v.inst{j} = vInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,2));
+                        uData.(planes{i}).w.inst{j} = wInterp(uData.(planes{i}).positionGrid(:,1), ...
+                                                              uData.(planes{i}).positionGrid(:,2));
+                        
+                        uData.(planes{i}).u.inst{j} = single(uData.(planes{i}).u.inst{j}(:));
+                        uData.(planes{i}).v.inst{j} = single(uData.(planes{i}).v.inst{j}(:));
+                        uData.(planes{i}).w.inst{j} = single(uData.(planes{i}).w.inst{j}(:));
                     end
                     clear j;
                     
             end
 
     end
-    clear targetSize orientation xProg yOrig zOrig x y z uInterp vInterp wInterp;
+    clear orientation xProg yOrig zOrig x y z uInterp vInterp wInterp;
 
 end
 clear i;
@@ -569,17 +614,17 @@ for i = 1:height(planes)
 
             v = reshape(uData.(planes{i}).v.mean, gridShape)';
             w = reshape(uData.(planes{i}).w.mean, gridShape)';
-
+            
             [uData.(planes{i}).omega.mean, ~] = curl(y, z, v, w);
             uData.(planes{i}).omega.mean = uData.(planes{i}).omega.mean';
             uData.(planes{i}).omega.mean = uData.(planes{i}).omega.mean(:);
 
-            % Omit Values Close to the Ground Plane
-            if strcmp(campaignID, 'Windsor_fullScale')
-                uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
-            end
+%             % Omit Values Close to the Ground Plane
+%             if strcmp(campaignID, 'Windsor_fullScale')
+%                 uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
+%             elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+%                 uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+%             end
 
         case 'XZ'
             gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
@@ -595,12 +640,12 @@ for i = 1:height(planes)
             uData.(planes{i}).omega.mean = uData.(planes{i}).omega.mean';
             uData.(planes{i}).omega.mean = uData.(planes{i}).omega.mean(:);
 
-            % Omit Values Close to the Ground Plane
-            if strcmp(campaignID, 'Windsor_fullScale')
-                uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
-            end
+%             % Omit Values Close to the Ground Plane
+%             if strcmp(campaignID, 'Windsor_fullScale')
+%                 uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 32e-3) = 0;
+%             elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+%                 uData.(planes{i}).omega.mean(uData.(planes{i}).positionGrid(:,3) < 8e-3) = 0;
+%             end
 
         case 'XY'
             gridShape = [height(unique(uData.(planes{i}).positionGrid(:,1))), ...
@@ -628,8 +673,8 @@ for i = 1:height(planes)
     rescale(uData.(planes{i}).omega.mean(uData.(planes{i}).omega.mean < 0), -1, 0);
     uData.(planes{i}).omega.mean(uData.(planes{i}).omega.mean > 0) = ...
     rescale(uData.(planes{i}).omega.mean(uData.(planes{i}).omega.mean > 0), 0, 1);
-    uData.(planes{i}).omega.mean((uData.(planes{i}).omega.mean > -0.25) & ...
-    (uData.(planes{i}).omega.mean < 0.25)) = 0;
+    uData.(planes{i}).omega.mean((uData.(planes{i}).omega.mean > -0.5) & ...
+    (uData.(planes{i}).omega.mean < 0.5)) = 0;
 
     clear orientation x y z u v w vortLims;
 
@@ -790,7 +835,7 @@ switch format
 
 end
 
-if plotMean || plotInst
+if plotMean
     
     valid = false;
     while ~valid
@@ -814,17 +859,16 @@ if plotMean || plotInst
     clear valid;
     
 else
-    plotRMS = false;
+    plotOmega = false;
 end
 
 if plotMean || plotRMS || plotInst
-    disp(' ');
-    
-    disp('Preparing Plots...')
     
     % Normalise Coordinate System
     if normDims
-        disp('    Normalising Spatial Dimensions');
+        disp(' ');
+        
+        disp('Normalising Spatial Dimensions...');
 
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -848,8 +892,10 @@ if plotMean || plotRMS || plotInst
 
     end
     
+    disp(' ');
+    
     % Normalise Velocity
-    disp('    Normalising Velocity');
+    disp('Normalising Velocity...');
     
     switch format
         
@@ -918,23 +964,6 @@ if plotMean || plotRMS || plotInst
 
     end
     
-    if strcmp(campaignID, 'Windsor_fullScale')
-        spatialRes = 2e-3;
-    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        spatialRes = 0.5e-3;
-    else
-        spatialRes = 0.5e-3;
-    end
-
-    if normDims
-        spatialRes = spatialRes / normLength;
-    end
-
-    component = [];
-    mapPerim = [];
-    nPlanes = 1;
-    planeNo = 1;
-    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
 end
 
 disp(' ');
@@ -948,6 +977,25 @@ disp('-----------------');
 
 disp(' ');
 
+if plotMean || plotRMS || plotInst
+    
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        spatialRes = 0.5e-3;
+    else
+        spatialRes = 0.5e-3;
+    end
+    
+    if normDims
+        spatialRes = spatialRes / normLength;
+    end
+    
+    mapPerim = [];
+    nPlanes = 1;
+    planeNo = 1;
+end
+
 if plotMean
 
     for i = 1:height(planes)
@@ -958,7 +1006,7 @@ if plotMean
                 disp(['Presenting ', planes{i}, '...']);
                 
             case 'B'
-                disp('Presenting the Time-Averaged Flow Field');
+                disp('Presenting Time-Averaged Flow Field');
                 
         end
 
@@ -980,11 +1028,17 @@ if plotMean
                 yLimsPlot = [-0.5; 0.5];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Wheel Wakes
+%                 xLimsPlot = [0.3; 4.625766283524905];
+%                 yLimsPlot = [-0.3; 0];
+%                 zLimsPlot = [0; 0.2];
+                
             case {'XZ', 'XY'}
                 xLimsPlot = [0.3; 1.2];
                 yLimsPlot = [-0.3; 0.3];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Rear-End Separation
 %                 xLimsPlot = [0.3; 0.9];
 %                 yLimsPlot = [0; 0.3];
 %                 zLimsPlot = [0; 0.5];
@@ -1026,6 +1080,8 @@ if plotMean
 
         end
         
+        component = [];
+        
         switch format
             
             case {'A', 'C'}
@@ -1038,6 +1094,7 @@ if plotMean
                 
         cMap = viridis(32);
         streamlines = true;
+        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         cLims = [0, 1];
 
         [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
@@ -1068,7 +1125,7 @@ if plotMean
 end
 
 if plotRMS
-    disp('    Presenting the RMS of the Fluctuating Flow Field');
+    disp('Presenting RMS Field');
     
     for i = 1:height(planes)
         
@@ -1092,11 +1149,17 @@ if plotRMS
                 yLimsPlot = [-0.5; 0.5];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Wheel Wakes
+%                 xLimsPlot = [0.3; 4.625766283524905];
+%                 yLimsPlot = [-0.3; 0];
+%                 zLimsPlot = [0; 0.2];
+                
             case {'XZ', 'XY'}
                 xLimsPlot = [0.3; 1.2];
                 yLimsPlot = [-0.3; 0.3];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Rear-End Separation
 %                 xLimsPlot = [0.3; 0.9];
 %                 yLimsPlot = [0; 0.3];
 %                 zLimsPlot = [0; 0.5];
@@ -1132,6 +1195,7 @@ if plotRMS
         cMap = viridis(32);
         contourlines = [];
         refPoint = [];
+        figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         cLims = [0; max(scalarData)];
 
         [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
@@ -1148,7 +1212,7 @@ end
 if plotInst
 
     for i = 1:height(planes)
-        disp('    Presenting the Instantaneous Flow Field');
+        disp('Presenting Instantaneous Flow Field');
 
         if contains(planes{i}, 'X_')
             orientation = 'YZ';
@@ -1167,11 +1231,17 @@ if plotInst
                 yLimsPlot = [-0.5; 0.5];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Wheel Wakes
+%                 xLimsPlot = [0.3; 4.625766283524905];
+%                 yLimsPlot = [-0.3; 0];
+%                 zLimsPlot = [0; 0.2];
+                
             case {'XZ', 'XY'}
                 xLimsPlot = [0.3; 1.2];
                 yLimsPlot = [-0.3; 0.3];
                 zLimsPlot = [0; 0.5];
                 
+%                 % Windsor Rear-End Separation
 %                 xLimsPlot = [0.3; 0.9];
 %                 yLimsPlot = [0; 0.3];
 %                 zLimsPlot = [0; 0.5];
@@ -1212,7 +1282,8 @@ if plotInst
                 nComponents = 2;
 
         end
-                
+        
+        component = [];
         cMap = viridis(32);
         streamlines = true;
         cLims = [0, 1];
@@ -1230,7 +1301,7 @@ if plotInst
                           uData.(planes{i}).v.inst{j}, ...
                           uData.(planes{i}).w.inst{j}];
             figTime = num2str(uData.(planes{i}).time(j), ['%.', num2str(timePrecision), 'f']);
-            figName = [planes{i}, '_Inst_U_', '_T', erase(figTime, '.'), '_', caseID];
+            figName = [planes{i}, '_Inst_U_T', erase(figTime, '.'), '_', caseID];
             figTitle = ['{', figTime, ' \it{s}}'];
             
             [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
@@ -1244,14 +1315,14 @@ if plotInst
     end
     clear i;
     
+    disp(' ');    
 end
 
 if ~plotMean && ~ plotRMS && ~plotInst
     disp('Skipping Map Presentation...');
+    
+    disp(' ');
 end
-
-disp(' ');
-disp(' ');
 
 
 %% Local Functions

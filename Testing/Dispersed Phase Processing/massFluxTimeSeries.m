@@ -64,11 +64,61 @@ end
 clear i;
 
 
-%% Plot Data
+%% Plot Instantaneous Data
 
 % Initialise Figure
 fig = fig + 1;
-figName = ['Cumulative Mass Flux_', caseID];
+figName = ['Instantaneous_Mass_Flux_', caseID];
+set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+             'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+pause(0.5);
+hold on;
+set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+
+% Plot Mass Flux
+for i = 2:height(planes)
+    plot(LagData.(planes{2}).time, (massFlux.(planes{i}).inst / normValue), ...
+         'color', graphColours(i - 1), 'lineWidth', 2);   
+end
+clear i;
+
+% Format Figure
+title('{-----}', 'interpreter', 'latex');
+subtitle('{ }');
+axis on;
+box on;
+grid off;
+xlim([1; 4]);
+ylim([0; 2e-3]);
+tickData = (1.6:0.6:3.4);
+xticks(tickData);
+tickData = (4e-4:4e-4:1.6e-3);
+yticks(tickData);
+xtickformat('%.1f');
+ytickformat('%.1f');
+xlabel({'{Time ($s$)}'; '{-----}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$m_{_{n}}$}'}, 'interpreter', 'latex');
+legend({'1.0\,$\ell$ Measurement Plane', '1.5\,$\ell$ Measurement Plane', '2.0\,$\ell$ Measurement Plane'}, ...
+       'location', 'northWest', 'orientation', 'vertical', 'interpreter', 'latex', ...
+       'fontSize', 16, 'box', 'off');
+tightInset = get(gca, 'TightInset');
+set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                           (tightInset(2) + 0.00625), ...
+                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+pause(0.5);
+hold off;
+
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+
+
+%% Plot Cumulative Data
+
+% Initialise Figure
+fig = fig + 1;
+figName = ['Cumulative_Mass_Flux_', caseID];
 set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
              'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
 pause(0.5);
@@ -110,5 +160,5 @@ set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
 pause(0.5);
 hold off;
 
-% Save Figure
-print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');

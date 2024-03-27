@@ -9,10 +9,10 @@ run preamble;
 
 %#ok<*UNRCH>
 
-normDims = true; % Normalise Spatial Dimensions
+normDims = true; % % Normalise Spatial Dimensions in Plots
 
-normDensity = true; % Normalise Spray Density
-    normValue = 0.0052166; % (SB_1.0L_120s_15Hz_02)
+normDensity = true; % Normalise Spray Density in Plots
+    refValue = 0.0052166; % (SB_1.0L_120s_15Hz_02)
 
 figSave = false; % Save .fig File(s);
 
@@ -35,7 +35,7 @@ disp(' ');
 %% Initialise Case
 
 % Select Relevant Geometry and Define Bounding Box
-[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry;
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -514,12 +514,12 @@ if plotMean || plotRMS || plotInst
         wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
 
-        mapData.density.mean = mapData.density.mean / normValue;
-        mapData.density.RMS = mapData.density.RMS / normValue;
+        mapData.density.mean = mapData.density.mean / refValue;
+        mapData.density.RMS = mapData.density.RMS / refValue;
 
         for i = 1:nTimes
-            mapData.density.inst{i} = mapData.density.inst{i} / normValue;
-            mapData.density.prime{i} = mapData.density.prime{i} / normValue;
+            mapData.density.inst{i} = mapData.density.inst{i} / refValue;
+            mapData.density.prime{i} = mapData.density.prime{i} / refValue;
 
             % Update Waitbar
             waitbar((i / nTimes), wB);
@@ -568,11 +568,6 @@ if plotMean || plotRMS || plotInst
         xLimsPlot = xLimsPlot * normLength;
         yLimsPlot = yLimsPlot * normLength;
         zLimsPlot = zLimsPlot * normLength;
-    end
-    
-    % Remove Geometry From Empty Tunnel
-    if contains(caseID, 'ET')
-        geometry = [];
     end
     
 end
@@ -647,6 +642,12 @@ end
 if ~plotMean && ~plotRMS && ~plotInst
     disp('Skipping Map Presentation');
 end
+
+
+%%
+
+mean(mapData.density.mean(mapData.density.mean > 0) / refValue)
+mean(mapData.density.RMS(mapData.density.RMS > 0) / refValue)
 
 
 %% Local Functions

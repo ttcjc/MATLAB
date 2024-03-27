@@ -285,7 +285,7 @@ function map = viridis(m)
               248 230 33
               251 231 35
               253 231 37
-               ] / 255;
+             ] / 255;
     
     P = height(values);
     map = interp1(1:P, values, linspace(1,P,m), 'linear');

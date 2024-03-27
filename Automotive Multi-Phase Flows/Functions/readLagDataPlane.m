@@ -192,9 +192,11 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
                         LagData.(plane).d{j} = contentFloat(index,2);
                         LagData.(plane).nParticle{j} = contentFloat(index,3);
                         LagData.(plane).positionCartesian{j} = contentFloat(index,[4,5,6]);
+%                         LagData.(plane).U{j} = contentFloat(index,[7,8,9]);
                         LagData.(plane).Uslip{j} = contentFloat(index,[10,11,12]);
                     end
                     
+                    % Update Waitbar
                     waitbar((j / nTimes), wB);
                 end
                 clear j;
@@ -213,9 +215,11 @@ function LagData = readLagDataPlane(saveLoc, caseFolder, campaignID, caseID, dis
                         LagData.(plane).d{j} = contentFloat(index,2);
                         LagData.(plane).nParticle{j} = contentFloat(index,3);
                         LagData.(plane).positionCartesian{j} = contentFloat(index,[4,5,6]);
+%                         LagData.(plane).U{j} = contentFloat(index,[7,8,9]);
                         LagData.(plane).Uslip{j} = contentFloat(index,[10,11,12]);
                     end
-            
+                    
+                    % Update Waitbar
                     waitbar((j / nTimes), wB);
                 end
                 clear j;

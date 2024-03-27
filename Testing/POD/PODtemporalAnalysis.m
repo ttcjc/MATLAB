@@ -1,16 +1,13 @@
 %% POD Temporal Analysis Tool v1.0
+% ----
+% Lorem Ipsum
 
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
+
+%% Preamble
+
+run preamble;
 
 nModes = 8; % Analyse First ‘nModes’ Energetic Modes [Even Integer]
-
-nProc = maxNumCompThreads - 2; % Number of Processors Used for Parallel Collation
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
 
 disp('===============================');
 disp('POD Temporal Analysis Tool v1.0');
@@ -84,7 +81,7 @@ while ~valid
 end
 clear valid;
 
-if contains(filePath, 'planarContaminantPOD')
+if contains(filePath, 'planarSprayPOD')
     namePos = strfind(filePath, '/');
     fieldName = filePath((namePos(end - 1) + 1):(namePos(end) - 1));
 elseif contains(filePath, 'planarPressurePOD')
@@ -122,7 +119,7 @@ switch format
         end
         clear valid;
         
-        if contains(filePath, 'planarContaminantPOD')
+        if contains(filePath, 'planarSprayPOD')
             namePos = strfind(filePath, '/');
             fieldName = filePath((namePos(end - 1) + 1):(namePos(end) - 1));
         elseif contains(filePath, 'planarPressurePOD')
@@ -172,7 +169,7 @@ for i = 1:height(PODfields)
     
     for j = 1:nModes
         x = zeros(n,1);
-        x(1:height(temporalData.(PODfields{i}).PODdata.A_coeff(:,j))) = temporalData.(PODfields{i}).PODdata.A_coeff(:,j);
+        x(1:height(temporalData.(PODfields{i}).PODdata.POD.alpha(:,j))) = temporalData.(PODfields{i}).PODdata.POD.alpha(:,j);
         [PSD, freq] = pwelch(x, 128, 64, n, Fs);
         Sr = (freq * 0.289) / 40;
         
@@ -212,10 +209,10 @@ switch format
         rMode = r;
 
         for i = 1:nModes
-            A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
+            A1 = rescale(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i), -1, 1);
 
             for j = 1:nModes
-                A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,j), -1, 1);
+                A2 = rescale(temporalData.(PODfields{2}).PODdata.POD.alpha(:,j), -1, 1);
                 rTemp = corr(A1, A2);
 
                 if max(abs(rTemp), abs(r(i))) == abs(rTemp)
@@ -237,8 +234,8 @@ switch format
         tiledlayout((nModes / 2),2);
 
         for i = 1:nModes
-            A1 = rescale(temporalData.(PODfields{1}).PODdata.A_coeff(:,i), -1, 1);
-            A2 = rescale(temporalData.(PODfields{2}).PODdata.A_coeff(:,rMode(i)), -1, 1);
+            A1 = rescale(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i), -1, 1);
+            A2 = rescale(temporalData.(PODfields{2}).PODdata.POD.alpha(:,rMode(i)), -1, 1);
 
             % Plot
             nexttile;

@@ -1,4 +1,4 @@
-%% Planar Spray POD Field Reconstructor v1.1
+%% Planar Spray POD Field Reconstructor v1.2
 % ----
 % Perform Low-Order Reconstructions Using the Output of 'planarSprayPOD'
 
@@ -7,10 +7,16 @@
 
 run preamble;
 
+%#ok<*UNRCH>
+
+normDensity = true; % Normalise Spray Density in Plots
+
+normDims = true; % Normalise Spatial Dimensions in Plots
+
 figSave = false; % Save .fig File(s)
 
 disp('=========================================');
-disp('Planar Spray POD Field Reconstructor v1.1');
+disp('Planar Spray POD Field Reconstructor v1.2');
 disp('=========================================');
 
 disp(' ');
@@ -21,6 +27,7 @@ disp(' ');
 
 % v1.0 - Initial Commit (Functionality Separated From 'planarSprayPOD' To Improve Efficiency)
 % v1.1 - Minor Update to Shift Preamble Into Separate Script
+% v1.2 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Select Mapping Location
@@ -94,7 +101,6 @@ switch format
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
-                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
                         
@@ -117,7 +123,6 @@ switch format
                         sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                         timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
                         dLims = load([filePath, fileName], 'dLims').dLims;
-                        normDims = load([filePath, fileName], 'normDims').normDims;
                         
                         disp('    Success');
 
@@ -151,7 +156,6 @@ switch format
                 cellSize = load([filePath, fileName], 'cellSize').cellSize;
                 sampleInt = load([filePath, fileName], 'sampleInt').sampleInt;
                 timePrecision = load([filePath, fileName], 'timePrecision').timePrecision;
-                normDims = load([filePath, fileName], 'normDims').normDims;
                 
                 disp('    Success');
                 
@@ -174,13 +178,21 @@ Nt = height(PODdata.time);
 modes90 = find(cumsum(PODdata.POD.modeEnergy) > 90, 1);
 modes99 = find(cumsum(PODdata.POD.modeEnergy) > 99, 1);
 
+if strcmp(campaignID, 'Far_Field_Soiling_07_22')
+    refValue = 0.0052166;
+end
+
+if ~exist('refValue', 'var')
+    refValue = 1;
+end
+
 disp(' ');
 disp(' ');
 
 
 %% Select Relevant Geometry and Define Bounding Box
 
-[geometry, xDims, yDims, zDims, spacePrecision, normDims, normLength] = selectGeometry(normDims);
+[geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -482,6 +494,105 @@ while ~valid
 end
 clear valid;
 
+if plotMean || plotRMS || plotInst
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('Normalising Spatial Dimensions...');
+
+        wB = waitbar(0, 'Normalising Spatial Dimensions', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        mapPerim = mapPerim / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+
+        cellSize.target = cellSize.target / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.area = cellSize.area / (normLength^2);
+
+        reconData.positionGrid = reconData.positionGrid / normLength;
+
+        reconData.CoM.recon.mean = reconData.CoM.recon.mean / normLength;
+
+        for i = 1:Nt
+            reconData.CoM.recon.inst{i} = reconData.CoM.recon.inst{i} / normLength;
+
+            % Update Waitbar
+            waitbar((i / Nt), wB);
+        end
+        clear i;
+
+        delete(wB);
+    end
+    
+    % Normalise Spray Density
+    if normDensity
+        disp(' ');
+        
+        disp('Normalising Spray Density...');
+        
+        wB = waitbar(0, 'Normalising Spray Density', 'name', 'Progress');
+        wB.Children.Title.Interpreter = 'none';
+        
+        reconData.density.recon.mean = reconData.density.recon.mean / refValue;
+        mapData.density.recon.RMS = reconData.density.recon.RMS / refValue;
+        
+        for i = 1:Nt
+            reconData.density.recon.inst{i} = reconData.density.recon.inst{i} / refValue;
+            reconData.density.recon.prime{i} = reconData.density.recon.prime{i} / refValue;
+            
+            % Update Waitbar
+            waitbar((i / Nt), wB);
+        end
+        clear i;
+        
+        delete(wB);
+    end
+    
+    disp(' ');
+    
+    % Select Variable(s) of Interest
+    disp('Select Variable(s) To Plot...');
+
+    dataVars = fieldnames(reconData);
+    nonFieldVars = {'positionGrid'; 'time'; 'CoM'; 'POD'};
+    fieldVars = setdiff(dataVars, nonFieldVars);
+    clear dataVars nonFieldVars;
+
+    valid = false;
+    while ~valid
+        [index, valid] = listdlg('listSize', [300, 300], ...
+                                 'selectionMode', 'multiple', ...
+                                 'name', 'Select Variable(s) to Plot', ...
+                                 'listString', fieldVars);
+
+        if ~valid
+            disp('    WARNING: No Valid Variable Selected');
+        end
+
+    end
+    clear valid;
+
+    plotVars = fieldVars(index); clear fieldVars;
+    
+    disp(['    Plotting ', num2str(height(plotVars)), ' Variable(s) of Interest']);
+end
 
 disp(' ');
 disp(' ');
@@ -496,64 +607,54 @@ disp(' ');
 
 if plotMean || plotRMS || plotInst
     orientation = 'YZ';
+    positionData = reconData.positionGrid;
     
-    switch format
-
-        case 'A'
-            
-            if contains(caseID, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 1.43075];
-                yLimsPlot = [-0.2445; 0.2445];
-                zLimsPlot = [0; 0.389];
-            end
-
-        case 'B'
-            
-            if contains(caseID, ["Run_Test", "Windsor"])
-                xLimsPlot = [0.31875; 2.73575];
-                yLimsPlot = [-0.522; 0.522];
-                zLimsPlot = [0; 0.6264];
-            end
-            
-        case 'C'
-            xLimsPlot = [0.31875; 2.73575];
-            yLimsPlot = [-0.522; 0.522];
-            zLimsPlot = [0; 0.522];
-            
+    if strcmp(campaignID, 'Windsor_fullScale')
+        spatialRes = 2e-3;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        spatialRes = 0.5e-3;
+    else
+        spatialRes = 0.5e-3;
     end
-
+    
     if normDims
-        xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-        yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-        zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
+        spatialRes = spatialRes / normLength;
     end
     
+    % Offset Particles From Surface to Improve Visibility
     switch format
         
-        case {'A', 'B'}
-            
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                spatialRes = 0.5e-3;
-            else
-                spatialRes = 2e-3;
-            end
-            
-        case 'C'
-            spatialRes = 0.5e-3;
+        case 'A'
+            xLimsData = xLimsData + spatialRes;
+            positionData(:,1) = xLimsData;
             
     end
-
-    positionData = reconData.positionGrid;
+    
     nPlanes = 1;
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
     
-    % Remove Geometry From Empty Tunnel
-    if contains(caseID, 'ET')
-        geometry = [];
-    end
+    switch format
 
+        case 'A'
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.25; 0.25];
+            zLimsPlot = [0; 0.4];
+            
+        case {'B', 'C'}
+            xLimsPlot = [0.3; 4.6257662];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
+            
+    end
+    
+    if ~normDims
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
+    end
+    
 end
 
 if plotMean
@@ -591,7 +692,18 @@ if plotRMS
     figName = ['Recon_RMS_', caseID];
     contourlines = [];
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    cLims = 'auto';
+    
+    switch format
+        
+        case {'A', 'B'}
+            contourlines = [];
+            cLims = [0; max(cellfun(@max, reconData.(field).recon.inst))];
+            
+        case 'C'
+            contourlines = [];
+            cLims = [0; 5];
+    
+    end
 
     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                            xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
@@ -618,7 +730,7 @@ if plotInst
     end
 
     figHold = fig;
-
+    
     for i = startFrame:endFrame
         
         if i ~= startFrame

@@ -9,7 +9,9 @@ run preamble;
 
 %#ok<*UNRCH>
 
-normDims = true; % Normalise Spatial Dimensions
+blockageCorrection = true; % Perform Blockage Correction
+
+normDims = false; % Normalise Spatial Dimensions
 
 figSave = false; % Save .fig File(s)
 
@@ -263,13 +265,13 @@ switch format
     case 'A'
         
         if strcmp(campaignID, 'Windsor_fullScale')
-            U = 22.22; % m/s
+            U = 22.22; % m/s % 22.2230072
             rho = 1.269; % kg/m^3
-            pRef = 0 * rho; % Pa
+            pRef = 0 * rho; % Pa % 0.3605790734
         elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-            U = 40; % m/s
+            U = 40; % m/s % 40.54745102
             rho = 1.269; % kg/m^3
-            pRef = 19.524 * rho; % Pa
+            pRef = 19.524 * rho; % Pa % 19.90288353
         else
             U = 1; % m/s
             rho = 1.269; % kg/m^3
@@ -302,36 +304,35 @@ end
 disp(' ');
 
 % Perform Blockage Correction
-disp('    Performing Blockage Correction...');
-
-switch format
+if blockageCorrection
+    disp(' ');
     
-    case 'A'
+    disp('    Performing Blockage Correction...');
+    
+    switch format
         
-        if ~strcmp(campaignID, 'Windsor_fullScale')
-            Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-            At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+        case 'A'
+            
+            if strcmp(campaignID, 'Windsor_fullScale')
+                Am = ((4 * 0.289) * (4 * 0.389)) + (2 * (((4 * 0.05) - 0.018) * (4 * 0.055)));
+                At = 14.336 * 26.624;
+            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+                At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+            end
             
             pData.p.mean = (pData.p.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
             pData.Cp.mean = (pData.Cp.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-        end
-        
-end
-        
-%     case 'B'
-%         
-%         if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-%             Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
-%             At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
-% 
-%             pData.CpMean = (pData.CpMean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-%             
-%             for i = 1:height(pData.time)
-%                 pData.Cp{i} = (pData.Cp{i} + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-%                 pData.CpPrime{i} = (pData.CpPrime{i} + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-%             end
-%             
-%         end
+            
+        case 'B'
+            % NYI
+            
+        case 'C'
+            % Already Corrected
+            
+    end
+    
+end            
 
 disp(' ');
 
@@ -348,23 +349,6 @@ switch format
         pData.CoP.mean(3) = sum((pData.Cp.mean .* pData.positionGrid(:,3)), 'omitNaN') / sum(pData.Cp.mean, 'omitNaN');
         
 end
-        
-%     case 'B'
-%         pData.CoPmean = zeros([1,3]);
-%         
-%         pData.CoPmean(1) = pData.position(1,1);
-%         pData.CoPmean(2) = sum(pData.CpMean .* pData.position(:,2)) / sum(pData.CpMean);
-%         pData.CoPmean(3) = sum(pData.CpMean .* pData.position(:,3)) / sum(pData.CpMean);
-%         
-%         pData.CoP = cell(height(pData.time),1);
-%         
-%         for i = 1:height(pData.time)
-%             pData.CoP{i} = zeros([1,3]);
-%         
-%             pData.CoP{i}(1) = pData.position(1,1);
-%             pData.CoP{i}(2) = sum(pData.Cp{i} .* pData.position(:,2)) / sum(pData.Cp{i});
-%             pData.CoP{i}(3) = sum(pData.Cp{i} .* pData.position(:,3)) / sum(pData.Cp{i});
-%         end
 
 % Normalise Spatial Dimensions
 if normDims
@@ -545,7 +529,7 @@ if plotMean || plotRMS || plotInst
     positionData = pData.positionGrid; positionData(:,1) = xLimsData;
     nPlanes = 1;
     planeNo = 1;
-    cMap = viridis(32);
+    cMap = plasma(32);
     contourlines = [];
     
     xLimsPlot = [0.3; 4.6257662];
@@ -561,7 +545,7 @@ if plotMean || plotRMS || plotInst
 end
 
 if plotMean
-    disp('    Presenting Time-Averaged Pressure Data...');
+    disp('Presenting Time-Averaged Pressure Data...');
 
     scalarData = pData.Cp.mean;
     refPoint = [];
@@ -569,12 +553,12 @@ if plotMean
     figName = ['Average_Cp_', caseID];
 
     if strcmp(campaignID, 'Windsor_fullScale')
-        cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
+        cLims = [-0.271; -0.111]; % Quarter-Scale versus Full-Scale Comparison
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
-%             cLims = [-0.273; -0.103]; % Quarter- versus Full-Scale Comparison
+        cLims = [-0.241; -0.091]; % Quarter-Scale Experimental Comparison
+%         cLims = [-0.271; -0.111]; % Quarter-Scale versus Full-Scale Comparison
     elseif strcmp(campaignID, 'Varney')
-        cLims = [-0.244; -0.089]; % Quarter-Scale Experimental Comparison
+        cLims = [-0.241; -0.091]; % Quarter-Scale Experimental Comparison
     else
         cLims = [min(scalarData); max(scalarData)];
     end
@@ -608,7 +592,9 @@ switch format
 end
 
 if ~plotMean && ~ plotRMS && ~plotInst
-    disp('    Skipping Map Presentation');
+    disp('Skipping Map Presentation...');
+    
+    disp(' ');
 end
 
 

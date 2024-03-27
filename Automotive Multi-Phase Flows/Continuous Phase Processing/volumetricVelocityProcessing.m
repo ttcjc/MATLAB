@@ -34,10 +34,6 @@ maxNumCompThreads(nProc);
  timePrecision, dataID, probeData, sampleInt] = initialiseProbeData(saveLoc, maxNumCompThreads, ...
                                                                     'uProbes', 'wake');
 
-probeData.u = rmfield(probeData.u, {'mean', 'prime', 'RMS'});
-probeData.v = rmfield(probeData.v, {'mean', 'prime', 'RMS'});
-probeData.w = rmfield(probeData.w, {'mean', 'prime', 'RMS'});
-
 disp(' ');
 disp(' ');
 
@@ -155,20 +151,26 @@ clear i;
 switch format
     
     case 'A' % 1 L
-        xLimsData = [0.463; 1.462883141762452] * normLength;
-        yLimsData = [-0.45; 0.45] * normLength;
-        zLimsData = [0.007662835249042; 0.5] * normLength;
+        xLimsData = [0.462931034482759; 1.462883141762452] * normLength;
+        yLimsData = [-0.4; 0.4] * normLength;
+        zLimsData = [0; 0.4] * normLength;
         
     case 'B' % 2 L
-        xLimsData = [0.463; 2.462883141762452] * normLength;
-        yLimsData = [-0.45; 0.45] * normLength;
-        zLimsData = [0.007662835249042; 0.5] * normLength;
+        xLimsData = [0.462931034482759; 2.462883141762452] * normLength;
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
         
     case 'C' % 4 L
-        xLimsData = [0.463; 4.462883141762452] * normLength;
-        yLimsData = [-0.45; 0.45] * normLength;
-        zLimsData = [0.007662835249042; 0.5] * normLength;
+        xLimsData = [0.462931034482759; 4.462883141762452] * normLength;
+        yLimsData = [-0.6; 0.6] * normLength;
+        zLimsData = [0; 0.6] * normLength;
 
+end
+
+if strcmp(campaignID, 'Windsor_fullScale')
+    zLimsData(1) = 0.015325670498084 * normLength;
+elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+    zLimsData(1) = 0.007662835249042 * normLength;
 end
 
 % Remove Excess Data
@@ -202,7 +204,7 @@ disp('    Generating Presentation Grid...');
 
 % Set Target Spatial Resolution
 if strcmp(campaignID, 'Windsor_fullScale')
-    cellSize.target = 32e-3;
+    cellSize.target = 64e-3;
 elseif strcmp(campaignID, 'Windsor_Upstream_2023')
     cellSize.target = 8e-3;
 else
@@ -290,8 +292,8 @@ uData.w.inst = w; clear w;
 
 disp(' ');
 
-% Calculate Lambda2 Field
-disp('    Calculating Instantaneous Lambda2 Field...');
+% Calculate Instantaneous Lambda2
+disp('    Calculating Instantaneous Lambda2...');
 
 gridShape = [height(unique(uData.positionGrid(:,1))), ...
              height(unique(uData.positionGrid(:,2))), ...
@@ -310,9 +312,9 @@ parforWaitBar(wB, nTimes);
 uInst = uData.u.inst;
 vInst = uData.v.inst;
 wInst = uData.w.inst;
-x = uData.positionGrid(:,1);
-y = uData.positionGrid(:,2);
-z = uData.positionGrid(:,3);
+x = unique(uData.positionGrid(:,1));
+y = unique(uData.positionGrid(:,2));
+z = unique(uData.positionGrid(:,3));
 parfor i = 1:nTimes
 
     % Calculate grad(U)
@@ -320,9 +322,9 @@ parfor i = 1:nTimes
     v = reshape(vInst{i}, gridShape); v = permute(v, [2, 1, 3]);
     w = reshape(wInst{i}, gridShape); w = permute(w, [2, 1, 3]);
 
-    [dudx, dudy, dudz] = gradient(u, unique(x), unique(y), unique(z));
-    [dvdx, dvdy, dvdz] = gradient(v, unique(x), unique(y), unique(z));
-    [dwdx, dwdy, dwdz] = gradient(w, unique(x), unique(y), unique(z));
+    [dudx, dudy, dudz] = gradient(u, x, y, z);
+    [dvdx, dvdy, dvdz] = gradient(v, x, y, z);
+    [dwdx, dwdy, dwdz] = gradient(w, x, y, z);
 
     dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
     dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
@@ -361,23 +363,21 @@ uData.lambda2.inst = lambda2; clear lambda2;
 disp(' ');
 
 % Calculate Instantaneous Field Variables
-disp('    Calculating Time-Averaged Field Variables...');
+disp('    Calculating Time-Averaged Velocity Field...');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Time-Averaged Velocity Field', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 uData.u.mean = zeros([nCells,1], 'single');
 uData.v.mean = uData.u.mean;
 uData.w.mean = uData.u.mean;
-uData.lambda2.mean = uData.u.mean;
 
 for i = 1:nTimes
     uData.u.mean = uData.u.mean + uData.u.inst{i};
     uData.v.mean = uData.v.mean + uData.v.inst{i};
     uData.w.mean = uData.w.mean + uData.w.inst{i};
-    uData.lambda2.mean = uData.lambda2.mean + uData.lambda2.inst{i};
 
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -389,7 +389,52 @@ delete(wB);
 uData.u.mean = uData.u.mean / nTimes;
 uData.v.mean = uData.v.mean / nTimes;
 uData.w.mean = uData.w.mean / nTimes;
-uData.lambda2.mean = uData.lambda2.mean / nTimes;
+
+disp(' ');
+
+% Calculate Time-Averaged Lambda2
+disp('    Calculating Time-Averaged Lambda2...');
+
+uData.lambda2.mean = zeros([nCells,1], 'single');
+
+x = unique(uData.positionGrid(:,1));
+y = unique(uData.positionGrid(:,2));
+z = unique(uData.positionGrid(:,3));
+
+% Calculate grad(U)
+u = reshape(uData.u.mean, gridShape); u = permute(u, [2, 1, 3]);
+v = reshape(uData.v.mean, gridShape); v = permute(v, [2, 1, 3]);
+w = reshape(uData.w.mean, gridShape); w = permute(w, [2, 1, 3]);
+
+[dudx, dudy, dudz] = gradient(u, x, y, z);
+[dvdx, dvdy, dvdz] = gradient(v, x, y, z);
+[dwdx, dwdy, dwdz] = gradient(w, x, y, z);
+
+dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
+dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
+dudz = permute(dudz, [2, 1, 3]); dudz = dudz(:);
+
+dvdx = permute(dvdx, [2, 1, 3]); dvdx = dvdx(:);
+dvdy = permute(dvdy, [2, 1, 3]); dvdy = dvdy(:);
+dvdz = permute(dvdz, [2, 1, 3]); dvdz = dvdz(:);
+
+dwdx = permute(dwdx, [2, 1, 3]); dwdx = dwdx(:);
+dwdy = permute(dwdy, [2, 1, 3]); dwdy = dwdy(:);
+dwdz = permute(dwdz, [2, 1, 3]); dwdz = dwdz(:);
+
+% Calculate Lambda2    
+for i = 1:nCells
+    J = [dudx(i), dudy(i), dudz(i); dvdx(i), dvdy(i), dvdz(i); dwdx(i), dwdy(i), dwdz(i)];
+    J(isnan(J)) = 0;
+
+    S = 0.5 * (J + J');
+    W = 0.5 * (J - J');
+
+    lambda = eig(S.^2 + W.^2); lambda = sort(lambda);
+
+    uData.lambda2.mean(i) = lambda(2);
+end
+clear i;
 
 %%%%
 
@@ -422,11 +467,31 @@ while ~valid
     selection = input('Plot Time-Averaged Velocity Deficit? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotMean = false;
+        plotMeanU = false;
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotMean = true;
+        plotMeanU = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Plot Time-Averaged Lambda2? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMeanL2 = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMeanL2 = true;
         
         valid = true;
     else
@@ -442,11 +507,11 @@ while ~valid
     selection = input('Plot Instantaneous Lambda2? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotInst = false;
+        plotInstL2 = false;
 
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotInst = true;
+        plotInstL2 = true;
 
         startFrame = inputFrames(nTimes, 'Start');
 
@@ -472,13 +537,13 @@ while ~valid
 end
 clear valid;
 
-if plotMean || plotInst
+if plotMeanU || plotMeanL2 || plotInstL2
     
     % Normalise Coordinate System
     if normDims
         disp(' ');
 
-        disp('    Normalising Spatial Dimensions...');
+        disp('Normalising Spatial Dimensions...');
 
         parts = fieldnames(geometry);
         for i = 1:height(parts)
@@ -502,7 +567,31 @@ if plotMean || plotInst
 
         uData.positionGrid = uData.positionGrid / normLength;
     end
-
+    
+    disp(' ');
+    
+    % Normalise Velocity
+    disp('Normalising Velocity...');
+    
+    if strcmp(campaignID, 'Windsor_fullScale')
+        U = 22.2222; % m/s
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        U = 40; % m/s
+    else
+        U = max(uData.u.mean);
+    end
+    
+    uData.u.mean = uData.u.mean / U;
+    uData.v.mean = uData.v.mean / U;
+    uData.w.mean = uData.w.mean / U;
+    
+    for i = 1:nTimes
+        uData.u.inst{i} = uData.u.inst{i} / U;
+        uData.v.inst{i} = uData.v.inst{i} / U;
+        uData.w.inst{i} = uData.w.inst{i} / U;
+    end
+    clear i;
+    
 end
 
 disp(' ');
@@ -516,7 +605,7 @@ disp('--------------------------');
 
 disp(' ');
 
-if plotMean || plotInst
+if plotMeanU || plotMeanL2 || plotInstL2
              
     spatialRes = cellSize.target / 2;
     xOrig = reshape(uData.positionGrid(:,1), gridShape);
@@ -529,9 +618,9 @@ if plotMean || plotInst
     if strcmp(campaignID, 'Windsor_fullScale')
         
         if strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-            cMap = graphColours(2);
+            cMap = graphColours(4);
         elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-            cMap = graphColours(3);
+            cMap = graphColours(5);
         end
         
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
@@ -555,19 +644,19 @@ if plotMean || plotInst
     switch format
 
         case 'A' % 1 L
-            xLimsPlot = [0.3; 1.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.45];
+            xLimsPlot = [0.3; 1.562883141762452];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
 
         case 'B' % 2 L
-            xLimsPlot = [0.3; 2.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 2.562883141762452];
+            yLimsPlot = [-0.6; 0.6];
+            zLimsPlot = [0; 0.6];
 
         case 'C' % 4 L
-            xLimsPlot = [0.3; 4.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 4.562883141762452];
+            yLimsPlot = [-0.7; 0.7];
+            zLimsPlot = [0; 0.7];
 
     end
     
@@ -579,23 +668,15 @@ if plotMean || plotInst
     
 end
 
-if plotMean
-    disp('    Presenting Time-Averaged Velocity Deficit...');
+if plotMeanU
+    disp('Presenting Time-Averaged Velocity Deficit...');
     
     % Calculate Velocity Magnitude
     fieldData = reshape(sqrt(uData.u.mean.^2 + uData.v.mean.^2 + uData.w.mean.^2), gridShape);
     
     % Calculate Velocity Deficit
-    if strcmp(campaignID, 'Windsor_fullScale')
-        fieldData = (fieldData / 22.22) - 1;
-    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        fieldData = (fieldData / 40) - 1;
-    else
-        fieldData = (fieldData / max(fieldData, [], 'all')) - 1;
-    end
-    
-    isoValue = -0.02;
-    
+    fieldData = fieldData - 1;
+    isoValue = -0.05;
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     multiView = true;
              
@@ -624,10 +705,43 @@ if plotMean
     disp(' ');
 end
 
-if plotInst
-    disp('    Presenting Instantaneous Lambda2...');
+if plotMeanL2
+    disp('Presenting Time-Averaged Lambda2...');
     
-    isoValue = -2500;
+    fieldData = reshape((full(uData.lambda2.mean) / -prctile(uData.lambda2.mean(uData.lambda2.mean < 0), 1)), gridShape);
+    isoValue = -0.2;
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    multiView = true;
+             
+    for i = 1:height(isoValue)
+        
+        switch format
+
+            case 'A'
+                figName = ['NW_Average_Lambda2_', num2str(isoValue(i)), '_', caseID];
+
+            case 'B'
+                figName = ['MW_Average_Lambda2_', num2str(isoValue(i)), '_', caseID];
+
+            case 'C'
+                figName = ['FW_Average_Lambda2_', num2str(isoValue(i)), '_', caseID];
+
+        end
+        
+        [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                           fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+    end
+    clear i;
+                       
+    disp(' ');
+end
+
+if plotInstL2
+    disp('Presenting Instantaneous Lambda2...');
+    
+    isoValue = -5;
     multiView = false;
     
     for i = 1:height(isoValue)
@@ -640,7 +754,7 @@ if plotInst
                 fig = figHold;
             end
             
-            fieldData = reshape(full(uData.lambda2.inst{j}), gridShape);
+            fieldData = reshape((full(uData.lambda2.inst{j}) / -prctile(uData.lambda2.mean(uData.lambda2.mean < 0), 1)), gridShape);
             figTime = num2str(uData.time(j), ['%.', num2str(timePrecision), 'f']);
             
             switch format
@@ -675,8 +789,8 @@ if plotInst
     disp(' ');
 end
 
-if ~plotInst
-    disp('    Skipping Volume Field Presentation');
+if ~plotMeanU && ~plotMeanL2 && ~plotInstL2
+    disp('Skipping Volume Field Presentation...');
 
     disp(' ');
 end

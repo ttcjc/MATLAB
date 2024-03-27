@@ -1,4 +1,4 @@
-clA;
+CLA;
 
 
 %%
@@ -40,12 +40,12 @@ disp(' ');
 
 %%
 
-QS_parcelsPerSecond = 25e6 * 0.75
+QS_parcelsPerSecond = 25e6
 QS_Tstar = 1.044 / 40;
 QS_parcelsPerTstar = QS_parcelsPerSecond / (1 / QS_Tstar)
 
 FS_Tstar = (4 * 1.044) / 22.222222222222222;
-FS_parcelsPerSecond = (QS_parcelsPerTstar * (1 / FS_Tstar)) / 4
+FS_parcelsPerSecond =  4 * (((0.75 * QS_parcelsPerTstar) * (1 / FS_Tstar)) / 4)
 
 disp(' ');
 disp(' ');
@@ -65,7 +65,7 @@ disp(' ');
 radiusInj = radiusWheel + 2e-3;
 
 minTPangle = 270 + acosd(heightCentre / radiusInj) + 1
-maxTPangle = minTPangle + 20
+maxTPangle = minTPangle + 10
 
 minCAangle = minTPangle
 maxCAangle = (minCAangle - 1) + (360 - (2 * (acosd(heightCentre / radiusInj)))) - 1

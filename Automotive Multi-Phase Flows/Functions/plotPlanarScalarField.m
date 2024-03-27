@@ -171,8 +171,8 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
 
         % Plot Geometry
         if ~isempty(geometry)
+            
             parts = fieldnames(geometry);
-
             for i = 1:height(parts)
                 patch('faces', geometry.(parts{i}).faces, ...
                       'vertices', geometry.(parts{i}).vertices, ...
@@ -180,7 +180,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                       'edgeColor', [0.5, 0.5, 0.5], ...
                       'lineStyle', 'none');
             end
-            clear i;
+            clear i parts;
 
         end
 
@@ -197,6 +197,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             
             % Plot Contour Lines
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -291,6 +292,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             
             % Plot Contour Lines
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -385,6 +387,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
             
             % Plot Contour Lines
             if ~isempty(contourlines)
+                
                 % Convert From 'ndgrid' to 'meshgrid' Format
                 x = permute(x, [2,1,3]);
                 y = permute(y, [2,1,3]);
@@ -411,7 +414,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     box on;
                     grid off;
                     caxis(cLims);
-                    view([0, 90]);
+                    view([0, -90]);
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);

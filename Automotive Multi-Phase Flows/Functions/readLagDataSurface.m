@@ -158,9 +158,11 @@ function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, d
                     LagData.d{i} = contentFloat(index,2);
                     LagData.nParticle{i} = contentFloat(index,3);
                     LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
+%                     LagData.U{j} = contentFloat(index,[7,8,9]);
                     LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
                 
+                % Update Waitbar
                 waitbar((i / nTimes), wB);
             end
             clear i;
@@ -179,9 +181,10 @@ function LagData = readLagDataSurface(saveLoc, caseFolder, campaignID, caseID, d
                     LagData.d{i} = contentFloat(index,2);
                     LagData.nParticle{i} = contentFloat(index,3);
                     LagData.positionCartesian{i} = contentFloat(index,[4,5,6]);
+%                     LagData.U{j} = contentFloat(index,[7,8,9]);
                     LagData.Uslip{i} = contentFloat(index,[10,11,12]);
                 end
-        
+                % Update Waitbar
                 waitbar((i / nTimes), wB);
             end
             clear i;

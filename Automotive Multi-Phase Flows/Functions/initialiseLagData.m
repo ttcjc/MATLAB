@@ -97,8 +97,8 @@ function [dataID, LagProps, LagDataSurface, LagDataPlane, ...
     end
     
     % Initialise Lagrangian Properties
-%     LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'; 'Uslip'};
     LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'Uslip'};
+%     LagProps = {'d'; 'nParticle'; 'origId'; 'origProcId'; 'positionCartesian'; 'U'; 'Uslip'};
     LagDataSurface = [];
     LagDataPlane = [];
     LagDataVolume = [];

@@ -1,4 +1,4 @@
-%% Volume Field Plotter v2.6
+%% Volume Field Plotter v2.7
 % ----
 % Plots Previously Processed Volume Fields
 % ----
@@ -36,6 +36,7 @@
 % v2.4 - Added Support for Saving Multiple View Angles
 % v2.5 - Update To Ensure Consistent Figure Sizes
 % v2.6 - Added Support for Multiple Surfaces
+% v2.7 - Added Isosurface End-Cap Geometries
 
 
 %% Main Function
@@ -77,7 +78,7 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
         fieldData = smooth3(fieldData, 'box', 3);
     end
     
-    % Origialise Figure
+    % Initialise Figure
     if surfaceNo == 1
         fig = fig + 1;
         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
@@ -90,8 +91,8 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
         
         % Plot Geometry
         if ~isempty(geometry)
+        
             parts = fieldnames(geometry);
-            
             for i = 1:height(parts)
                 patch('faces', geometry.(parts{i}).faces, ...
                       'vertices', geometry.(parts{i}).vertices, ...
@@ -99,7 +100,7 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
                       'edgeColor', [0.5, 0.5, 0.5], ...
                       'lineStyle', 'none');
             end
-            clear i;
+            clear i parts;
             
         end
         
@@ -108,16 +109,28 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
     % Plot Iso-Surface
     if POD
         iso = isosurface(x, y, z, fieldData{1}, isoValue);
-        p = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
-        isonormals(fieldData{1}, p);
+        isoPatch = patch(iso, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+        isonormals(fieldData{1}, isoPatch);
+        
+%         cap = isocaps(x, y, z, fieldData{1}, isoValue, 'above');
+%         capPatch = patch(cap, 'faceColor', cMap(1,:), 'edgeColor', 'none');
+%         isonormals(fieldData{1}, capPatch);
         
         iso = isosurface(x, y, z, fieldData{2}, isoValue);
-        p = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
-        isonormals(fieldData{2}, p);
+        isoPatch = patch(iso, 'faceColor', cMap(end,:), 'edgeColor', 'none');
+        isonormals(fieldData{2}, isoPatch);
+        
+%         cap = isocaps(x, y, z, fieldData{2}, isoValue, 'above');
+%         capPatch = patch(cap, 'faceColor', cMap(end,:), 'edgeColor', 'none');
+%         isonormals(fieldData{2}, capPatch);
     else
         iso = isosurface(x, y, z, fieldData, isoValue);
-        p = patch(iso, 'faceColor', cMap, 'edgeColor', 'none');
-        isonormals(fieldData, p);
+        isoPatch = patch(iso, 'faceColor', cMap, 'edgeColor', 'none');
+        isonormals(fieldData, isoPatch);
+        
+%         cap = isocaps(x, y, z, fieldData, isoValue, 'above');
+%         capPatch = patch(cap, 'faceColor', cMap, 'edgeColor', 'none');
+%         isonormals(fieldData, capPatch);
     end
     
     % Format Figure
@@ -138,8 +151,6 @@ function [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spa
         yticks(tickData);
         tickData = [];
         zticks(tickData);
-        hold off;
-
         tightInset = get(gca, 'TightInset');
         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                                    (tightInset(2) + 0.00625), ...

@@ -1,5 +1,4 @@
-
-%% Lagrangian Particle Tracker v4.1
+%% Lagrangian Particle Tracker v4.2
 % ----
 % Track Particles Through Space Using Lagrangian Data Acquired Using OpenFOAM v7
 
@@ -7,6 +6,8 @@
 %% Preamble
 
 run preamble;
+
+%#ok<*UNRCH>
 
 cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
 
@@ -32,12 +33,13 @@ disp(' ');
 % v3.1 - Added Support for Full-Scale Windsor Model Simulations
 % v4.0 - Enabled Tracking of Particles That Impact User-Specified Region
 % v4.1 - Minor Update to Shift Preamble Into Separate Script
+% v4.2 - Update To Correct Inconsistent Normalisation Throughout Repository
 
 
 %% Initialise Case
 
 [caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normDims, normLength] = initialiseCaseData(normDims);
+ xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc);
 
 disp(' ');
 disp(' ');
@@ -186,7 +188,7 @@ end
 clear valid;
 
 if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-    dLimsDefault = [1; 147];
+    dLimsDefault = [1; 147]; % um
 else
     dLimsDefault = [20; 400];
 end
@@ -267,7 +269,7 @@ disp('  RUNNING ');
 
 tic;
 
-evalc('parpool(''threads'');'); % evalc('parpool(nProc);');
+evalc('parpool(''threads'');');
 
 %%%%
 
@@ -340,8 +342,8 @@ end
 
 nTimes = height(volumeData.time);
 
-% Shift Data Origin
-if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
+% Adjust Data Origin
+if strcmp(campaignID, 'Windsor_Upstream_2023')
     
     for i = 1:nTimes
         
@@ -363,42 +365,17 @@ if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(case
     
 end
 
-% Normalise Coordinate System
-if normalise
-    disp('        Normalising Coordinate System');
-    
-    % Initialise Progress Bar
-    wB = waitbar(0, 'Normalising Coordinate System', 'name', 'Progress');
-    wB.Children.Title.Interpreter = 'none';
-
-    % Perform Normalisation
-    for i = 1:nTimes
-
-        if ~isempty(volumeData.positionCartesian{i})
-            volumeData.positionCartesian{i}  = round((volumeData.positionCartesian{i} / normLength), ...
-                                                  spacePrecision);
-        end
-
-        % Update Waitbar
-        waitbar((i / nTimes), wB);
-    end
-    clear i;
-    
-    impactData.positionCartesian = round((impactData.positionCartesian / normLength), ...
-                                         spacePrecision);
-
-    delete(wB);
-end
-
 % Specify Region Boundaries
 switch format2
     
     case '2C'
         
-        if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-            regionSize = 16e-3;
+        if strcmp(campaignID, 'Windsor_fullScale')
+            regionSize = 32e-3;
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+            regionSize = 128e-3;
         else
-            regionSize = 64e-3;
+            regionSize = 32e-3;
         end
         
         xLimsData = impactPosition(1);
@@ -406,41 +383,10 @@ switch format2
         zLimsData = [(impactPosition(3) - regionSize); (impactPosition(3) + regionSize)];
         
     otherwise
+        xLimsData = impactData.positionCartesian(1,1);
+        yLimsData = [-0.5; 0.5] * normLength;
+        zLimsData = [0; 0.5] * normLength;
         
-        switch format1
-
-            case '1A'
-
-                if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                    xLimsData = impactData.positionCartesian(1,1);
-                    yLimsData = [-0.4176; 0.4176];
-                    zLimsData = [0; 0.4176];
-                else
-                    xLimsData = impactData.positionCartesian(1,1);
-                    yLimsData = [-1.6704; 1.6704];
-                    zLimsData = [0; 1.6704];
-                end
-
-            case '1B'
-
-                if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                    xLimsData = impactData.positionCartesian(1,1);
-                    yLimsData = [-0.6264; 0.6264];
-                    zLimsData = [0; 0.6264];
-                else
-                    xLimsData = impactData.positionCartesian(1,1);
-                    yLimsData = [-2.088; 2.088];
-                    zLimsData = [0; 2.088];
-                end
-
-        end
-        
-end
-        
-if normalise
-    xLimsData = round((xLimsData / normLength), spacePrecision);
-    yLimsData = round((yLimsData / normLength), spacePrecision);
-    zLimsData = round((zLimsData / normLength), spacePrecision);
 end
 
 disp(' ');
@@ -556,14 +502,17 @@ clear valid;
 
 tic;
 
+impactDataLimited = impactData;
+volumeDataLimited = volumeData;
+
 % Select a Random Set of Particles to Track
 if count ~= height(impactData.timeExact)
     index = sort(randperm(height(impactData.timeExact), count))';
     
-    impactData.timeExact = impactData.timeExact(index);
+    impactDataLimited.timeExact = impactData.timeExact(index);
 
     for i = 1:height(LagProps)
-        impactData.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+        impactDataLimited.(LagProps{i}) = impactData.(LagProps{i})(index,:);
     end
     clear i;
     
@@ -585,7 +534,7 @@ parforWaitBar(wB, nTimes);
 % Perform Removal
 index = cell(nTimes,1);
 
-particleIDimpact = [impactData.origProcId, impactData.origId];
+particleIDimpact = [impactDataLimited.origProcId, impactDataLimited.origId];
 origProcId = volumeData.origProcId;
 origId = volumeData.origId;
 parfor i = 1:nTimes
@@ -607,7 +556,7 @@ delete(wB);
 for i = 1:nTimes
     
     for j = 1:height(LagProps)
-        volumeData.(LagProps{j}){i} = volumeData.(LagProps{j}){i}(index{i},:);
+        volumeDataLimited.(LagProps{j}){i} = volumeData.(LagProps{j}){i}(index{i},:);
     end
     clear j;
     
@@ -636,14 +585,15 @@ trackingData.path = cell(count,1);
 trackingData.age = trackingData.path;
 
 for i = 1:count
-    trackingData.ID(i,:) = [impactData.origProcId(i), impactData.origId(i)];
-    trackingData.d(i) = impactData.d(i) * 1e6;
+    trackingData.ID(i,:) = [impactDataLimited.origProcId(i), impactDataLimited.origId(i)];
+    trackingData.d(i) = impactDataLimited.d(i) * 1e6;
     
     trackingData.path{i} = nan((nTimes + 1),3);
     trackingData.age{i} = nan((nTimes + 1),1);
     
     for j = 1:nTimes
-        index = find(ismember([volumeData.origProcId{j}, volumeData.origId{j}], trackingData.ID(i,:), 'rows'));
+        index = find(ismember([volumeDataLimited.origProcId{j}, volumeDataLimited.origId{j}], ... 
+                              trackingData.ID(i,:), 'rows'));
         
         if ~isempty(index)
             
@@ -651,13 +601,13 @@ for i = 1:count
                 
                 case '1B'
                     
-                    if volumeData.positionCartesian{j}(index,1) > xLimsData
+                    if volumeDataLimited.positionCartesian{j}(index,1) > xLimsData
                         continue;
                     end
                     
             end
             
-            trackingData.path{i}((j + 1),:) = volumeData.positionCartesian{j}(index,:);
+            trackingData.path{i}((j + 1),:) = volumeDataLimited.positionCartesian{j}(index,:);
             
             if isnan(trackingData.age{i}(j))
                 trackingData.age{i}(j) = 0;
@@ -681,10 +631,10 @@ for i = 1:count
 
         case '1A'
             trackingData.path{i}((index + 1),1) = xDims(2) + 1e-3; % Offset Particles From Base for Better Visibility
-            trackingData.path{i}((index + 1),(2:3)) = impactData.positionCartesian(i,(2:3));
+            trackingData.path{i}((index + 1),(2:3)) = impactDataLimited.positionCartesian(i,(2:3));
 
         case '1B'
-            trackingData.path{i}((index + 1),:) = impactData.positionCartesian(i,:);
+            trackingData.path{i}((index + 1),:) = impactDataLimited.positionCartesian(i,:);
 
     end
 
@@ -716,9 +666,9 @@ if interp
                                          trackingData.path{i}(:,2), ...
                                          trackingData.path{i}(:,3), 'spline');
                                      
-        trackingData.age{i} = interparc((4 * height(trackingData.age{1})), ...
-                                        (1:height(trackingData.age{1})), ...
-                                        trackingData.age{1}, 'spline');
+        trackingData.age{i} = interparc((4 * height(trackingData.age{i})), ...
+                                        (1:height(trackingData.age{i})), ...
+                                        trackingData.age{i}, 'spline');
         trackingData.age{i} = trackingData.age{i}(:,2);
         
         
@@ -757,6 +707,7 @@ disp('---------------------');
 valid = false;
 while ~valid
     disp(' ');
+    
     selection = input('Plot Particle Paths? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
@@ -773,6 +724,10 @@ end
 clear valid;
 
 if plotPaths
+    disp(' ');
+    
+    disp('Select Variable for Decomposition...');
+    
     colourVar = {'Diameter', 'Age'};
     
     valid = false;
@@ -797,10 +752,37 @@ if plotPaths
         maxColourVar = dLims(2);
     elseif strcmp(colourVar, 'Age')
         minColourVar = 0;
-        maxColourVar = max(cellfun(@max, trackingData.age));
+        maxColourVar = max(cellfun(@max, trackingData.age)); % maxColourVar = (1.044/40) * 10;
     end
 
-    disp(['Variable of Interest: ', colourVar]);
+    disp(['   Variable of Interest: ', colourVar]);
+    
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('Normalising Spatial Dimensions...');
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+        
+        for i = 1:height(trackingData.ID)
+            trackingData.path{i} = trackingData.path{i} / normLength;
+        end
+        clear i;
+    end
+    
 end
 
 disp(' ');
@@ -899,53 +881,40 @@ if plotPaths
     end
 
     cMap = viridis(32);
-    figTitle = '-'; % Leave Blank ('-') for Formatting Purposes
-    figSubtitle = ' ';
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    viewAngle = [30, 30];
     
     switch format1
 
         case '1A'
-
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; 1.43075];
-                zLimsPlot = [0; 0.4176];
-            else
-                xLimsPlot = [1.275; 5.723];
-                yLimsPlot = [-1.6704; 1.6704];
-                zLimsPlot = [0; 1.6704];
-            end
+            xLimsPlot = [0.3; 1.625766283524905];
+            yLimsPlot = [-0.55; 0.55];
+            zLimsPlot = [0; 0.55];
             
-            if normalise
-                xLimsPlot = round((xLimsPlot / normLength), spacePrecision);
-                yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-                zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
-            end
-
         case '1B'
-
-            if contains(caseID, 'Run_Test') || (contains(caseID, 'Windsor') && contains(caseID, 'Upstream'))
-                xLimsPlot = [0.31875; impactData.positionCartesian(1,1)];
-                yLimsPlot = [-0.6264; 0.6264];
-                zLimsPlot = [0; 0.6264];
-            else
-                xLimsPlot = [1.275; impactData.positionCartesian(1,1)];
-                yLimsPlot = [-2.088; 2.088];
-                zLimsPlot = [0; 2.088];
-            end
+            xLimsPlot = [0.3; 2.625766283524905];
+            yLimsPlot = [-0.55; 0.55];
+            zLimsPlot = [0; 0.55];
             
-            if normalise
-                xLimsPlot(1) = round((xLimsPlot(1) / normLength), spacePrecision);
-                yLimsPlot = round((yLimsPlot / normLength), spacePrecision);
-                zLimsPlot = round((zLimsPlot / normLength), spacePrecision);
-            end
-
+    end
+    
+    if ~normDims
+        xLimsPlot = xLimsPlot * normLength;
+        yLimsPlot = yLimsPlot * normLength;
+        zLimsPlot = zLimsPlot * normLength;
     end
     
     fig = plotParticlePaths(trackingData, fig, figName, geometry, cMap, colourVar, ...
-                            minColourVar, maxColourVar, figTitle, figSubtitle, ...
+                            minColourVar, maxColourVar, figTitle, viewAngle, ...
                             xLimsPlot, yLimsPlot, zLimsPlot, figSave);
-else
-    disp('    Skipping Volume Field Presentation');
+    
+    disp(' ');
+end
+
+if ~plotPaths
+    disp('Skipping Volume Field Presentation');
+    
+    disp(' ');
 end
 
 
@@ -979,12 +948,10 @@ function [pos] = inputPosition(fig, impactList)
     yBoundary = ceil(max(abs(impactList(:,2))) * 2) / 2;
     zBoundary = ceil(max(abs(impactList(:,3))) * 2) / 2;
     
-    cMap = graphColours(1);
-    
-    disp('    Select an Impact Point [Right-Click]:')
+    disp('    Select an Impact Point:')
     
     % Initialise Figure
-    set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+    set(figure(fig), 'name', 'Select an Impact Point [Right-Click]', 'color', [1, 1, 1], ...
                      'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
     pause(0.5);
     hold on;
@@ -992,7 +959,8 @@ function [pos] = inputPosition(fig, impactList)
              'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
     
     % Plot Impact Points
-    scatter(impactList(:,2), impactList(:,3), 5, cMap, 'filled');
+    scatter(impactList(:,2), impactList(:,3), 5, 'markerFaceColor', graphColours(1), ...
+                                                 'markerEdgeColor', 'none');
     
     xlim([-yBoundary, yBoundary]);
     ylim([0, zBoundary]);

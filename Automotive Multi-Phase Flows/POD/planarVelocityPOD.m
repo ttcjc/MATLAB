@@ -1,13 +1,18 @@
 %% Planar Velocity POD Calculator v3.0
-
-% Lorem Ipsum
+% ----
+% Perform Proper Orthogonal Decomposition on Previously Processed Planar Velocity Fields
+% (Collected Using 'planarVelocityProcessing')
 
 
 %% Preamble
 
 run preamble;
 
-flipMode = true; % Present Both Orientations of Mode(s)
+%#ok<*UNRCH>
+
+flipMode = false; % Present Both Orientations of Mode(s)
+
+viewComps = false; % Present Individual Component Views
 
 normDims = true; % Normalise Spatial Dimensions in Plots
 
@@ -149,38 +154,38 @@ disp(' ');
 
 %% Save POD Data
 
-% disp('Data Save Options');
-% disp('------------------');
-% 
-% valid = false;
-% while ~valid
-%     disp(' ');
-%     
-%     selection = input('Save Data for Future Use? [y/n]: ', 's');
-%     
-%     if selection == 'n' | selection == 'N' %#ok<OR2>
-%         valid = true;
-%     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-%         
-%         if ~exist([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', planeID], 'dir')
-%             mkdir([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', planeID]);
-%         end
-%         
-%         disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat']);
-%         save([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', planeID, '/', dataID, '.mat'], ...
-%               'campaignID', 'caseID', 'planeID', 'dataID', 'PODdata', 'sampleInt', 'timePrecision', 'dataFormat', '-v7.3', '-noCompression');
-%         disp('        Success');
-%         
-%         valid = true;
-%     else
-%         disp('    WARNING: Invalid Entry');
-%     end
-% 
-% end
-% clear valid;
-% 
-% disp(' ');
-% disp(' ');
+disp('Data Save Options');
+disp('------------------');
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Save Data for Future Use? [y/n]: ', 's');
+    
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        
+        if ~exist([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', dataID], 'dir')
+            mkdir([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', dataID]);
+        end
+        
+        disp(['    Saving to: ', saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', dataID, '/', planeID, '.mat']);
+        save([saveLoc, '/Numerical/MATLAB/planarVelocityPOD/', campaignID, '/', caseID, '/', dataID, '/', planeID, '.mat'], ...
+              'campaignID', 'caseID', 'dataID', 'planeID', 'PODdata', 'cellSize', 'sampleInt', 'timePrecision', '-v7.3', '-noCompression');
+        disp('        Success');
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+disp(' ');
+disp(' ');
 
 
 %% Select Mode Presentation Options
@@ -256,8 +261,6 @@ disp('------------------');
 disp(' ');
 
 if plotModes
-    
-    % Initialise Figures
     positionData = PODdata.positionGrid;
 
     if strcmp(campaignID, 'Windsor_fullScale')
@@ -314,16 +317,17 @@ if plotModes
         zLimsPlot = zLimsPlot * normLength;
     end
     
-    % Present Figures
     for i = nModes
         disp(['    Presenting Mode #', num2str(i), '...']);
         
-        vectorData = rescale([PODdata.POD.phi((1:Ns),i), ...
-                              PODdata.POD.phi(((Ns + 1):(2 * Ns)),i), ...
-                              PODdata.POD.phi((((2 * Ns) + 1):end),i)], -1, 1);
-        figName = [planeID, '_POD_U_M', num2str(i)];
+        vectorData = [PODdata.POD.phi((1:Ns),i), ...
+                      PODdata.POD.phi(((Ns + 1):(2 * Ns)),i), ...
+                      PODdata.POD.phi((((2 * Ns) + 1):end),i)];
+        vectorData = vectorData / max(abs(vectorData(:)));
+        figName = [planeID, '_POD_uvw_M', num2str(i)];
         figTitle = [num2str(round(PODdata.POD.modeEnergy(i), 2), '%.2f'), '%'];
-                                           
+        
+        % Three-Component Plots
         [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
                                                xLimsData, yLimsData, zLimsData, nComponents, component, ...
                                                mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
@@ -333,16 +337,46 @@ if plotModes
         if flipMode
             [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
                                                    xLimsData, yLimsData, zLimsData, nComponents, component, ...
-                                                   mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
+                                                   mapPerim, nPlanes, planeNo, fig, [figName, '_Flip'], flipud(cMap), geometry, ...
                                                    streamlines, figTitle, cLims, xLimsPlot, yLimsPlot, ...
                                                    zLimsPlot, normDims, figSave);
+        end
+        
+        % Single-Component Plots
+        if viewComps
+            
+            for j = ['u', 'v', 'w']
+                figName = [planeID, '_POD_', j, '_M', num2str(i)];
+
+                [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
+                                                       xLimsData, yLimsData, zLimsData, nComponents, j, ...
+                                                       mapPerim, nPlanes, planeNo, fig, figName, cMap, geometry, ...
+                                                       false, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                                       zLimsPlot, normDims, figSave);
+
+                if flipMode
+                    [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
+                                           xLimsData, yLimsData, zLimsData, nComponents, j, ...
+                                           mapPerim, nPlanes, planeNo, fig, [figName, '_Flip'], flipud(cMap), geometry, ...
+                                           false, figTitle, cLims, xLimsPlot, yLimsPlot, ...
+                                           zLimsPlot, normDims, figSave);
+                end
+
+            end
+            clear j;
+            
         end
         
     end
     clear i;
     
-else
+    disp(' ');
+end
+    
+if ~plotModes
     disp('Skipping Mode Presentation');
+    
+    disp(' ');
 end
 
 

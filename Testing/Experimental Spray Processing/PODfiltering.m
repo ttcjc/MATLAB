@@ -1,10 +1,4 @@
-clear variables;
-close all;
-clc;
-evalc('delete(gcp(''nocreate''));');
-
-fig = 0; % Initialise Figure Tracking
-figHold = 0; % Enable Overwriting of Figures
+run preamble;
 
 figSave = false; % Save .fig File(s);
 

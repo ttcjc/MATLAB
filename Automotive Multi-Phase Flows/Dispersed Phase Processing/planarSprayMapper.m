@@ -1,4 +1,4 @@
-%% Planar Lagrangian Spray Mapper v4.2
+%% Planar Lagrangian Spray Mapper v4.3
 % ----
 % Load, Process and Present Planar Lagrangian Data Acquired Using OpenFOAM v7
 
@@ -39,7 +39,7 @@ disp(' ');
 % v3.1 - Minor Update to Shift Preamble Into Separate Script
 % v4.0 - Update To Include Calculation of Fluctuating Field Variables
 % v4.1 - Update To Correct Inconsistent Normalisation Throughout Repository
-% v4.2 - Update to Prioritise Area Fraction Over Total Mass Across Presentation Grid
+% v4.2 - Update to Prioritise Area Density Over Total Mass Across Presentation Grid
 
 
 %% Initialise Case
@@ -482,53 +482,56 @@ parforWaitBar(wB, nTimes);
 
 % Perform Calculation
 nParticles = cell(nTimes,1); nParticles(:) = {zeros([nCells,1])}; % Number of Particles in Cell
-density = nParticles; % Area Density of Spray in Cell
+areaDensity = nParticles; % Area Density of Spray in Cell
 d32 = nParticles; % Sauter Mean Particle Diameter in Cell
+d30 = nParticles; % Volume Mean Diameter in Cell
+d20 = nParticles; % Area Mean Diameter in Cell
 d10 = nParticles; % Arithmetic Mean Particle Diameter in Cell
 
-d_tmp = zeros([nCells,1]);
 nParticle = cellfun(@double, LagData.nParticle, 'uniformOutput', false); LagData.nParticle = -1;
 d = cellfun(@double, LagData.d, 'uniformOutput', false); LagData.d = -1;
 cellArea = cellSize.area;
 parfor i = 1:nTimes
     
     if totalParcels(i) > 0
-        d30 = d_tmp;
-        d20 = d_tmp;
         
         for j = 1:totalParcels(i)
             nParticles{i}(index{i}(j)) = nParticles{i}(index{i}(j)) + ...
                                          nParticle{i}(j);
             
-            density{i}(index{i}(j)) = density{i}(index{i}(j)) + ...
+            areaDensity{i}(index{i}(j)) = areaDensity{i}(index{i}(j)) + ...
                                       (nParticle{i}(j) * ((1 / 12) * tau * (d{i}(j)^3)));
             
-            d30(index{i}(j)) = d30(index{i}(j)) + ...
-                               (nParticle{i}(j) * (d{i}(j)^3));
+            d30{i}(index{i}(j)) = d30{i}(index{i}(j)) + ...
+                                  (nParticle{i}(j) * (d{i}(j)^3));
             
-            d20(index{i}(j)) = d20(index{i}(j)) + ...
-                               (nParticle{i}(j) * (d{i}(j)^2));
+            d20{i}(index{i}(j)) = d20{i}(index{i}(j)) + ...
+                                  (nParticle{i}(j) * (d{i}(j)^2));
             
             d10{i}(index{i}(j)) = d10{i}(index{i}(j)) + ...
                                   (nParticle{i}(j) * d{i}(j));
         end
         
         % Calculate Derived Variables
-        density{i} = (1000 * density{i}) / cellArea;
-        d32{i} = (d30 ./ d20) * 1e6;
+        areaDensity{i} = (1000 * areaDensity{i}) / cellArea;
+        d32{i} = (d30{i} ./ d20{i}) * 1e6;
+        d30{i} = ((d30{i} ./ nParticles{i}).^(1 / 3)) * 1e6;
+        d20{i} = ((d20{i} ./ nParticles{i}).^(1 / 2)) * 1e6;
         d10{i} = (d10{i} ./ nParticles{i}) * 1e6;
         
         % Set Empty Cells Back to Zero
-        indexNaN = isnan(d32{i});
-        
-        d32{i}(indexNaN) = 0;
-        d10{i}(indexNaN) = 0;
+        d32{i}(isnan(d32{i})) = 0;
+        d30{i}(isnan(d30{i})) = 0;
+        d20{i}(isnan(d20{i})) = 0;
+        d10{i}(isnan(d10{i})) = 0;
     end
     
     % Make Arrays Sparse
     nParticles{i} = sparse(nParticles{i});
-    density{i} = sparse(density{i});
+    areaDensity{i} = sparse(areaDensity{i});
     d32{i} = sparse(d32{i});
+    d30{i} = sparse(d30{i});
+    d20{i} = sparse(d20{i});
     d10{i} = sparse(d10{i});
 
     % Remove Unnecessary Data
@@ -546,8 +549,10 @@ delete(wB);
 clear LagData index;
 
 mapData.nParticles.inst = nParticles; clear nParticles;
-mapData.density.inst = density; clear density;
+mapData.areaDensity.inst = areaDensity; clear areaDensity;
 mapData.d32.inst = d32; clear d32;
+mapData.d30.inst = d30; clear d30;
+mapData.d20.inst = d20; clear d20;
 mapData.d10.inst = d10; clear d10;
 
 % Calculate Instantaneous Centre of Mass
@@ -562,10 +567,10 @@ mapData.CoM.inst = cell(nTimes,1); mapData.CoM.inst(:) = {zeros([1,3], 'single')
 
 for i = 1:nTimes
     mapData.CoM.inst{i}(1) = mapData.positionGrid(1,1);
-    mapData.CoM.inst{i}(2) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,2)) / ...
-                                  sum(mapData.density.inst{i}));
-    mapData.CoM.inst{i}(3) = full(sum(mapData.density.inst{i} .* mapData.positionGrid(:,3)) / ...
-                                  sum(mapData.density.inst{i}));
+    mapData.CoM.inst{i}(2) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,2)) / ...
+                                  sum(mapData.areaDensity.inst{i}));
+    mapData.CoM.inst{i}(3) = full(sum(mapData.areaDensity.inst{i} .* mapData.positionGrid(:,3)) / ...
+                                  sum(mapData.areaDensity.inst{i}));
     
     % Update Waitbar
     waitbar((i / nTimes), wB);
@@ -588,14 +593,18 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.mean = sparse(nCells,1);
-mapData.density.mean = mapData.nParticles.mean;
+mapData.areaDensity.mean = mapData.nParticles.mean;
 mapData.d32.mean = mapData.nParticles.mean;
+mapData.d30.mean = mapData.nParticles.mean;
+mapData.d20.mean = mapData.nParticles.mean;
 mapData.d10.mean = mapData.nParticles.mean;
 
 for i = 1:nTimes
     mapData.nParticles.mean = mapData.nParticles.mean + mapData.nParticles.inst{i};
-    mapData.density.mean = mapData.density.mean + mapData.density.inst{i};
+    mapData.areaDensity.mean = mapData.areaDensity.mean + mapData.areaDensity.inst{i};
     mapData.d32.mean = mapData.d32.mean + mapData.d32.inst{i};
+    mapData.d30.mean = mapData.d30.mean + mapData.d30.inst{i};
+    mapData.d20.mean = mapData.d20.mean + mapData.d20.inst{i};
     mapData.d10.mean = mapData.d10.mean + mapData.d10.inst{i};
     
     % Update Waitbar
@@ -606,8 +615,10 @@ clear i;
 delete(wB);
 
 mapData.nParticles.mean = mapData.nParticles.mean / nTimes;
-mapData.density.mean = mapData.density.mean / nTimes;
+mapData.areaDensity.mean = mapData.areaDensity.mean / nTimes;
 mapData.d32.mean = mapData.d32.mean / nTimes;
+mapData.d30.mean = mapData.d30.mean / nTimes;
+mapData.d20.mean = mapData.d20.mean / nTimes;
 mapData.d10.mean = mapData.d10.mean / nTimes;
 
 % Calculate Time-Averaged Centre of Mass
@@ -616,10 +627,10 @@ disp('        Calculating Time-Averaged Centre of Mass');
 mapData.CoM.mean = zeros([1,3], 'single');
     
 mapData.CoM.mean(1) = mapData.positionGrid(1,1);
-mapData.CoM.mean(2) = full(sum(mapData.density.mean .* mapData.positionGrid(:,2)) / ...
-                           sum(mapData.density.mean));
-mapData.CoM.mean(3) = full(sum(mapData.density.mean .* mapData.positionGrid(:,3)) / ...
-                           sum(mapData.density.mean));
+mapData.CoM.mean(2) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,2)) / ...
+                           sum(mapData.areaDensity.mean));
+mapData.CoM.mean(3) = full(sum(mapData.areaDensity.mean .* mapData.positionGrid(:,3)) / ...
+                           sum(mapData.areaDensity.mean));
 
 disp(' ');
 
@@ -635,14 +646,18 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.prime = mapData.nParticles.inst;
-mapData.density.prime = mapData.density.inst;
+mapData.areaDensity.prime = mapData.areaDensity.inst;
 mapData.d32.prime = mapData.d32.inst;
+mapData.d30.prime = mapData.d30.inst;
+mapData.d20.prime = mapData.d20.inst;
 mapData.d10.prime = mapData.d10.inst;
 
 for i = 1:nTimes
     mapData.nParticles.prime{i} = mapData.nParticles.prime{i} - mapData.nParticles.mean;
-    mapData.density.prime{i} = mapData.density.prime{i} - mapData.density.mean;
+    mapData.areaDensity.prime{i} = mapData.areaDensity.prime{i} - mapData.areaDensity.mean;
     mapData.d32.prime{i} = mapData.d32.prime{i} - mapData.d32.mean;
+    mapData.d30.prime{i} = mapData.d30.prime{i} - mapData.d30.mean;
+    mapData.d20.prime{i} = mapData.d20.prime{i} - mapData.d20.mean;
     mapData.d10.prime{i} = mapData.d10.prime{i} - mapData.d10.mean;
     
     % Update Waitbar
@@ -661,14 +676,18 @@ wB.Children.Title.Interpreter = 'none';
 
 % Perform Calculation
 mapData.nParticles.RMS = sparse(nCells,1);
-mapData.density.RMS = mapData.nParticles.RMS;
+mapData.areaDensity.RMS = mapData.nParticles.RMS;
 mapData.d32.RMS = mapData.nParticles.RMS;
+mapData.d30.RMS = mapData.nParticles.RMS;
+mapData.d20.RMS = mapData.nParticles.RMS;
 mapData.d10.RMS = mapData.nParticles.RMS;
 
 for i = 1:nTimes
     mapData.nParticles.RMS = mapData.nParticles.RMS + mapData.nParticles.prime{i}.^2;
-    mapData.density.RMS = mapData.density.RMS + mapData.density.prime{i}.^2;
+    mapData.areaDensity.RMS = mapData.areaDensity.RMS + mapData.areaDensity.prime{i}.^2;
     mapData.d32.RMS = mapData.d32.RMS + mapData.d32.prime{i}.^2;
+    mapData.d30.RMS = mapData.d30.RMS + mapData.d30.prime{i}.^2;
+    mapData.d20.RMS = mapData.d20.RMS + mapData.d20.prime{i}.^2;
     mapData.d10.RMS = mapData.d10.RMS + mapData.d10.prime{i}.^2;
     
     % Update Waitbar
@@ -679,8 +698,10 @@ clear i;
 delete(wB);
 
 mapData.nParticles.RMS = sqrt((1 / nTimes) * mapData.nParticles.RMS);
-mapData.density.RMS = sqrt((1 / nTimes) * mapData.density.RMS);
+mapData.areaDensity.RMS = sqrt((1 / nTimes) * mapData.areaDensity.RMS);
 mapData.d32.RMS = sqrt((1 / nTimes) * mapData.d32.RMS);
+mapData.d30.RMS = sqrt((1 / nTimes) * mapData.d30.RMS);
+mapData.d20.RMS = sqrt((1 / nTimes) * mapData.d20.RMS);
 mapData.d10.RMS = sqrt((1 / nTimes) * mapData.d10.RMS);
 
 %%%%
@@ -893,6 +914,20 @@ if plotMean || plotRMS || plotInst
         delete(wB);
     end
     
+    if strcmp(campaignID, 'Windsor_Upstream_2023')
+        refValue = 8.996259860381801e-05;
+    elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
+        refValue = 0.137170217583008;
+    elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
+        refValue = 0.710023688287996;
+    elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_halfTread')
+        refValue = 0.226673182043117;
+    elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_20deg')
+        refValue = 0.441874462356553;
+    else
+        refValue = prctile(full(mapData.areaDensity.mean(mapData.areaDensity.mean > 0)), 99);
+    end
+    
     % Normalise Spray Density
     if normDensity
         disp(' ');
@@ -902,12 +937,12 @@ if plotMean || plotRMS || plotInst
         wB = waitbar(0, 'Normalising Area Density', 'name', 'Progress');
         wB.Children.Title.Interpreter = 'none';
         
-        mapData.density.mean = mapData.density.mean / refValue;
-        mapData.density.RMS = mapData.density.RMS / refValue;
+        mapData.areaDensity.mean = mapData.areaDensity.mean / refValue;
+        mapData.areaDensity.RMS = mapData.areaDensity.RMS / refValue;
         
         for i = 1:nTimes
-            mapData.density.inst{i} = mapData.density.inst{i} / refValue;
-            mapData.density.prime{i} = mapData.density.prime{i} / refValue;
+            mapData.areaDensity.inst{i} = mapData.areaDensity.inst{i} / refValue;
+            mapData.areaDensity.prime{i} = mapData.areaDensity.prime{i} / refValue;
             
             % Update Waitbar
             waitbar((i / nTimes), wB);
@@ -990,12 +1025,12 @@ if plotMean || plotRMS || plotInst
     switch format
 
         case 'A'
-            xLimsPlot = [0.3; 4.6257662];
+            xLimsPlot = [0.3; 4.625766283524905];
             yLimsPlot = [-0.25; 0.25];
             zLimsPlot = [0; 0.4];
             
         case 'B'
-            xLimsPlot = [0.3; 4.6257662];
+            xLimsPlot = [0.3; 4.625766283524905];
             yLimsPlot = [-0.5; 0.5];
             zLimsPlot = [0; 0.5];
             
@@ -1009,24 +1044,10 @@ if plotMean || plotRMS || plotInst
     
 end
 
-if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC')
-    refValue = 8.996259860381801e-05;
-elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-    refValue = 0.137170217583008;
-elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-    refValue = 0.710023688287996;
-elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_halfTread')
-    refValue = 0.226673182043117;
-elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_20deg')
-    refValue = 0.441874462356553;
-else
-    refValue = prctile(full(mapData.density.mean(mapData.density.mean > 0)), 99);
-end
-
 if plotMean
     
     for i = 1:height(plotVars)
-        disp(['Presenting Time-Averaged ''', plotVars{i}, ''' Data...']); clear cLims;
+        disp(['Presenting Time-Averaged ''', plotVars{i}, ''' Data...']);
         
         scalarData = full(mapData.(plotVars{i}).mean);
         
@@ -1047,16 +1068,12 @@ if plotMean
                 
             case 'B'
                 
-                if strcmp(plotVars{i}, 'density')
+                if strcmp(plotVars{i}, 'areaDensity')
                     
-                    if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
-                        
-                        if normDensity
-                            contourlines = [0.02; 0.02];
-                        else
-                            contourlines = [0.02; 0.02] * refValue;
-                        end
-                        
+                    if normDensity
+                        contourlines = [0.02; 0.02];
+                    else
+                        contourlines = [0.02; 0.02] * refValue;
                     end
                     
                 end
@@ -1069,7 +1086,7 @@ if plotMean
         
         figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         
-        if any(strcmp(plotVars{i}, {'d10', 'd32'}))
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
             
             if strcmp(campaignID, 'Windsor_fullScale')
                 cLims = [20; 210];
@@ -1077,41 +1094,42 @@ if plotMean
                 cLims = [0; 40];
             end
             
-        elseif strcmp(plotVars{i}, 'density')
-            
-            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
+        elseif strcmp(plotVars{i}, 'areaDensity')
                 
-                switch format
+            switch format
 
-                    case 'A'
-                        
-                        if normDensity %#ok<IFBDUP>
-                            cLims = 'auto';
-                        else
-                            cLims = 'auto';
-                        end
-                    
-                    case 'B'
-                        
-                        if normDensity
-                            cLims = [0; 1.05];
-                        else
-                            cLims = [0; max(full(mapData.density.mean))];
-                            
-                            if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC')
-                                cLims = [0; 9.5e-5];
-                            elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-                                cLims = [0; 0.15]; % 1L
-%                                 cLims = [0; 0.0225]; % 4L
-                            elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-                                cLims = [0; 0.9]; % 1L
-%                                 cLims = [0; 0.053]; % 4L
-                            end
-                            
-                        end
+                case 'A'
 
-                end
-                
+                    if normDensity %#ok<IFBDUP>
+                        cLims = 'auto';
+                    else
+                        cLims = 'auto';
+                    end
+
+                case 'B'
+
+                    if normDensity
+                        cLims = [0; 1.05];
+                    else
+                        
+                        if strcmp(campaignID, 'Windsor_fullScale')
+                            
+                            if strcmp(planeID, 'X_P6_109')
+                                cLims = [0; 885e-3];
+                            elseif strcmp(planeID, 'X_P10_285')
+                                cLims = [0; 215e-3];
+                            elseif strcmp(planeID, 'X_P14_461')
+                                cLims = [0; 115e-3];
+                            elseif strcmp(planeID, 'X_P18_637')
+                                cLims = [0; 55e-3];
+                            end                                
+                                
+                        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+                            %
+                        end     
+                        
+                    end
+
             end
             
         end
@@ -1125,19 +1143,21 @@ if plotMean
                                                planeNo, fig, figName, cMap, geometry, contourlines, ...
                                                refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
                                                zLimsPlot, normDims, figSave);
+        
+        clear cLims;
     end
     clear i;
     
     disp(' ');
 end
 
+
 if plotRMS
-    clear cLims;
     
     for i = 1:height(plotVars)
         disp(['Presenting RMS of ''', plotVars{i}, ''' Data...']);
         
-        scalarData = full(mapData.(plotVars{i}).RMS) / mean(mapData.(plotVars{i}).mean(mapData.(plotVars{i}).mean > 0));
+        scalarData = full(mapData.(plotVars{i}).RMS);
         
         switch format
             
@@ -1152,29 +1172,16 @@ if plotRMS
         contourlines = [];
         figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
         
-        if strcmp(plotVars{i}, 'density')
-            
-            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
+        if strcmp(plotVars{i}, 'areaDensity')
                 
-                switch format
+            switch format
 
-                    case 'A'
-                        cLims = 'auto';
+                case 'A'
+                    cLims = 'auto';
 
-                    case 'B'
-                        
-                        if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC')
-                            cLims = [0; 6.75];
-                        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-                            cLims = [0; 4.5]; % 1L
-%                             cLims = [0; 6.3]; % 4L
-                        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-                            cLims = [0; 12.3]; % 1L
-%                             cLims = [0; 7.15]; % 4L
-                        end
+                case 'B'
+                    cLims = 'auto';
 
-                end
-                
             end
             
         end
@@ -1188,6 +1195,8 @@ if plotRMS
                                                planeNo, fig, figName, cMap, geometry, contourlines, ...
                                                refPoint, figTitle, cLims, xLimsPlot, yLimsPlot, ...
                                                zLimsPlot, normDims, figSave);
+        
+        clear cLims;
     end
     clear i;
     
@@ -1197,11 +1206,11 @@ end
 if plotInst
     
     for i = 1:height(plotVars)
-        disp(['Presenting Instantaneous ''', plotVars{i}, ''' Data...']); clear cLims;
+        disp(['Presenting Instantaneous ''', plotVars{i}, ''' Data...']);
         
         contourlines = [];
         
-        if any(strcmp(plotVars{i}, {'d10', 'd32'}))
+        if any(strcmp(plotVars{i}, {'d10', 'd20', 'd30', 'd32'}))
             
             if strcmp(campaignID, 'Windsor_fullScale')
                 cLims = [20; 400];
@@ -1209,56 +1218,55 @@ if plotInst
                 cLims = [0; 150];
             end
             
-        elseif strcmp(plotVars{i}, 'density')
+        elseif strcmp(plotVars{i}, 'areaDensity')
             
-            if strcmp(campaignID, 'Windsor_fullScale') || strcmp(campaignID, 'Windsor_Upstream_2023')
-                
-                switch format
+            switch format
 
-                    case 'A'
-                        
-                        if normDensity %#ok<IFBDUP>
-                            cLims = 'auto';
-                        else
-                            cLims = 'auto';
-                        end
-                    
-                    case 'B'
-                        
-                        if normDensity
-                            cLims = 'auto';
-                        else
+                case 'A'
+
+                    if normDensity %#ok<IFBDUP>
+                        cLims = 'auto';
+                    else
+                        cLims = 'auto';
+                    end
+
+                case 'B'
+
+                    if normDensity
+                        cLims = 'auto';
+                    else
+
+                        if strcmp(campaignID, 'Windsor_Upstream_2023')
+                            cLims = [0; 5e-4];
+                        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
+                            % 
+                        elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
                             
-                            if strcmp(caseID, 'Windsor_SB_wW_Upstream_SC')
-                                cLims = [0; 5e-4];
-                            elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_uncoupled')
-                                cLims = [0; 0.8]; % 1L
-%                                 cLims = [0; 0.36]; % 4L
-                            elseif strcmp(caseID, 'Windsor_SB_fullScale_multiPhase_coupled')
-                                cLims = [0; 0.96]; % 1L 100%
-%                                 cLims = [0; 3.6]; % 1L 100%
-%                                 cLims = [0; 0.382]; % 4L
+                            if strcmp(planeID, 'X_P6_109')
+                                cLims = [0; 3.6];
+                            elseif strcmp(planeID, 'X_P18_637')
+                                cLims = [0; 0.382];
                             end
                             
                         end
 
-                end
+                    end
                 
             end
             
         end
         
-        if ~exist('cLims', 'var')
+        if ~exist('cLims', 'var') || isempty(cLims)
             instMax = zeros([nTimes,1]);
 
             for j = 1:nTimes
-                instMax(j) = prctile(mapData.density.inst{j}, 99);
-%                 instMax(j) = max(mapData.density.inst{j});
+%                 instMax(j) = prctile(mapData.areaDensity.inst{j}, 99);
+                instMax(j) = max(mapData.areaDensity.inst{j});
             end
             clear j;
 
-            cLims = [0; max(instMax)];
-%             cLims = [0; prctile(instMax, 99)];
+%             cLims = [0; max(instMax)];
+            cLims = [0; prctile(instMax, 99)];
         end
         
         figHold = fig;
@@ -1292,11 +1300,14 @@ if plotInst
         end
         clear j;
         
+        clear cLims;        
     end
     clear i;
     
     disp(' ');
 end
+
+
 
 if ~plotMean && ~plotRMS && ~plotInst
     disp('Skipping Map Presentation...');

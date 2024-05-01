@@ -1,7 +1,7 @@
 run preamble;
 
-% caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC';
-caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_20deg';
+caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_Upstream_2023/Windsor_RSST_wW_Upstream_SC';
+% caseFolder = '/home/lunet/ttcjc/OpenFOAM/ttcjc-7/results/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_20deg';
 
 
 %%
@@ -103,7 +103,7 @@ for i = 1:height(dataFiles)
 end
 clear i;
 
-save('~/MATLAB/Testing/Dispersed Phase Processing/LagDataPlaneRawFS_20deg.mat', 'LagData', '-v7.3', '-noCompression');
+save('~/MATLAB/Testing/Dispersed Phase Processing/LagDataPlaneRawQS_RSST.mat', 'LagData', '-v7.3', '-noCompression');
 
 %%%%
 

@@ -545,7 +545,7 @@ if plotModes
     
     nPlanes = 1;
     planeNo = 1;
-    cMap = cool2warm(32);
+    cMap = cool2warmBent(32);
     contourlines = [];
     refPoint = [];
     cLims = [-1; 1];

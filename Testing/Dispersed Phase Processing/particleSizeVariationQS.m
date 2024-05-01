@@ -1,51 +1,26 @@
-%% Lagrangian Particle Size Distribution Variation
-% ----
-% Lorem ipsum
-
-
-%% Preamble
-
 run preamble;
 
-cloudName = 'kinematicCloud'; % OpenFOAM Cloud Name
+caseID = 'RSST';
 
-disp('===============================================');
-disp('Lagrangian Particle Size Distribution Variation');
-disp('===============================================');
+load(['~/MATLAB/Testing/Dispersed Phase Processing/LagDataPlaneRaw', caseID, '.mat']);
 
-disp(' ');
-disp(' ');
-
-
-%% Changelog
-
-% v1.0 - Initial Commit
-
-
-%% Initialise Case
-
-[caseFolder, campaignID, caseID, timeDirs, deltaT, timePrecision, geometry, ...
- xDims, yDims, zDims, spacePrecision, normLength] = initialiseCaseData(geoLoc);
-
-disp(' ');
-disp(' ');
-
-
-%% Initialise Lagrangian Data
-
-maxNumCompThreads(nProc);
-
-[dataID, LagProps, ~, LagData, ...
- ~, sampleInt, dataFormat] = initialiseLagData(saveLoc, caseFolder, campaignID, ...
-                                               caseID, cloudName, false, true, ...
-                                               false, timeDirs, deltaT, ...
-                                               timePrecision, maxNumCompThreads);
-
-nTimes = height(LagData.X_N0_31975.time);
+LagData = rmfield(LagData, 'X_N0_31975');
 
 planes = fieldnames(LagData);
 
-dDist = single((1e-6:1e-6:147e-6)');
+
+%% Format Particle Data
+
+for i = 1:height(planes)
+    LagData.(planes{i}) = rmfield(LagData.(planes{i}), {'time', 'massFlux'});
+    
+    LagData.(planes{i}).nParticle = double(cell2mat(LagData.(planes{i}).nParticle));
+    LagData.(planes{i}).d = double(cell2mat(LagData.(planes{i}).d));
+end
+clear i;
+
+
+%% Initialise Injector Distribution
 
 sizeDist.injector = [
                     1.000000e-06, 1.499701e-02
@@ -184,101 +159,81 @@ sizeDist.injector = [
                     1.470000e-04, 3.754902e-04
                    ];
 
+sizeDist.injector = single(sizeDist.injector);
 
-%% Calculate Planar Distributions
 
-% Calculate Instantaneous Distributions
-for i = 2:height(planes)
-    sizeDist.(planes{i}).inst = cell(nTimes, 1); sizeDist.(planes{i}).inst(:) = {[dDist, zeros([height(dDist), 1], 'single')]};
+%% Calculate Per-Plane Distributions
 
-    for j = 1:nTimes
-        massParcel = LagData.(planes{i}).nParticle{j} .* ...
-                     (1000 * ((1 / 12) * tau * LagData.(planes{i}).d{j}.^3));
+for i = 1:height(planes)
+    sizeDist.(planes{i}) = [sizeDist.injector(:,1), zeros([height(sizeDist.injector), 1])];
+    
+    mass = LagData.(planes{i}).nParticle .* (1000 * ((1 / 12) * tau * LagData.(planes{i}).d.^3));
+    
+    dBinned = interp1(sizeDist.injector(:,1), sizeDist.injector(:,1), LagData.(planes{i}).d, 'nearest');
+    
+    for j = 1:height(sizeDist.injector)
+        index = find(dBinned == sizeDist.injector(j,1));
         
-        dBinned = round(LagData.(planes{i}).d{j}, 6);
-
-        for k = 1:height(dDist)
-            index = find(dBinned == dDist(k));
-            
-            if ~isempty(index)
-                sizeDist.(planes{i}).inst{j}(k,2) = sum(massParcel(index)) / sum(massParcel);
-            end
-            
+        if ~isempty(index)
+            sizeDist.(planes{i})(j,2) = sum(mass(index)) / sum(mass);
         end
-        clear k;
         
     end
     clear j;
     
-end
-clear i;
-
-% Calculate Time-Averaged Distributions
-for i = 2:height(planes)
-    sizeDist.(planes{i}).mean = [dDist, zeros([height(dDist), 1], 'single')];
+    % Initialise Figure
+    if i == 1
+        fig = fig + 1;
+        figName = ['Particle_Size_Distribution_Mass_', caseID];
+        set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+                     'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+        pause(0.5);
+        hold on;
+        set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+                 'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
     
-    for j = 1:nTimes
-        sizeDist.(planes{i}).mean(:,2) = sizeDist.(planes{i}).mean(:,2) + sizeDist.(planes{i}).inst{j}(:,2);
+    % Plot Injector Size Distribution
+    plot((sizeDist.injector(:,1) * 1e6), sizeDist.injector(:,2), ...
+         'color', graphColours(7), 'lineStyle', ':', 'lineWidth', 2);
     end
-    clear j;
-    sizeDist.(planes{i}).mean((sizeDist.(planes{i}).mean(:,2) == 0), 2) = NaN;
     
-    sizeDist.(planes{i}).mean(:,2) = sizeDist.(planes{i}).mean(:,2) / nTimes;
+    % Plot Planar Distributions
+    plot((sizeDist.(planes{i})(:,1) * 1e6), (sizeDist.(planes{i})(:,2) * 100), ...
+        'color', graphColours(i), 'lineWidth', 2);
     
+    % Format Figure
+    if i == height(planes)
+        title('{-----}', 'interpreter', 'latex');
+        subtitle('{ }');
+        axis on;
+        box on;
+        grid off;
+        xlim([0; 150]);
+        ylim([0; 3.8]);
+        tickData = (30:30:120);
+        xticks(tickData);
+        tickData = (0.76:0.76:3.04);
+        yticks(tickData);
+        xtickformat('%.0f');
+        ytickformat('%.2f');
+        xlabel({'{$D_{_{p}}$ $(\mu m)$}'; '{-----}'}, 'interpreter', 'latex');
+        ylabel({'{-----}'; '{Mass-Weighted Population (\%)}'}, 'interpreter', 'latex');
+        legend({'Injector', ...
+                '$1.0\,\ell$', ...
+                '$1.5\,\ell$', ...
+                '$2.0\,\ell$'}, ...
+               'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
+               'fontSize', 18, 'box', 'off');
+        tightInset = get(gca, 'TightInset');
+        set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+                                   (tightInset(2) + 0.00625), ...
+                                   (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+                                   (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+        pause(0.5);
+        hold off;
+
+        % Save Figure
+        print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+    end
 end
 clear i;
-
-
-%% Plot Data
-
-% Initialise Figure
-fig = fig + 1;
-figName = ['Particle_Size_Variation_', caseID];
-set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-             'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
-pause(0.5);
-hold on;
-set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
-         'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top', 'yScale', 'log');
-
-% Plot Particle Size Distributions
-plot((sizeDist.injector(:,1) * 1e6), sizeDist.injector(:,2), ...
-     'color', graphColours(1), 'lineWidth', 2);  
-     
-% for i = 2:height(planes)
-%     plot((sizeDist.(planes{i}).mean(:,1) * 1e6), (sizeDist.(planes{i}).mean(:,2) * 100), ...
-%          'color', graphColours(i), 'lineWidth', 2);   
-% end
-% clear i;
-
-% Format Figure
-title('{-----}', 'interpreter', 'latex');
-subtitle('{ }');
-axis on;
-box on;
-grid off;
-xlim([0; 150]);
-ylim([1e-4; 1e1]);
-tickData = (30:30:120);
-xticks(tickData);
-tickData = [1e-3; 1e-2; 1e-1; 1e0];
-yticks(tickData);
-xtickformat('%.0f');
-xlabel({'{$D_{_{p}}$}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{Mass-Weighted Population (\%)}'}, 'interpreter', 'latex');
-% legend({'Injector', ...
-%         '1.0\,$\ell$ Measurement Plane', ...
-%         '1.5\,$\ell$ Measurement Plane', ...
-%         '2.0\,$\ell$ Measurement Plane'}, ...
-%        'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
-%        'fontSize', 16, 'box', 'off')
-tightInset = get(gca, 'TightInset');
-set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
-                           (tightInset(2) + 0.00625), ...
-                           (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
-                           (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
-pause(0.5);
-hold off;
-
-% Save Figure
-print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');

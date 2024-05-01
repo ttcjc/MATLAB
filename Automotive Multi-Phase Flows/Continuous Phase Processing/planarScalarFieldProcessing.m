@@ -253,35 +253,6 @@ for i = 1:height(planes)
 end
 clear i;
 
-% Normalise Coordinate System
-if normDims
-    disp(' ');
-    
-    disp('    Normalising Spatial Dimensions...');
-    
-    parts = fieldnames(geometry);
-    for i = 1:height(parts)
-        geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
-    end
-    clear i parts;
-    
-    xDims = xDims / normLength;
-    yDims = yDims / normLength;
-    zDims = zDims / normLength;
-    
-    cellSize.target = cellSize.target / normLength;
-    
-    for i = 1:height(planes)
-        cellSize.(planes{i}).x = cellSize.(planes{i}).x / normLength;
-        cellSize.(planes{i}).y = cellSize.(planes{i}).y / normLength;
-        cellSize.(planes{i}).z = cellSize.(planes{i}).z / normLength;
-        cellSize.(planes{i}).area = cellSize.(planes{i}).area / (normLength^2);
-
-        fieldData.(planes{i}).positionGrid = fieldData.(planes{i}).positionGrid / normLength;
-    end
-    
-end
-
 %%%%
 
 executionTime = toc;
@@ -328,20 +299,49 @@ clear valid;
 if plotMean
     
     % Select Plane(s) of Interest
-        valid = false;
-        while ~valid
-            [index, valid] = listdlg('listSize', [300, 300], ...
-                                     'selectionMode', 'multiple', ...
-                                     'name', 'Select Variable(s) to Plot', ...
-                                     'listString', planes);
-        
-            if ~valid
-                disp(    'WARNING: No Planes Selected');
-            end
+    valid = false;
+    while ~valid
+        [index, valid] = listdlg('listSize', [300, 300], ...
+                                 'selectionMode', 'multiple', ...
+                                 'name', 'Select Variable(s) to Plot', ...
+                                 'listString', planes);
+
+        if ~valid
+            disp(    'WARNING: No Planes Selected');
         end
-        clear valid;
+    end
+    clear valid;
+
+    plotPlanes = planes(index);
         
-        plotPlanes = planes(index);
+    % Normalise Coordinate System
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        cellSize.target = cellSize.target / normLength;
+
+        for i = 1:height(planes)
+            cellSize.(planes{i}).x = cellSize.(planes{i}).x / normLength;
+            cellSize.(planes{i}).y = cellSize.(planes{i}).y / normLength;
+            cellSize.(planes{i}).z = cellSize.(planes{i}).z / normLength;
+            cellSize.(planes{i}).area = cellSize.(planes{i}).area / (normLength^2);
+
+            fieldData.(planes{i}).positionGrid = fieldData.(planes{i}).positionGrid / normLength;
+        end
+
+    end
 end
 
 disp(' ');
@@ -370,7 +370,7 @@ if plotMean
     
     if strcmp(field, 'CpT')
         cMap = plasma(32);
-        cLims = [-0.8; 1]; % cLims = [-1.2; 1];
+        cLims = [-1.2; 1]; % cLims = [-0.8; 1];
     elseif strcmp(field, 'kResolved')
         cMap = cool2warm(32);
         cLims = [0.6; 1];

@@ -11,7 +11,7 @@ run preamble;
 
 blockageCorrection = true; % Perform Blockage Correction
 
-normDims = false; % Normalise Spatial Dimensions
+normDims = true; % Normalise Spatial Dimensions
 
 figSave = false; % Save .fig File(s)
 
@@ -301,8 +301,6 @@ end
 %             
 %         end
 
-disp(' ');
-
 % Perform Blockage Correction
 if blockageCorrection
     disp(' ');
@@ -321,8 +319,9 @@ if blockageCorrection
                 At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
             end
             
-            pData.p.mean = (pData.p.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
-            pData.Cp.mean = (pData.Cp.mean + (2 * (Am / At))) / (1 + (2 * (Am / At)));
+            E = Am / At;
+            
+            pData.Cp.mean = (pData.Cp.mean + (2 * E)) / (1 + (2 * E));
             
         case 'B'
             % NYI
@@ -348,45 +347,6 @@ switch format
         pData.CoP.mean(2) = sum((pData.Cp.mean .* pData.positionGrid(:,2)), 'omitNaN') / sum(pData.Cp.mean, 'omitNaN');
         pData.CoP.mean(3) = sum((pData.Cp.mean .* pData.positionGrid(:,3)), 'omitNaN') / sum(pData.Cp.mean, 'omitNaN');
         
-end
-
-% Normalise Spatial Dimensions
-if normDims
-    disp(' ');
-    
-    disp('    Normalising Spatial Dimensions...');
-    
-    parts = fieldnames(geometry);
-    for i = 1:height(parts)
-        geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
-    end
-    clear i parts;
-    
-    xDims = xDims / normLength;
-    yDims = yDims / normLength;
-    zDims = zDims / normLength;
-    
-    mapPerim = mapPerim / normLength;
-    
-    xLimsData = xLimsData / normLength;
-    yLimsData = yLimsData / normLength;
-    zLimsData = zLimsData / normLength;
-    
-    cellSize.target = cellSize.target / normLength;
-    cellSize.x = cellSize.x / normLength;
-    cellSize.y = cellSize.y / normLength;
-    cellSize.z = cellSize.z / normLength;
-    cellSize.area = cellSize.area / (normLength^2);
-    
-    pData.positionGrid = pData.positionGrid / normLength;
-    
-    switch format
-        
-        case {'A', 'C'}
-            pData.CoP.mean = pData.CoP.mean / normLength;
-            
-    end
-    
 end
 
 %%%%
@@ -499,6 +459,49 @@ switch format
         
 end
 
+if plotMean || plotRMS || plotInst
+    
+    % Normalise Spatial Dimensions
+    if normDims
+        disp(' ');
+
+        disp('    Normalising Spatial Dimensions...');
+
+        parts = fieldnames(geometry);
+        for i = 1:height(parts)
+            geometry.(parts{i}).vertices = geometry.(parts{i}).vertices / normLength;
+        end
+        clear i parts;
+
+        xDims = xDims / normLength;
+        yDims = yDims / normLength;
+        zDims = zDims / normLength;
+
+        mapPerim = mapPerim / normLength;
+
+        xLimsData = xLimsData / normLength;
+        yLimsData = yLimsData / normLength;
+        zLimsData = zLimsData / normLength;
+
+        cellSize.target = cellSize.target / normLength;
+        cellSize.x = cellSize.x / normLength;
+        cellSize.y = cellSize.y / normLength;
+        cellSize.z = cellSize.z / normLength;
+        cellSize.area = cellSize.area / (normLength^2);
+
+        pData.positionGrid = pData.positionGrid / normLength;
+
+        switch format
+
+            case {'A', 'C'}
+                pData.CoP.mean = pData.CoP.mean / normLength;
+
+        end
+
+    end
+
+end
+
 disp(' ');
 disp(' ');
 
@@ -555,8 +558,8 @@ if plotMean
     if strcmp(campaignID, 'Windsor_fullScale')
         cLims = [-0.271; -0.111]; % Quarter-Scale versus Full-Scale Comparison
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        cLims = [-0.241; -0.091]; % Quarter-Scale Experimental Comparison
-%         cLims = [-0.271; -0.111]; % Quarter-Scale versus Full-Scale Comparison
+%         cLims = [-0.241; -0.091]; % Quarter-Scale Experimental Comparison
+        cLims = [-0.271; -0.111]; % Quarter-Scale versus Full-Scale Comparison
     elseif strcmp(campaignID, 'Varney')
         cLims = [-0.241; -0.091]; % Quarter-Scale Experimental Comparison
     else

@@ -1,6 +1,6 @@
 run preamble;
 
-load('/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15');
+load('/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_2.0L_120s_15Hz_03/T0067_T120000_F15.mat');
 % load('/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_600s_03Hz_01/T0333_T600000_F3.mat');
 
 [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
@@ -94,17 +94,16 @@ hold on;
 set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top', 'yScale', 'log');
 
-% Plot Mass Flux
-plot((movmean(error(:,1), 8) / mean(mapData.density.mean(mapData.density.mean > 0))), ...
-     'color', graphColours(1), 'lineWidth', 2);
-plot((movmean(error(:,2), 8) / mean(mapData.density.mean(mapData.density.mean > 0))), ...
-     'color', graphColours(2), 'lineWidth', 2);
-plot((movmean(error(:,3), 8) / mean(mapData.density.mean(mapData.density.mean > 0))), ...
-     'color', graphColours(3), 'lineWidth', 2);
-plot((movmean(error(:,4), 8) / mean(mapData.density.mean(mapData.density.mean > 0))), ...
-     'color', graphColours(4), 'lineWidth', 2);
-plot((movmean(error(:,5), 8) / mean(mapData.density.mean(mapData.density.mean > 0))), ...
-     'color', graphColours(5), 'lineWidth', 2);
+% Plot Error Convergence
+samples = 1:nTimes;
+for i = 1:width(error)
+    index = find(error(:,i) > 0);
+    p = polyfit(log(samples(index)), log(error(index,i) / mean(mapData.density.mean(mapData.density.mean > 0))), 3);
+    errorFit = exp(polyval(p, log(1:0.25:nTimes)));
+    
+    plot((1:0.25:nTimes), errorFit, 'color', graphColours(i), 'lineWidth', 2);
+end
+clear i samples;
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
@@ -120,13 +119,6 @@ tickData = [1e-4; 1e-3; 1e-2; 1e-1];
 yticks(tickData);
 xlabel({'{Samples}'; '{-----}'}, 'interpreter', 'latex');
 ylabel({'{-----}'; '{$\epsilon$}'}, 'interpreter', 'latex');
-legend({'Point A', ...
-        'Point B', ...
-        'Point C', ...
-        'Point D', ...
-        'Point E'}, ...
-       'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
-       'fontSize', 16, 'box', 'off');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

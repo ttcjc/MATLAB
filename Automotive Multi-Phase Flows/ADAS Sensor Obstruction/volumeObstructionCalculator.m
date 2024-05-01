@@ -263,62 +263,62 @@ nTimes = height(volumeData.time);
 
 dL = cellSize.volume^(1 / 3) / samplesPerCell;
 
-% Check if Plane of Interest Intersects Geometry
-removeIntersect = false;
-
-switch orientation
-    
-    case 'YZ'
-        
-        if obstructData.PoV.targetPlane.position <= xDims(2)
-            removeIntersect = true;
-        end
-        
-    case 'XZ'
-        
-        if obstructData.PoV.targetPlane.position >= yDims(1)
-            removeIntersect = true;
-        end
-        
-    case 'XY'
-        
-        if obstructData.PoV.targetPlane.position <= zDims(2)
-            removeIntersect = true;
-        end
-        
-end
-
-% Remove Erroneous Data From Cells Intersecting Geometry
-if removeIntersect
-    disp('        Removing Erroneous Data From Grid Cells Intersecting Geometry...');
-
-    % Perform Removal
-    volumeDataVars = fieldnames(volumeData);
-    nonFieldVars = {'positionGrid'; 'time'};
-    fieldVars = setdiff(volumeDataVars, nonFieldVars);
-    clear volumeDataVars nonFieldVars;
-    
-    parts = fieldnames(geometry);
-    for i = 1:height(parts)
-        DT = delaunay(geometry.(parts{i}).vertices);
-
-        index = ~isnan(tsearchn(geoPoints, DT, volumeData.positionGrid));
-
-        for j = 1:height(fields)
-            volumeData.(fieldVars{j}).mean(index,:) = NaN;
-
-            for k = 1:nTimes
-                volumeData.(fieldVars{j}).inst{k}(index,:) = NaN;
-            end
-
-        end
-        clear j;
-
-    end
-    clear i parts;
-    
-    clear fieldVars;    
-end
+% % Check if Plane of Interest Intersects Geometry
+% removeIntersect = false;
+% 
+% switch orientation
+%     
+%     case 'YZ'
+%         
+%         if obstructData.PoV.targetPlane.position <= xDims(2)
+%             removeIntersect = true;
+%         end
+%         
+%     case 'XZ'
+%         
+%         if obstructData.PoV.targetPlane.position >= yDims(1)
+%             removeIntersect = true;
+%         end
+%         
+%     case 'XY'
+%         
+%         if obstructData.PoV.targetPlane.position <= zDims(2)
+%             removeIntersect = true;
+%         end
+%         
+% end
+% 
+% % Remove Erroneous Data From Cells Intersecting Geometry
+% if removeIntersect
+%     disp('        Removing Erroneous Data From Grid Cells Intersecting Geometry...');
+% 
+%     % Perform Removal
+%     volumeDataVars = fieldnames(volumeData);
+%     nonFieldVars = {'positionGrid'; 'time'};
+%     fieldVars = setdiff(volumeDataVars, nonFieldVars);
+%     clear volumeDataVars nonFieldVars;
+%     
+%     parts = fieldnames(geometry);
+%     for i = 1:height(parts)
+%         DT = delaunay(geometry.(parts{i}).vertices);
+% 
+%         index = ~isnan(tsearchn(geoPoints, DT, volumeData.positionGrid));
+% 
+%         for j = 1:height(fields)
+%             volumeData.(fieldVars{j}).mean(index,:) = NaN;
+% 
+%             for k = 1:nTimes
+%                 volumeData.(fieldVars{j}).inst{k}(index,:) = NaN;
+%             end
+% 
+%         end
+%         clear j;
+% 
+%     end
+%     clear i parts;
+%     
+%     clear fieldVars;    
+% end
 
 % Update Map Boundaries
 switch orientation
@@ -740,9 +740,20 @@ if plotMean || plotRMS || plotInst
     planeNo = 1;
     cMap = flipud(viridis(32));
     refPoint = [];
-    xLimsPlot = [0.3; 4.6257662];
-    yLimsPlot = [-0.5; 0.5];
-    zLimsPlot = [0; 0.5];
+    
+        switch orientation
+            
+            case 'YZ'
+                xLimsPlot = [0.3; 4.625766283524905];
+                yLimsPlot = [-0.5; 0.5];
+                zLimsPlot = [0; 0.5];
+                
+            case {'XZ', 'XY'}
+                xLimsPlot = [0.3; 1.2];
+                yLimsPlot = [-0.6; 0.6];
+                zLimsPlot = [0; 0.5];
+                
+        end
     
     if ~normDims
         xLimsPlot = xLimsPlot * normLength;

@@ -1,8 +1,4 @@
-% run preamble;
-
-refValue = 8.996259860381801e-05;
-
-figSave = false; % Save .fig File(s);
+clc;
 
 %%%
 
@@ -19,31 +15,32 @@ xDims = xDims / normLength;
 yDims = yDims / normLength;
 zDims = zDims / normLength;
 
+spatialRes = 0.5e-3 / normLength;
+% spatialRes = 2e-3 / normLength;
+
 
 %%
 
 load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/X_P1_24625/T12525_T40000_F400_D1_D147_cumulative.mat');
 % load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P18_637/T1002_T3200_F50_D20_D400_cumulative.mat');
-
+% load('/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_2.0L_120s_15Hz_03/T0067_T120000_F15.mat');
 
 
 %%
 
-xLimsData = mapData.positionGrid(1,1);
-yLimsData = [min(mapData.positionGrid(:,2)); max(mapData.positionGrid(:,2))];
-zLimsData = [min(mapData.positionGrid(:,3)); max(mapData.positionGrid(:,3))];
+xLimsData = mapData.positionGrid(1,1) / normLength;
+yLimsData = [min(mapData.positionGrid(:,2)); max(mapData.positionGrid(:,2))] / normLength;
+zLimsData = [min(mapData.positionGrid(:,3)); max(mapData.positionGrid(:,3))] / normLength;
 
 xLimsPlot = [0.3; 4.6257662];
 yLimsPlot = [-0.5; 0.5];
 zLimsPlot = [0; 0.5];
-
-spatialRes = 0.5e-3 / normLength;
     
 positionData = mapData.positionGrid / normLength;
 
 figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
 
-figName = 'Convergence_Probes';
+figName = 'Spray_Convergence_Sample_Points';
 
 contourlines = [0.02; 0.02];
 
@@ -75,7 +72,14 @@ if ~isempty(geometry)
 end
 
 % Plot Contour Lines
-scalarData = full(mapData.areaDensity.mean) / refValue;
+scalarData = full(mapData.areaDensity.mean);
+scalarData = scalarData / 8.996259860381801e-05;
+
+% scalarData = full(mapData.areaDensity.mean);
+% scalarData = scalarData / 1;
+
+% scalarData = full(mapData.density.mean);
+% scalarData = scalarData / 0.0052166;
 
 % Reshape Data for Improved Interpolation Performance
 gridShape = [height(unique(positionData(:,2))), ...
@@ -107,7 +111,7 @@ z = permute(z, [2,1,3]);
 scalar = permute(scalar, [2,1,3]);
 
 contours = contourslice(x, y, z, scalar, xLimsData, [], [], contourlines);
-set(contours, 'edgeColor', graphColours(7), 'lineStyle', '-', 'lineWidth', 2);
+set(contours, 'edgeColor', graphColours(8), 'lineStyle', '-', 'lineWidth', 2);
 
 % Plot Sample Points for Convergence Testing
 for i = 1:height(index)

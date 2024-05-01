@@ -90,7 +90,7 @@ tickData = (0.016:0.016:0.064);
 yticks(tickData);
 xtickformat('%.2f');
 ytickformat('%.3f');
-xlabel({'{$|\vec{u}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
+xlabel({'{$|\vec{\bar{u}}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
 ylabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
 legend({'Experimental (Luckhurst)', 'Numerical (Crickmore)', 'Numerical (Luckhurst)'}, ...
        'location', 'northWest', 'orientation', 'vertical', 'interpreter', 'latex', ...
@@ -144,7 +144,7 @@ tickData = (0.016:0.016:0.064);
 yticks(tickData);
 xtickformat('%.2f');
 ytickformat('%.3f');
-xlabel({'{$|\vec{u}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
+xlabel({'{$|\vec{\bar{u}}_{_{f}}|\,/\,u_{_{\infty}}$}'; '{-----}'}, 'interpreter', 'latex');
 ylabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
 legend({'Experimental (Luckhurst)', 'Numerical (Crickmore)', 'Numerical (Luckhurst)'}, ...
        'location', 'northWest', 'orientation', 'vertical', 'interpreter', 'latex', ...

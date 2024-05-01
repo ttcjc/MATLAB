@@ -62,7 +62,7 @@ xticklabels({'\textit{Config~A}', '\textit{Config~B}', '\textit{Config~C}'});
 set(gca, 'tickLabelInterpreter', 'latex');
 ytickformat('%.3f');
 xlabel({'{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$\overline{\overline{\varrho_{_{n}}}}$}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$\bar{\bar{\varrho_{_{n}}}}$}'}, 'interpreter', 'latex');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

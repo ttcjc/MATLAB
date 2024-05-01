@@ -21,6 +21,7 @@ function colour = graphColours(n)
                '#22C4AC'
                '#FCC21D'
                '#F9762D'
+               '#1D57FC'
                '#575756'
                '#1D1D1B'
               ];

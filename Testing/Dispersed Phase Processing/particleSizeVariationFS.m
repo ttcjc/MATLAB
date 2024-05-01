@@ -21,7 +21,7 @@ end
 clear i;
 
 
-%%
+%% Initialise Injector Distribution
 
 sizeDist.injector = [
                      2.000000e-05, 2.096012e-02
@@ -220,7 +220,7 @@ sizeDist.injector = [
 sizeDist.injector = single(sizeDist.injector);
 
                 
-%% Mass-Weighted
+%% Calculate Per-Plane Distributions
 
 for i = 1:height(planes)
     sizeDist.(planes{i}) = [sizeDist.injector(:,1), zeros([height(sizeDist.injector), 1])];
@@ -239,8 +239,6 @@ for i = 1:height(planes)
     end
     clear j;
     
-%     sizeDist.(planes{i})((sizeDist.(planes{i})(:,2) == 0),2) = NaN;
-    
     % Initialise Figure
     if i == 1
         fig = fig + 1;
@@ -254,12 +252,12 @@ for i = 1:height(planes)
     
     % Plot Injector Size Distribution
     plot((sizeDist.injector(:,1) * 1e6), sizeDist.injector(:,2), ...
-         'color', graphColours(1), 'lineWidth', 2);
+         'color', graphColours(8), 'lineStyle', ':', 'lineWidth', 2);
     end
     
     % Plot Planar Distributions
     plot((sizeDist.(planes{i})(:,1) * 1e6), (sizeDist.(planes{i})(:,2) * 100), ...
-        'color', graphColours(i + 1), 'lineWidth', 2);
+        'color', graphColours(i), 'lineWidth', 2);
     
     % Format Figure
     if i == height(planes)
@@ -269,20 +267,20 @@ for i = 1:height(planes)
         box on;
         grid off;
         xlim([0; 420]);
-        ylim([0; 1.2]);
+        ylim([0; 1.1]);
         tickData = (84:84:336);
         xticks(tickData);
-        tickData = (0.2:0.2:1);
+        tickData = (0.22:0.22:0.88);
         yticks(tickData);
         xtickformat('%.0f');
-        ytickformat('%.1f');
-        xlabel({'{$D_{_{p}}$}'; '{-----}'}, 'interpreter', 'latex');
+        ytickformat('%.2f');
+        xlabel({'{$D_{_{p}}$ $(\mu m)$}'; '{-----}'}, 'interpreter', 'latex');
         ylabel({'{-----}'; 'Mass-Weighted Population (\%)'}, 'interpreter', 'latex');
         legend({'Injector', ...
-                '$1\,\ell$', ...
-                '$2\,\ell$', ...
-                '$3\,\ell$', ...
-                '$4\,\ell$'}, 'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
+                '$1.0\,\ell$', ...
+                '$2.0\,\ell$', ...
+                '$3.0\,\ell$', ...
+                '$4.0\,\ell$'}, 'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
                'fontSize', 18, 'box', 'off');
         tightInset = get(gca, 'TightInset');
         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...

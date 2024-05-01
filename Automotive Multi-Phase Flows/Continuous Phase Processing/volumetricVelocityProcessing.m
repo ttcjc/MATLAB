@@ -1,4 +1,4 @@
-%% Volumetric Velocity Field Processing v1.0
+%% Volumetric Velocity Field Processing v2.0
 % ----
 % Load, Process and Present Volumetric Flow Field Data Acquired Using OpenFOAM v7
 
@@ -14,7 +14,7 @@ normDims = true; % Normalise Spatial Dimensions
 figSave = false; % Save .fig File(s)
 
 disp('=========================================');
-disp('Volumetric Velocity Field Processing v1.0');
+disp('Volumetric Velocity Field Processing v2.0');
 disp('=========================================');
 
 disp(' ');
@@ -24,6 +24,7 @@ disp(' ');
 %% Changelog
 
 % v1.0 - Origial Commit
+% v2.0 - Added Support for Presentation of Fluctuating Velocity Components
 
 
 %% Initialise Case
@@ -73,6 +74,27 @@ while ~valid
         valid = true;
     elseif selection == 'c' | selection == 'C' %#ok<OR2>
         format = 'C';
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Calculate Lambda2? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        calcL2 = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        calcL2 = true;
         
         valid = true;
     else
@@ -248,9 +270,6 @@ gridShape = [height(unique(probeData.positionGrid(:,1))), ...
 % Initialise Progress Bar
 wB = waitbar(0, 'Interpolating Data Onto Uniform Grid', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-parforWaitBar(wB, nTimes);
 
 % Perform Interpolation
 u = cell(nTimes,1); u(:) = {zeros([nCells, 1], 'single')};
@@ -263,7 +282,7 @@ zOrig = double(reshape(probeData.positionGrid(:,3), gridShape));
 uOrig = probeData.u.inst; probeData.u.inst = -1;
 vOrig = probeData.v.inst; probeData.v.inst = -1;
 wOrig = probeData.w.inst; probeData.w.inst = -1;
-parfor i = 1:nTimes    
+for i = 1:nTimes    
     uInterp = griddedInterpolant(xOrig, yOrig, zOrig, double(reshape(uOrig{i}, gridShape)), 'linear', 'none');
     vInterp = griddedInterpolant(xOrig, yOrig, zOrig, double(reshape(vOrig{i}, gridShape)), 'linear', 'none');
     wInterp = griddedInterpolant(xOrig, yOrig, zOrig, double(reshape(wOrig{i}, gridShape)), 'linear', 'none');
@@ -278,9 +297,9 @@ parfor i = 1:nTimes
     wOrig{i} = -1;
     
     % Update Waitbar
-    send(dQ, []);
+    waitbar((i / nTimes), wB);
 end
-clear xOrig yOrig zOrig uOrig vOrig wOrig;
+clear i xOrig yOrig zOrig uOrig vOrig wOrig;
 
 delete(wB);
 
@@ -290,79 +309,13 @@ uData.u.inst = u; clear u;
 uData.v.inst = v; clear v;
 uData.w.inst = w; clear w;
 
-disp(' ');
-
-% Calculate Instantaneous Lambda2
-disp('    Calculating Instantaneous Lambda2...');
-
 gridShape = [height(unique(uData.positionGrid(:,1))), ...
              height(unique(uData.positionGrid(:,2))), ...
              height(unique(uData.positionGrid(:,3)))];
 
-lambda2 = cell(nTimes,1); lambda2(:) = {zeros([nCells, 1], 'single')};
-
-% Initialise Progress Bar
-wB = waitbar(0, 'Calculating Instantaneous Lambda2 Field', 'name', 'Progress');
-wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-parforWaitBar(wB, nTimes);
-
-% Perform Calculation
-uInst = uData.u.inst;
-vInst = uData.v.inst;
-wInst = uData.w.inst;
-x = unique(uData.positionGrid(:,1));
-y = unique(uData.positionGrid(:,2));
-z = unique(uData.positionGrid(:,3));
-parfor i = 1:nTimes
-
-    % Calculate grad(U)
-    u = reshape(uInst{i}, gridShape); u = permute(u, [2, 1, 3]);
-    v = reshape(vInst{i}, gridShape); v = permute(v, [2, 1, 3]);
-    w = reshape(wInst{i}, gridShape); w = permute(w, [2, 1, 3]);
-
-    [dudx, dudy, dudz] = gradient(u, x, y, z);
-    [dvdx, dvdy, dvdz] = gradient(v, x, y, z);
-    [dwdx, dwdy, dwdz] = gradient(w, x, y, z);
-
-    dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
-    dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
-    dudz = permute(dudz, [2, 1, 3]); dudz = dudz(:);
-
-    dvdx = permute(dvdx, [2, 1, 3]); dvdx = dvdx(:);
-    dvdy = permute(dvdy, [2, 1, 3]); dvdy = dvdy(:);
-    dvdz = permute(dvdz, [2, 1, 3]); dvdz = dvdz(:);
-
-    dwdx = permute(dwdx, [2, 1, 3]); dwdx = dwdx(:);
-    dwdy = permute(dwdy, [2, 1, 3]); dwdy = dwdy(:);
-    dwdz = permute(dwdz, [2, 1, 3]); dwdz = dwdz(:);
-
-    % Calculate Lambda2    
-    for j = 1:nCells
-        J = [dudx(j), dudy(j), dudz(j); dvdx(j), dvdy(j), dvdz(j); dwdx(j), dwdy(j), dwdz(j)];
-        J(isnan(J)) = 0;
-
-        S = 0.5 * (J + J');
-        W = 0.5 * (J - J');
-
-        lambda = eig(S.^2 + W.^2); lambda = sort(lambda);
-
-        lambda2{i}(j) = lambda(2);
-    end
-
-    % Update Waitbar
-    send(dQ, []);
-end
-clear uInst vInst wInst x y z;
-
-delete(wB);
-
-uData.lambda2.inst = lambda2; clear lambda2;
-
 disp(' ');
 
-% Calculate Instantaneous Field Variables
+% Calculate Time-Averaged Velocity Field
 disp('    Calculating Time-Averaged Velocity Field...');
 
 % Initialise Progress Bar
@@ -392,49 +345,144 @@ uData.w.mean = uData.w.mean / nTimes;
 
 disp(' ');
 
-% Calculate Time-Averaged Lambda2
-disp('    Calculating Time-Averaged Lambda2...');
+% Calculate Fluctuating Velocity Field
+disp('    Calculating Fluctuating Velocity Field...');
 
-uData.lambda2.mean = zeros([nCells,1], 'single');
+% Initialise Progress Bar
+wB = waitbar(0, 'Calculating Fluctuating Velocity Field', 'name', 'Progress');
+wB.Children.Title.Interpreter = 'none';
 
-x = unique(uData.positionGrid(:,1));
-y = unique(uData.positionGrid(:,2));
-z = unique(uData.positionGrid(:,3));
+% Perform Calculation
+uData.u.prime = uData.u.inst;
+uData.v.prime = uData.v.inst;
+uData.w.prime = uData.w.inst;
 
-% Calculate grad(U)
-u = reshape(uData.u.mean, gridShape); u = permute(u, [2, 1, 3]);
-v = reshape(uData.v.mean, gridShape); v = permute(v, [2, 1, 3]);
-w = reshape(uData.w.mean, gridShape); w = permute(w, [2, 1, 3]);
+for i = 1:nTimes
+    uData.u.prime{i} = uData.u.prime{i} - uData.u.mean;
+    uData.v.prime{i} = uData.v.prime{i} - uData.v.mean;
+    uData.w.prime{i} = uData.w.prime{i} - uData.w.mean;
 
-[dudx, dudy, dudz] = gradient(u, x, y, z);
-[dvdx, dvdy, dvdz] = gradient(v, x, y, z);
-[dwdx, dwdy, dwdz] = gradient(w, x, y, z);
-
-dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
-dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
-dudz = permute(dudz, [2, 1, 3]); dudz = dudz(:);
-
-dvdx = permute(dvdx, [2, 1, 3]); dvdx = dvdx(:);
-dvdy = permute(dvdy, [2, 1, 3]); dvdy = dvdy(:);
-dvdz = permute(dvdz, [2, 1, 3]); dvdz = dvdz(:);
-
-dwdx = permute(dwdx, [2, 1, 3]); dwdx = dwdx(:);
-dwdy = permute(dwdy, [2, 1, 3]); dwdy = dwdy(:);
-dwdz = permute(dwdz, [2, 1, 3]); dwdz = dwdz(:);
-
-% Calculate Lambda2    
-for i = 1:nCells
-    J = [dudx(i), dudy(i), dudz(i); dvdx(i), dvdy(i), dvdz(i); dwdx(i), dwdy(i), dwdz(i)];
-    J(isnan(J)) = 0;
-
-    S = 0.5 * (J + J');
-    W = 0.5 * (J - J');
-
-    lambda = eig(S.^2 + W.^2); lambda = sort(lambda);
-
-    uData.lambda2.mean(i) = lambda(2);
+    % Update Waitbar
+    waitbar((i / nTimes), wB);
 end
 clear i;
+
+delete(wB);
+
+% Calculate Lambda2
+if calcL2
+    disp(' ');
+    
+    % Calculate Time-Averaged Lambda2
+    disp('    Calculating Time-Averaged Lambda2...');
+    
+    uData.lambda2.mean = zeros([nCells,1], 'single');
+    
+    x = unique(uData.positionGrid(:,1));
+    y = unique(uData.positionGrid(:,2));
+    z = unique(uData.positionGrid(:,3));
+    
+    % Calculate grad(U)
+    u = reshape(uData.u.mean, gridShape); u = permute(u, [2, 1, 3]);
+    v = reshape(uData.v.mean, gridShape); v = permute(v, [2, 1, 3]);
+    w = reshape(uData.w.mean, gridShape); w = permute(w, [2, 1, 3]);
+    
+    [dudx, dudy, dudz] = gradient(u, x, y, z);
+    [dvdx, dvdy, dvdz] = gradient(v, x, y, z);
+    [dwdx, dwdy, dwdz] = gradient(w, x, y, z);
+    
+    dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
+    dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
+    dudz = permute(dudz, [2, 1, 3]); dudz = dudz(:);
+    
+    dvdx = permute(dvdx, [2, 1, 3]); dvdx = dvdx(:);
+    dvdy = permute(dvdy, [2, 1, 3]); dvdy = dvdy(:);
+    dvdz = permute(dvdz, [2, 1, 3]); dvdz = dvdz(:);
+    
+    dwdx = permute(dwdx, [2, 1, 3]); dwdx = dwdx(:);
+    dwdy = permute(dwdy, [2, 1, 3]); dwdy = dwdy(:);
+    dwdz = permute(dwdz, [2, 1, 3]); dwdz = dwdz(:);
+    
+    % Calculate Lambda2    
+    for i = 1:nCells
+        J = [dudx(i), dudy(i), dudz(i); dvdx(i), dvdy(i), dvdz(i); dwdx(i), dwdy(i), dwdz(i)];
+        J(isnan(J)) = 0;
+        
+        S = 0.5 * (J + J');
+        W = 0.5 * (J - J');
+        
+        lambda = eig(S.^2 + W.^2); lambda = sort(lambda);
+        
+        uData.lambda2.mean(i) = lambda(2);
+    end
+    clear i;
+    
+    disp(' ');
+    
+    % Calculate Instantaneous Lambda2
+    disp('    Calculating Instantaneous Lambda2...');
+    
+    lambda2 = cell(nTimes,1); lambda2(:) = {zeros([nCells, 1], 'single')};
+    
+    % Initialise Progress Bar
+    wB = waitbar(0, 'Calculating Instantaneous Lambda2 Field', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
+    dQ = parallel.pool.DataQueue;
+    afterEach(dQ, @parforWaitBar);
+    parforWaitBar(wB, nTimes);
+    
+    % Perform Calculation
+    uInst = uData.u.inst;
+    vInst = uData.v.inst;
+    wInst = uData.w.inst;
+    x = unique(uData.positionGrid(:,1));
+    y = unique(uData.positionGrid(:,2));
+    z = unique(uData.positionGrid(:,3));
+    parfor i = 1:nTimes
+        
+        % Calculate grad(U)
+        u = reshape(uInst{i}, gridShape); u = permute(u, [2, 1, 3]);
+        v = reshape(vInst{i}, gridShape); v = permute(v, [2, 1, 3]);
+        w = reshape(wInst{i}, gridShape); w = permute(w, [2, 1, 3]);
+        
+        [dudx, dudy, dudz] = gradient(u, x, y, z);
+        [dvdx, dvdy, dvdz] = gradient(v, x, y, z);
+        [dwdx, dwdy, dwdz] = gradient(w, x, y, z);
+        
+        dudx = permute(dudx, [2, 1, 3]); dudx = dudx(:);
+        dudy = permute(dudy, [2, 1, 3]); dudy = dudy(:);
+        dudz = permute(dudz, [2, 1, 3]); dudz = dudz(:);
+        
+        dvdx = permute(dvdx, [2, 1, 3]); dvdx = dvdx(:);
+        dvdy = permute(dvdy, [2, 1, 3]); dvdy = dvdy(:);
+        dvdz = permute(dvdz, [2, 1, 3]); dvdz = dvdz(:);
+        
+        dwdx = permute(dwdx, [2, 1, 3]); dwdx = dwdx(:);
+        dwdy = permute(dwdy, [2, 1, 3]); dwdy = dwdy(:);
+        dwdz = permute(dwdz, [2, 1, 3]); dwdz = dwdz(:);
+        
+        % Calculate Lambda2    
+        for j = 1:nCells
+            J = [dudx(j), dudy(j), dudz(j); dvdx(j), dvdy(j), dvdz(j); dwdx(j), dwdy(j), dwdz(j)];
+            J(isnan(J)) = 0;
+            
+            S = 0.5 * (J + J');
+            W = 0.5 * (J - J');
+            
+            lambda = eig(S.^2 + W.^2); lambda = sort(lambda);
+            
+            lambda2{i}(j) = lambda(2);
+        end
+        
+        % Update Waitbar
+        send(dQ, []);
+    end
+    clear uInst vInst wInst x y z;
+    
+    delete(wB);
+    
+    uData.lambda2.inst = lambda2; clear lambda2;
+end
 
 %%%%
 
@@ -479,51 +527,32 @@ while ~valid
     end
 
 end
+clear valid;
 
 valid = false;
 while ~valid
     disp(' ');
-    
-    selection = input('Plot Time-Averaged Lambda2? [y/n]: ', 's');
+
+    selection = input('Plot Velocity Fluctuations? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotMeanL2 = false;
-        
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotMeanL2 = true;
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-    
-valid = false;
-while ~valid
-    disp(' ');
-
-    selection = input('Plot Instantaneous Lambda2? [y/n]: ', 's');
-
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotInstL2 = false;
+        plotPrimeU = false;
 
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotInstL2 = true;
+        plotPrimeU = true;
 
-        startFrame = inputFrames(nTimes, 'Start');
+        startFramePrime = inputFrames(nTimes, 'Start');
 
-        if startFrame == -1
+        if startFramePrime == -1
             continue;
         end
 
-        endFrame = inputFrames(nTimes, 'End');
+        endFramePrime = inputFrames(nTimes, 'End');
 
-        if endFrame == -1
+        if endFramePrime == -1
             continue;
-        elseif endFrame < startFrame
+        elseif endFramePrime < startFramePrime
             disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
 
             continue;
@@ -537,7 +566,72 @@ while ~valid
 end
 clear valid;
 
-if plotMeanU || plotMeanL2 || plotInstL2
+if calcL2
+    
+    valid = false;
+    while ~valid
+        disp(' ');
+
+        selection = input('Plot Time-Averaged Lambda2? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            plotMeanL2 = false;
+
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            plotMeanL2 = true;
+
+            valid = true;
+        else
+            disp('    WARNING: Invalid Entry');
+        end
+
+    end
+    clear valid;
+
+    valid = false;
+    while ~valid
+        disp(' ');
+
+        selection = input('Plot Instantaneous Lambda2? [y/n]: ', 's');
+
+        if selection == 'n' | selection == 'N' %#ok<OR2>
+            plotInstL2 = false;
+
+            valid = true;
+        elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+            plotInstL2 = true;
+
+            startFrameL2 = inputFrames(nTimes, 'Start');
+
+            if startFrameL2 == -1
+                continue;
+            end
+
+            endFrameL2 = inputFrames(nTimes, 'End');
+
+            if endFrameL2 == -1
+                continue;
+            elseif endFrameL2 < startFrameL2
+                disp('        WARNING: Invalid Time Format (''endFrame'' Precedes ''startFrame'')');
+
+                continue;
+            end
+
+            valid = true;
+        else
+            disp('    WARNING: Invalid Entry');
+        end
+
+    end
+clear valid;
+
+else
+    plotMeanL2 = false;
+    plotInstL2 = false;
+end
+
+if plotMeanU || plotPrimeU || plotMeanL2 || plotInstL2
     
     % Normalise Coordinate System
     if normDims
@@ -574,12 +668,32 @@ if plotMeanU || plotMeanL2 || plotInstL2
     disp('Normalising Velocity...');
     
     if strcmp(campaignID, 'Windsor_fullScale')
-        U = 22.2222; % m/s
+        Am = ((4 * 0.289) * (4 * 0.389)) + (2 * (((4 * 0.05) - 0.018) * (4 * 0.055)));
+        At = 14.336 * 26.624;
+        
+        E = Am / At;
+        
+        U = 22.22 / (1 - E);
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        U = 40; % m/s
+        Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
+        At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+        
+        E = Am / At;
+        
+        U = 40 / (1 - E);
+    elseif strcmp(campaignID, 'Varney')
+        Am = (0.289 * 0.389) + (2 * (0.05 * 0.055));
+        At = 2.48905;
+        
+        E = Am / At;
+        
+        U = 40 / (1 - E);
     else
-        U = max(uData.u.mean);
+        U = 1;
     end
+    
+    wB = waitbar(0, 'Normalising Velocity', 'name', 'Progress');
+    wB.Children.Title.Interpreter = 'none';
     
     uData.u.mean = uData.u.mean / U;
     uData.v.mean = uData.v.mean / U;
@@ -589,9 +703,52 @@ if plotMeanU || plotMeanL2 || plotInstL2
         uData.u.inst{i} = uData.u.inst{i} / U;
         uData.v.inst{i} = uData.v.inst{i} / U;
         uData.w.inst{i} = uData.w.inst{i} / U;
+        
+        uData.u.prime{i} = uData.u.prime{i} / U;
+        uData.v.prime{i} = uData.v.prime{i} / U;
+        uData.w.prime{i} = uData.w.prime{i} / U;
+        
+        % Update Waitbar
+        waitbar((i / nTimes), wB);
     end
     clear i;
     
+    delete(wB);    
+end
+
+% Select Fluctuating Component to Plot
+if plotPrimeU
+    disp('Select Fluctuating Component to Plot...');
+
+    mapDataVars = fieldnames(uData);
+    nonFieldVars = {'positionGrid'; 'time'; 'lambda2'};
+    fieldVars = setdiff(mapDataVars, nonFieldVars);
+    clear mapDataVars nonFieldVars;
+
+    valid = false;
+    while ~valid
+        [index, valid] = listdlg('listSize', [300, 300], ...
+                                 'selectionMode', 'single', ...
+                                 'name', 'Select Fluctuating Component', ...
+                                 'listString', fieldVars);
+
+        if valid && ~isfield(uData.(fieldVars{index}), 'prime')
+            disp('    WARNING: Selected Variable Is Not a Valid Component');
+
+            valid = false;        
+            continue;
+        end
+
+        if ~valid
+            disp('    WARNING: No Component Selected');
+        end
+
+    end
+    clear valid;
+
+    component = fieldVars{index}; clear fieldVars;
+
+    disp(['    Component of Interest: ', component]);
 end
 
 disp(' ');
@@ -605,7 +762,7 @@ disp('--------------------------');
 
 disp(' ');
 
-if plotMeanU || plotMeanL2 || plotInstL2
+if plotMeanU || plotPrimeU || plotMeanL2 || plotInstL2
              
     spatialRes = cellSize.target / 2;
     xOrig = reshape(uData.positionGrid(:,1), gridShape);
@@ -644,7 +801,7 @@ if plotMeanU || plotMeanL2 || plotInstL2
     switch format
 
         case 'A' % 1 L
-            xLimsPlot = [0.3; 1.562883141762452];
+            xLimsPlot = [-0.637116858237548; 1.562883141762452];
             yLimsPlot = [-0.5; 0.5];
             zLimsPlot = [0; 0.5];
 
@@ -671,12 +828,10 @@ end
 if plotMeanU
     disp('Presenting Time-Averaged Velocity Deficit...');
     
-    % Calculate Velocity Magnitude
     fieldData = reshape(sqrt(uData.u.mean.^2 + uData.v.mean.^2 + uData.w.mean.^2), gridShape);
-    
-    % Calculate Velocity Deficit
     fieldData = fieldData - 1;
-    isoValue = -0.05;
+    
+    isoValue = -0.1;
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     multiView = true;
              
@@ -702,6 +857,59 @@ if plotMeanU
     end
     clear i;
                        
+    disp(' ');
+end
+
+if plotPrimeU
+    disp('Presenting Fluctuating Velocity Field...');
+    
+    isoValue = 0.125;
+    multiView = false;
+    
+    for i = 1:height(isoValue)
+        figHold = fig;
+    
+        for j = startFramePrime:endFramePrime
+
+            if j ~= startFramePrime
+                clf(fig);
+                fig = figHold;
+            end
+            
+            primeData = reshape(full(uData.(component).prime{j}), gridShape);
+            fieldData = {-primeData; primeData};
+            
+            figTime = num2str(uData.time(j), ['%.', num2str(timePrecision), 'f']);
+            
+            switch format
+
+                case 'A'
+                    figName = ['NW_', component, '_Prime_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
+
+                case 'B'
+                    figName = ['MW_', component, '_Prime_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
+
+                case 'C'
+                    figName = ['FW_', component, '_Prime_', num2str(isoValue(i)), '_T'...
+                               erase(figTime, '.'), '_', caseID];
+
+            end
+            
+            figTitle = ['{', figTime, ' \it{s}}'];
+            
+            [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                               xOrig, yOrig, zOrig, true, fieldData, nSurfaces, surfaceNo, ...
+                                               fig, figName, geometry, isoValue(i), cool2warm(2), figTitle, viewAngle, ...
+                                               multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+
+        end
+        clear j;
+        
+    end
+    clear i;
+    
     disp(' ');
 end
 
@@ -747,9 +955,9 @@ if plotInstL2
     for i = 1:height(isoValue)
         figHold = fig;
     
-        for j = startFrame:endFrame
+        for j = startFrameL2:endFrameL2
 
-            if j ~= startFrame
+            if j ~= startFrameL2
                 clf(fig);
                 fig = figHold;
             end
@@ -789,7 +997,7 @@ if plotInstL2
     disp(' ');
 end
 
-if ~plotMeanU && ~plotMeanL2 && ~plotInstL2
+if ~plotMeanU && ~plotPrimeU && ~plotMeanL2 && ~plotInstL2
     disp('Skipping Volume Field Presentation...');
 
     disp(' ');

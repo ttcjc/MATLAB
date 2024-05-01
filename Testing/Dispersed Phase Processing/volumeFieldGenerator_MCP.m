@@ -548,46 +548,35 @@ delete(wB);
 
 volumeData.Pi.inst = Pi; clear Pi;
 
-% Calculate Instantaneous Particle Kinetic Energy
-disp('        Calculating Instantaneous Particle Kinetic Energy');
+disp(' ');
+
+% Generate Time-Averaged Volume Field
+disp('    Generating Time-Averaged Volume Field...');
+
+% Calculate Instantaneous Field Variables
+disp('        Calculating Time-Averaged Field Variables');
 
 % Initialise Progress Bar
-wB = waitbar(0, 'Calculating Instantaneous Particle Kinetic Energy', 'name', 'Progress');
+wB = waitbar(0, 'Calculating Time-Averaged Field Variables', 'name', 'Progress');
 wB.Children.Title.Interpreter = 'none';
-dQ = parallel.pool.DataQueue;
-afterEach(dQ, @parforWaitBar);
-parforWaitBar(wB, nTimes);
 
 % Perform Calculation
-Ek = cell(nTimes,1); nParticles(:) = {zeros([nCells,1])}; % Mean Kinetic Energy in Cell
+volumeData.Pi.mean = sparse(nCells,1);
+volumeData.Us.mean = volumeData.Pi.mean;
 
-Up = volumeData.Up.inst;
-d10 = volumeData.d10.inst;
-parfor i = 1:nTimes
-    mass = 1000 * ((1 / 12) * tau * (d10{i}.^3));
-    
-    UpMag = Up{i}; UpMag = sqrt(UpMag(:,1).^2 + UpMag(:,2).^2 + UpMag(:,3).^2);
-    
-    Ek{i} = 0.5 * (mass .* (UpMag.^2));
-    
-    % Set Empty Cells Back to Zero
-    Ek{i}(isnan(Ek{i})) = 0;
-    
-    % Make Array Sparse
-    Ek{i} = sparse(Ek{i});
-    
-    % Remove Unnecessary Data
-    Up{i} = -1;
-    d10{i} = -1;
-    
+for i = 1:nTimes
+    volumeData.Pi.mean = volumeData.Pi.mean + volumeData.Pi.inst{i};
+    volumeData.Us.mean = volumeData.Us.mean + volumeData.Us.inst{i};
+
     % Update Waitbar
-    send(dQ, []);
+    waitbar((i / nTimes), wB);
 end
-clear Up d10;
+clear i;
 
 delete(wB);
 
-volumeData.Ek.inst = Ek; clear Ek;
+volumeData.Pi.mean = volumeData.Pi.mean / nTimes;
+volumeData.Us.mean = volumeData.Us.mean / nTimes;
 
 %%%%
 
@@ -688,14 +677,56 @@ valid = false;
 while ~valid
     disp(' ');
     
+    selection = input('Plot Time-Averaged MCP? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMeanMCP = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMeanMCP = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Plot Time-Averaged Slip Velocity? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotMeanUs = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotMeanUs = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+clear valid;
+
+valid = false;
+while ~valid
+    disp(' ');
+    
     selection = input('Plot Instantaneous MCP? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotMCP = false;
+        plotInstMCP = false;
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotMCP = true;
+        plotInstMCP = true;
         
         valid = true;
     else
@@ -709,14 +740,14 @@ valid = false;
 while ~valid
     disp(' ');
     
-    selection = input('Plot Instantaneous Uslip? [y/n]: ', 's');
+    selection = input('Plot Instantaneous Slip Velocity? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotSlip = false;
+        plotInstUs = false;
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotSlip = true;
+        plotInstUs = true;
         
         valid = true;
     else
@@ -726,29 +757,7 @@ while ~valid
 end
 clear valid;
 
-valid = false;
-while ~valid
-    disp(' ');
-    
-    selection = input('Plot Instantaneous Kinetic Energy? [y/n]: ', 's');
-
-    if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotEk = false;
-        
-        valid = true;
-    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotEk = true;
-        
-        valid = true;
-    else
-        disp('    WARNING: Invalid Entry');
-    end
-
-end
-clear valid;
-
-
-if plotMCP || plotSlip || plotEk
+if plotInstMCP || plotInstUs
     
     valid = false;
     while ~valid
@@ -771,6 +780,10 @@ if plotMCP || plotSlip || plotEk
         valid = true;
     end
     clear valid;
+    
+end
+
+if plotMeanMCP || plotMeanUs || plotInstMCP || plotInstUs
     
     % Normalise Coordinate System
     if normDims
@@ -814,16 +827,20 @@ disp('--------------------------');
 
 disp(' ');
 
-if plotMCP || plotSlip || plotEk
+if  plotMeanMCP || plotMeanUs || plotInstMCP || plotInstUs
     gridShape = [height(unique(volumeData.positionGrid(:,1))), ...
                  height(unique(volumeData.positionGrid(:,2))), ...
                  height(unique(volumeData.positionGrid(:,3)))];
              
     spatialRes = cellSize.target / 2;
-    xInit = reshape(volumeData.positionGrid(:,1), gridShape);
-    yInit = reshape(volumeData.positionGrid(:,2), gridShape);
-    zInit = reshape(volumeData.positionGrid(:,3), gridShape);
+    xOrig = reshape(volumeData.positionGrid(:,1), gridShape);
+    yOrig = reshape(volumeData.positionGrid(:,2), gridShape);
+    zOrig = reshape(volumeData.positionGrid(:,3), gridShape);
     POD = false;
+    nSurfaces = 1;
+    surfaceNo = 1;
+    viewAngle = [30, 30];
+    multiView = false;
     
     if strcmp(campaignID, 'Windsor_fullScale')
         
@@ -880,15 +897,57 @@ if plotMCP || plotSlip || plotEk
     
 end
 
-if plotMCP
-    disp('Presenting Instantaneous MCP...');
+if plotMeanMCP
+    disp('Presenting Time-Averaged MCP...');
     
-    nSurfaces = 1;
-    surfaceNo = 1;
-    isoValue = 0.01; % 0.01;
+    fieldData = reshape(full(volumeData.Pi.mean), gridShape);
+    
+%     isoValue = 0.01; % QS
+    isoValue = 1; % FS
+    
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    viewAngle = [30, 30];
-    multiView = false;
+    
+    for i = 1:height(isoValue)
+        figName = ['Average_Local_Mean_Momentum_Coupling_Parameter_', num2str(isoValue(i)), '_', caseID];
+        
+        [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                           fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+        
+    end
+    clear i;
+                       
+    disp(' ');
+end
+
+if plotMeanUs
+    disp('Presenting Time-Averaged Slip Velocity...');
+    
+    fieldData = full(volumeData.Us.mean) / 22.2230072;
+    fieldData = sqrt(fieldData(:,1).^2 + fieldData(:,2).^2 + fieldData(:,3).^2);
+    fieldData = reshape(fieldData, gridShape);
+    
+    isoValue = 0.05;
+    
+    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
+    
+    for i = 1:height(isoValue)
+        figName = ['Average_Local_Mean_Slip_Velocity_', num2str(isoValue(i)), '_', caseID];        
+        
+        [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                           fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+        
+    end
+    clear i;
+                       
+    disp(' ');
+end
+
+if plotInstMCP
+    disp('Presenting Instantaneous MCP...');
     
     for i = 1:height(isoValue)
         figHold = fig;
@@ -901,13 +960,18 @@ if plotMCP
             end
             
             fieldData = reshape(full(volumeData.Pi.inst{j}), gridShape);
+            
+%             isoValue = 0.01; % QS
+            isoValue = 1; % FS
+            
+            
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
-            figName = ['Local_Mean_Momentum_Coupling_Parameter_', num2str(isoValue(i)), '_T'...
+            figName = ['Inst_Local_Mean_Momentum_Coupling_Parameter_', num2str(isoValue(i)), '_T'...
                        erase(figTime, '.'), '_', caseID];
             figTitle = ['{', figTime, ' \it{s}}'];
             
             [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
-                                               xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+                                               xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
                                                fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
                                                multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 
@@ -920,15 +984,10 @@ if plotMCP
     disp(' ');
 end
 
-if plotSlip
+if plotInstUs
     disp('Presenting Instantaneous Uslip...');
     
-    nSurfaces = 1;
-    surfaceNo = 1;
-    isoValue = 0.125;
-    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    viewAngle = [30, 30];
-    multiView = false;
+    isoValue = 0.1;
     
     for i = 1:height(isoValue)
         figHold = fig;
@@ -940,17 +999,18 @@ if plotSlip
                 fig = figHold;
             end
             
-            fieldData = full(volumeData.Us.inst{j}) / 22.22;
+%             fieldData = full(volumeData.Us.inst{j}) / 40.54745102; % QS
+            fieldData = full(volumeData.Us.inst{j}) / 22.2230072; % FS
             fieldData = sqrt(fieldData(:,1).^2 + fieldData(:,2).^2 + fieldData(:,3).^2);
             fieldData = reshape(fieldData, gridShape);
             
             figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
-            figName = ['Local_Mean_Slip_Velocity_', num2str(isoValue(i)), '_T'...
+            figName = ['Inst_Local_Mean_Slip_Velocity_', num2str(isoValue(i)), '_T'...
                        erase(figTime, '.'), '_', caseID];
             figTitle = ['{', figTime, ' \it{s}}'];
             
             [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
-                                               xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
+                                               xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
                                                fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
                                                multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
 
@@ -963,47 +1023,7 @@ if plotSlip
     disp(' ');
 end
 
-if plotEk
-    disp('Presenting Instantaneous Kinetic Energy...');
-    
-    nSurfaces = 1;
-    surfaceNo = 1;
-    isoValue = 1e-6;
-    figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    viewAngle = [30, 30];
-    multiView = false;
-    
-    for i = 1:height(isoValue)
-        figHold = fig;
-    
-        for j = startFrame:endFrame
-
-            if j ~= startFrame
-                clf(fig);
-                fig = figHold;
-            end
-            
-            fieldData = reshape(full(volumeData.Ek.inst{j}), gridShape);            
-            figTime = num2str(volumeData.time(j), ['%.', num2str(timePrecision), 'f']);
-            figName = ['Local_Mean_Kinetic_Energy_', num2str(isoValue(i)), '_T'...
-                       erase(figTime, '.'), '_', caseID];
-            figTitle = ['{', figTime, ' \it{s}}'];
-            
-            [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
-                                               xInit, yInit, zInit, POD, fieldData, nSurfaces, surfaceNo, ...
-                                               fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
-                                               multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
-
-        end
-        clear j;
-        
-    end
-    clear i;
-    
-    disp(' ');
-end
-
-if ~plotMCP && ~plotSlip && ~plotEk
+if ~plotMeanMCP && ~plotMeanUs && ~plotInstMCP && ~plotInstUs
     disp('Skipping Volume Field Presentation...');
 
     disp(' ');

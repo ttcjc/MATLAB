@@ -2,19 +2,19 @@
 
 run preamble;
 
-% cellSize.target = 2e-3;
-cellSize.target = 8e-3;
+cellSize.target = 2e-3;
+% cellSize.target = 8e-3;
 
 figSave = false;
 
 
 %%
 
-% content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/volumeData/wheelWake.csv');
+content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/volumeData/wheelWake.csv');
 % content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/volumeData/wheelWake.csv');
-content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/volumeData/wheelWake.csv');
+% content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/volumeData/wheelWake.csv');
 
-rawData.positionGrid = content.data(:,[1,2,3]); % rawData.positionGrid(:,1) = rawData.positionGrid(:,1) + 1.325;
+rawData.positionGrid = content.data(:,[1,2,3]); rawData.positionGrid(:,1) = rawData.positionGrid(:,1) + 1.325;
 rawData.u.mean = content.data(:,4);
 rawData.v.mean = content.data(:,5);
 rawData.w.mean = content.data(:,6);
@@ -38,12 +38,21 @@ rawData.w.mean = rawData.w.mean(index);
 
 [geometry, xDims, yDims, zDims, spacePrecision, normLength] = selectGeometry(geoLoc);
 
+disp(' ');
+
 
 %% Interpolate Volume Data Onto Uniform Grid
+
+disp('Interpolating Volume Data Onto Uniform Grid...')
 
 xLimsData = [min(rawData.positionGrid(:,1)); max(rawData.positionGrid(:,1))];
 yLimsData = [min(rawData.positionGrid(:,2)); max(rawData.positionGrid(:,2))];
 zLimsData = [min(rawData.positionGrid(:,3)); max(rawData.positionGrid(:,3))];
+
+xLimsData(1) = xLimsData(1) + (4 * cellSize.target); xLimsData(2) = xLimsData(2) - (4 * cellSize.target);
+yLimsData(1) = yLimsData(1) + (4 * cellSize.target); yLimsData(2) = yLimsData(2) - (4 * cellSize.target);
+zLimsData(1) = zLimsData(1) + (4 * cellSize.target); zLimsData(2) = zLimsData(2) - (4 * cellSize.target);
+
 
 nPx = (diff(xLimsData) / cellSize.target) + 1;
 nPy = (diff(yLimsData) / cellSize.target) + 1;
@@ -97,10 +106,15 @@ volumeData.v.mean = single(volumeData.v.mean);
 volumeData.w.mean = wInterp(volumeData.positionGrid(:,1), ...
                             volumeData.positionGrid(:,2), ...
                             volumeData.positionGrid(:,3));
-volumeData.uwmean = single(volumeData.w.mean);
+volumeData.w.mean = single(volumeData.w.mean);
+
+disp(' ');
+
 
 
 %% Calculate Time-Averaged Lambda2
+
+disp('Calculating Time-Averaged Lambda2...');
 
 gridShape = [height(unique(volumeData.positionGrid(:,1))), ...
              height(unique(volumeData.positionGrid(:,2))), ...
@@ -157,11 +171,11 @@ while ~valid
     selection = input('Plot Time-Averaged Lambda2? [y/n]: ', 's');
 
     if selection == 'n' | selection == 'N' %#ok<OR2>
-        plotMean = false;
+        plotL2 = false;
         
         valid = true;
     elseif selection == 'y' | selection == 'Y' %#ok<OR2>
-        plotMean = true;
+        plotL2 = true;
         
         valid = true;
     else
@@ -170,7 +184,27 @@ while ~valid
 
 end
 
-if plotMean
+valid = false;
+while ~valid
+    disp(' ');
+    
+    selection = input('Plot Time-Averaged Velocity Deficit? [y/n]: ', 's');
+
+    if selection == 'n' | selection == 'N' %#ok<OR2>
+        plotU = false;
+        
+        valid = true;
+    elseif selection == 'y' | selection == 'Y' %#ok<OR2>
+        plotU = true;
+        
+        valid = true;
+    else
+        disp('    WARNING: Invalid Entry');
+    end
+
+end
+
+if plotL2 || plotU
     
     parts = fieldnames(geometry);
     for i = 1:height(parts)
@@ -198,23 +232,27 @@ end
 
 %% Present Volume Fields
 
-if plotMean
+if plotL2 || plotU
     spatialRes = cellSize.target / 2;
     xOrig = reshape(volumeData.positionGrid(:,1), gridShape);
     yOrig = reshape(volumeData.positionGrid(:,2), gridShape);
     zOrig = reshape(volumeData.positionGrid(:,3), gridShape);
     POD = false;
-    fieldData = reshape((full(volumeData.lambda2.mean) / -prctile(volumeData.lambda2.mean(volumeData.lambda2.mean < 0), 1)), gridShape);
-    isoValue = -0.05;
     nSurfaces = 1;
     surfaceNo = 1;
     cMap = graphColours(5);
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
     viewAngle = [30, -30];
-    multiView = true;
+    multiView = false;
     xLimsPlot = xLimsData;
     yLimsPlot = yLimsData;
     zLimsPlot = [-1e-3; 0.1945] / 1.044;
+end
+    
+if plotL2
+    fieldData = reshape((full(volumeData.lambda2.mean) / -prctile(volumeData.lambda2.mean(volumeData.lambda2.mean < 0), 1)), gridShape);
+    
+    isoValue = -0.05;
     
     for i = 1:height(isoValue)
         figName = ['Wheel_Wake_Lambda2_N', num2str(abs(isoValue(i)))];
@@ -226,5 +264,22 @@ if plotMean
     end
     clear i;
     
-    disp(' ');
+end
+
+if plotU
+    fieldData = reshape(((sqrt(volumeData.u.mean.^2 + volumeData.v.mean.^2 + volumeData.w.mean.^2) / 40.54745102) - 1), gridShape);
+%     fieldData = reshape(((sqrt(volumeData.u.mean.^2 + volumeData.v.mean.^2 + volumeData.w.mean.^2) / 22.2230072) - 1), gridShape);
+    
+    isoValue = -0.3;
+             
+    for i = 1:height(isoValue)
+        figName = ['Wheel_Wake_Velocity_Deficit_', num2str(isoValue(i))];
+        
+        [fig, surfaceNo] = plotVolumeField(xLimsData, yLimsData, zLimsData, spatialRes, ...
+                                           xOrig, yOrig, zOrig, POD, fieldData, nSurfaces, surfaceNo, ...
+                                           fig, figName, geometry, isoValue(i), cMap, figTitle, viewAngle, ...
+                                           multiView, xLimsPlot, yLimsPlot, zLimsPlot, figSave);
+    end
+    clear i;
+    
 end

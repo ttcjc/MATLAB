@@ -593,11 +593,11 @@ end
 if plotRMS
     disp('    Presenting RMS of Seeding Density...');
     
-    scalarData = mapData.density.RMS / mean(mapData.density.mean);
+    scalarData = mapData.density.RMS;
     figName = ['RMS_', caseID];
     contourlines = [];
     figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-    cLims = [0; 5];
+    cLims = [0; 0.78];
 
     [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scalarData, spatialRes, ...
                                            xLimsData, yLimsData, zLimsData, mapPerim, nPlanes, ...
@@ -646,8 +646,8 @@ end
 
 %%
 
-mean(mapData.density.mean(mapData.density.mean > 0) / refValue)
-mean(mapData.density.RMS(mapData.density.RMS > 0) / refValue)
+% mean(mapData.density.mean(mapData.density.mean > 0) / refValue)
+% mean(mapData.density.RMS(mapData.density.RMS > 0) / refValue)
 
 
 %% Local Functions

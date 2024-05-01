@@ -52,19 +52,15 @@ clear i;
 
 %%
 
-xLimsPlot = [0.3; 1.2];
+xLimsPlot = [0.3; 2.1];
 yLimsPlot = [-0.3; 0.3];
 zLimsPlot = [0; 0.5];
-
-% xLimsPlot = [-0.637116858237548; 4.562883141762452];
-% yLimsPlot = [-0.7; 0.7];
-% zLimsPlot = [0; 0.7];
 
 % Initialise Figure
 fig = fig + 1;
 figName = 'CoM_Evolution';
 set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-                 'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+                 'units', 'pixels', 'outerPosition', [1200, 500, 1590, 880]);
 pause(0.5);
 hold on;
 set(gca, 'positionConstraint', 'outerPosition', 'dataAspectRatio', [1, 1, 1], ...
@@ -118,11 +114,12 @@ set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
 legProps = legend({'', '', '', '', '', ...
                    'Uncoupled', ...
                    'Coupled', ...
-                   'Reduced Mass', ...
-                   'Increased Angle'}, ...
+                   'Reduced Injection Mass', ...
+                   'Increased Injection Arc'}, ...
                    'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...
                    'fontSize', 18, 'box', 'off');
-legProps.Position(2) = legProps.Position(2) - 0.26;
+legProps.Position(1) = legProps.Position(1) - 0.01;
+legProps.Position(2) = legProps.Position(2) - 0.241;
 
 pause(0.5);
 hold off;

@@ -31,7 +31,6 @@ disp(' ');
 % v5.1 - Minor Update to Shift Preamble Into Separate Script
 % v5.2 - Updates To Correct Inconsistent Normalisation Throughout Repository
 % v6.0 - Added Support for Instantaneous Velocity Processing
-% v6.1 - Implemented Blockage Correction
 
 
 %% Select Data Format
@@ -145,9 +144,6 @@ switch format
         
 end
 
-disp(' ');
-disp(' ');
-
 
 %% Generate Velocity Profiles
 
@@ -224,7 +220,7 @@ switch format
         
         if strcmp(campaignID, 'Windsor_fullScale')
             targetSize = 4e-3;
-        elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        elseif strcmp(campaignID, 'Windsor_Upstream_2023') || strcmp(campaignID, 'Varney')
             targetSize = 1e-3;
         else
             targetSize = 1e-3;
@@ -255,11 +251,22 @@ for i = 1:height(planes)
     switch orientation
 
         case 'YZ'
-            xLimsData = double(uData.(planes{i}).positionGrid(1,1));
-            yLimsData = double([min(uData.(planes{i}).positionGrid(:,2)); ...
-                                max(uData.(planes{i}).positionGrid(:,2))]);
-            zLimsData = double([min(uData.(planes{i}).positionGrid(:,3)); ...
-                                max(uData.(planes{i}).positionGrid(:,3))]);
+            
+            switch format
+
+                case {'A', 'B'}
+                    xLimsData = double(uData.(planes{i}).positionGrid(1,1));
+                    yLimsData = double([min(uData.(planes{i}).positionGrid(:,2)); ...
+                                        max(uData.(planes{i}).positionGrid(:,2))]);
+                    zLimsData = double([min(uData.(planes{i}).positionGrid(:,3)); ...
+                                        max(uData.(planes{i}).positionGrid(:,3))]);
+                    
+                case 'C'
+                    xLimsData = double(uData.(planes{i}).positionGrid(1,1));
+                    yLimsData = [-0.207; 0.207];
+                    zLimsData = [0.029; 0.353];
+                    
+            end
             
             % Adjust Uniform Cell Size to Fit Region of Interest
             nPy = (diff(yLimsData) / targetSize) + 1;
@@ -897,17 +904,24 @@ if plotMean || plotRMS || plotInst
     % Normalise Velocity
     disp('Normalising Velocity...');
     
+    if strcmp(campaignID, 'Windsor_fullScale')
+        U = 22.2230072;
+    elseif strcmp(campaignID, 'Windsor_Upstream_2023')
+        U = 40.54745102;
+    elseif strcmp(campaignID, 'Varney')
+        Am = (0.289 * 0.389) + (2 * (0.05 * 0.055));
+        At = 2.48905;
+        
+        E = Am / At;
+        
+        U = 40 / (1 - E);
+    else
+        U = 1;
+    end
+
     switch format
         
-        case 'A'
-            
-            if strcmp(campaignID, 'Windsor_fullScale')
-                U = 22.22; % m/s
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                U = 40; % m/s
-            else
-                U = 1;
-            end
+        case {'A', 'C'}
             
             for i = 1:height(planes)
                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
@@ -917,14 +931,8 @@ if plotMean || plotRMS || plotInst
             clear i;
             
         case 'B'
-
-            if strcmp(campaignID, 'Windsor_fullScale')
-                U = 22.22; % m/s
-            elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-                U = 40; % m/s
-            else
-                U = 1;
-            end
+            wB = waitbar(0, 'Normalising Velocity', 'name', 'Progress');
+            wB.Children.Title.Interpreter = 'none';
             
             for i = 1:height(planes)
                 uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
@@ -943,25 +951,16 @@ if plotMean || plotRMS || plotInst
                     uData.(planes{i}).u.prime{j} = uData.(planes{i}).u.prime{j} / U;
                     uData.(planes{i}).v.prime{j} = uData.(planes{i}).v.prime{j} / U;
                     uData.(planes{i}).w.prime{j} = uData.(planes{i}).w.prime{j} / U;
+                    
+                    % Update Waitbar
+                    waitbar(((((i - 1) * nTimes) + j) / (height(planes) * nTimes)), wB);
                 end
                 clear j;
                 
             end
             clear i;
-
-        case 'C'
-
-            if strcmp(campaignID, 'Varney')
-                U = 40; % m/s
-
-                for i = 1:height(planes)
-                        uData.(planes{i}).u.mean = uData.(planes{i}).u.mean / U;
-                        uData.(planes{i}).v.mean = uData.(planes{i}).v.mean / U;
-                        uData.(planes{i}).w.mean = uData.(planes{i}).w.mean / U;
-                end
-
-            end
-
+            
+            delete(wB);        
     end
     
 end
@@ -1095,7 +1094,7 @@ if plotMean
         cMap = viridis(32);
         streamlines = true;
         figTitle = '{ }'; % Leave Blank ('{ }') for Formatting Purposes
-        cLims = [0, 1];
+        cLims = [0, 1.05];
 
         [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vectorData, spatialRes, ...
                                                xLimsData, yLimsData, zLimsData, nComponents, component, ...
@@ -1286,7 +1285,7 @@ if plotInst
         component = [];
         cMap = viridis(32);
         streamlines = true;
-        cLims = [0, 1];
+        cLims = [0, 1.05];
         
         figHold = fig;
         

@@ -414,7 +414,7 @@ function [fig, planeNo] = plotPlanarScalarField(orientation, positionData, scala
                     box on;
                     grid off;
                     caxis(cLims);
-                    view([0, -90]);
+                    view([0, 90]);
                     xlim([xLimsPlot(1), xLimsPlot(2)]);
                     ylim([yLimsPlot(1), yLimsPlot(2)]);
                     zlim([zLimsPlot(1), zLimsPlot(2)]);

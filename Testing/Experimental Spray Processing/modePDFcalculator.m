@@ -13,7 +13,7 @@ setsAll = fieldnames(PDFdata);
 
 %%
 
-modeOfInterest = 1;
+modeOfInterest = 3;
 
 % Initialise Figure
 fig = fig + 1;
@@ -43,7 +43,9 @@ end
 clear i;
 
 % Plot Zero Reference
-plot([0; 0], [-1e3; 1e3], 'color', [0.15 0.15 0.15], 'lineWidth', 2);
+xline(0, 'alpha', 1, ...
+         'lineStyle', '--', ...
+         'lineWidth', 2);
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');

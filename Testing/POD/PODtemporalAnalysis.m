@@ -209,10 +209,13 @@ switch format
         rMode = r;
 
         for i = 1:nModes
-            A1 = rescale(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i), -1, 1);
+            A1 = temporalData.(PODfields{1}).PODdata.POD.alpha(:,i) / ...
+                 max(abs(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i)));
 
             for j = 1:nModes
-                A2 = rescale(temporalData.(PODfields{2}).PODdata.POD.alpha(:,j), -1, 1);
+                A2 = temporalData.(PODfields{2}).PODdata.POD.alpha(:,j) / ...
+                     max(abs(temporalData.(PODfields{2}).PODdata.POD.alpha(:,j)));
+                
                 rTemp = corr(A1, A2);
 
                 if max(abs(rTemp), abs(r(i))) == abs(rTemp)
@@ -234,8 +237,11 @@ switch format
         tiledlayout((nModes / 2),2);
 
         for i = 1:nModes
-            A1 = rescale(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i), -1, 1);
-            A2 = rescale(temporalData.(PODfields{2}).PODdata.POD.alpha(:,rMode(i)), -1, 1);
+            A1 = temporalData.(PODfields{1}).PODdata.POD.alpha(:,i) / ...
+                 max(abs(temporalData.(PODfields{1}).PODdata.POD.alpha(:,i)));
+            
+            A2 = temporalData.(PODfields{2}).PODdata.POD.alpha(:,rMode(i)) / ...
+                 max(abs(temporalData.(PODfields{2}).PODdata.POD.alpha(:,rMode(i))));
 
             % Plot
             nexttile;
@@ -259,3 +265,33 @@ switch format
         end
         
 end
+
+
+%%
+
+A1 = temporalData.(PODfields{1}).PODdata.POD.alpha(:,1) / ...
+     max(abs(temporalData.(PODfields{1}).PODdata.POD.alpha(:,1)));
+ 
+A2 = temporalData.(PODfields{2}).PODdata.POD.alpha(:,2) / ...
+     max(abs(temporalData.(PODfields{2}).PODdata.POD.alpha(:,2)));
+
+r_dispM1_contM2 = corr(A1, A2)
+
+
+A1 = temporalData.(PODfields{1}).PODdata.POD.alpha(:,3) / ...
+     max(abs(temporalData.(PODfields{1}).PODdata.POD.alpha(:,3)));
+ 
+A2 = temporalData.(PODfields{2}).PODdata.POD.alpha(:,1) / ...
+     max(abs(temporalData.(PODfields{2}).PODdata.POD.alpha(:,1)));
+
+r_dispM3_contM1 = corr(A1, A2)
+
+
+A1 = temporalData.(PODfields{1}).PODdata.POD.alpha(:,5) / ...
+     max(abs(temporalData.(PODfields{1}).PODdata.POD.alpha(:,5)));
+ 
+A2 = temporalData.(PODfields{2}).PODdata.POD.alpha(:,4) / ...
+     max(abs(temporalData.(PODfields{2}).PODdata.POD.alpha(:,4)));
+
+r_dispM5_contM4 = corr(A1, A2)
+                

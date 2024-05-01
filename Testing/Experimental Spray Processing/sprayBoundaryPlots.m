@@ -22,10 +22,10 @@ zDims = zDims / normLength;
 
 %%
 
-caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
-caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
-caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
-caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
+% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
+% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
+% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
+% caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
 % caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/SB_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
 % caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
@@ -34,17 +34,17 @@ caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soili
 % caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
 % caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/ST_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
-% caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
-% caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
-% caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
-% caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
+caseA = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_01/T0067_T120000_F15.mat';
+caseB = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_02/T0067_T120000_F15.mat';
+caseC = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_03/T0067_T120000_F15.mat';
+caseD = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_120s_15Hz_04/T0067_T120000_F15.mat';
 % caseE = '/mnt/Processing/Data/Experimental/MATLAB/planarSprayMap/Far_Field_Soiling_07_22/RSST_1.0L_600s_03Hz_01/T0333_T600000_F3.mat';    
 
 % Load Data
-% R2R.mapDataA = load(caseA, 'mapData').mapData;
+R2R.mapDataA = load(caseA, 'mapData').mapData;
 R2R.mapDataB = load(caseB, 'mapData').mapData;
-% R2R.mapDataC = load(caseC, 'mapData').mapData;
-% R2R.mapDataD = load(caseD, 'mapData').mapData;
+R2R.mapDataC = load(caseC, 'mapData').mapData;
+R2R.mapDataD = load(caseD, 'mapData').mapData;
 % R2R.mapDataE = load(caseE, 'mapData').mapData;
 
 sprayMaps = fieldnames(R2R);
@@ -170,8 +170,8 @@ zticks(tickData(2:(end-1)));
 xtickformat('%+.2g');
 ytickformat('%+.2g');
 ztickformat('%+.2g');
-ylabel({'{$y_{\ell}$}'; '{-----}'}, 'interpreter', 'latex');
-zlabel({'{-----}'; '{$z_{\ell}$}'}, 'interpreter', 'latex');
+ylabel({'{$y_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
+zlabel({'{-----}'; '{$z_{_{\ell}}$}'}, 'interpreter', 'latex');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

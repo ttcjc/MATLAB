@@ -13,7 +13,7 @@ widthTreadB = 6e-3;
 nTreadA = 2;
 nTreadB = 2;
 
-treadFillRatio = 1;
+treadFillRatio = 0.5;
 
 gamma = interp1([0, 10], [0.0757, 0.0742], 5);
 rho = 1000;
@@ -45,7 +45,7 @@ QS_Tstar = 1.044 / 40;
 QS_parcelsPerTstar = QS_parcelsPerSecond / (1 / QS_Tstar)
 
 FS_Tstar = (4 * 1.044) / 22.222222222222222;
-FS_parcelsPerSecond =  4 * (((0.75 * QS_parcelsPerTstar) * (1 / FS_Tstar)) / 4)
+FS_parcelsPerSecond = (((0.75 * QS_parcelsPerTstar) * (1 / FS_Tstar)) / 4)
 
 disp(' ');
 disp(' ');

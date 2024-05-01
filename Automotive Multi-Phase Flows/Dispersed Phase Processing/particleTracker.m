@@ -506,13 +506,13 @@ impactDataLimited = impactData;
 volumeDataLimited = volumeData;
 
 % Select a Random Set of Particles to Track
-if count ~= height(impactData.timeExact)
-    index = sort(randperm(height(impactData.timeExact), count))';
+if count ~= height(impactDataLimited.timeExact)
+    index = sort(randperm(height(impactDataLimited.timeExact), count))';
     
-    impactDataLimited.timeExact = impactData.timeExact(index);
+    impactDataLimited.timeExact = impactDataLimited.timeExact(index);
 
     for i = 1:height(LagProps)
-        impactDataLimited.(LagProps{i}) = impactData.(LagProps{i})(index,:);
+        impactDataLimited.(LagProps{i}) = impactDataLimited.(LagProps{i})(index,:);
     end
     clear i;
     
@@ -535,8 +535,8 @@ parforWaitBar(wB, nTimes);
 index = cell(nTimes,1);
 
 particleIDimpact = [impactDataLimited.origProcId, impactDataLimited.origId];
-origProcId = volumeData.origProcId;
-origId = volumeData.origId;
+origProcId = volumeDataLimited.origProcId;
+origId = volumeDataLimited.origId;
 parfor i = 1:nTimes
     particleIDvolume = [origProcId{i}, origId{i}];
 
@@ -556,7 +556,7 @@ delete(wB);
 for i = 1:nTimes
     
     for j = 1:height(LagProps)
-        volumeDataLimited.(LagProps{j}){i} = volumeData.(LagProps{j}){i}(index{i},:);
+        volumeDataLimited.(LagProps{j}){i} = volumeDataLimited.(LagProps{j}){i}(index{i},:);
     end
     clear j;
     
@@ -887,14 +887,18 @@ if plotPaths
     switch format1
 
         case '1A'
-            xLimsPlot = [0.3; 1.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+            xLimsPlot = [-0.637116858237548; 1.562883141762452];
+            yLimsPlot = [-0.5; 0.5];
+            zLimsPlot = [0; 0.5];
             
         case '1B'
-            xLimsPlot = [0.3; 2.625766283524905];
-            yLimsPlot = [-0.55; 0.55];
-            zLimsPlot = [0; 0.55];
+%             xLimsPlot = [-0.637116858237548; 2.562883141762452];
+%             yLimsPlot = [-0.6; 0.6];
+%             zLimsPlot = [0; 0.6];
+            
+            xLimsPlot = [-0.637116858237548; 4.562883141762452];
+            yLimsPlot = [-0.7; 0.7];
+            zLimsPlot = [0; 0.7];
             
     end
     

@@ -10,7 +10,7 @@ run preamble;
 
 %#ok<*UNRCH>
 
-flipMode = false; % Present Both Orientations of Mode(s)
+flipMode = true; % Present Both Orientations of Mode(s)
 
 viewComps = false; % Present Individual Component Views
 
@@ -293,7 +293,7 @@ if plotModes
     mapPerim = [];
     nPlanes = 1;
     planeNo = 1;
-    cMap = cool2warm(32);
+    cMap = cool2warmBent(32);
     streamlines = true;
     cLims = [-1; 1];
     

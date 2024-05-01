@@ -11,6 +11,10 @@ samplesPerCell = 32; % Used During Numerical Integration
 
 nSteps = 1e5; % Used To Determine 'dT' for the Lidar Range Integral
 
+% sampleTimes = 50;
+% sampleTimes = [1; 2; 3; 4; 5];
+sampleTimes = [25; 50; 75; 100];
+
 figSave = false; % Save .fig File(s)
 
 disp('====================================');
@@ -235,8 +239,8 @@ disp(' ');
 %% Select Ray(s) of Interest
 
 % RoI = dsearchn(lidarData.positionGrid(:,[2,3]), [0, 0.76]);
-RoI = dsearchn(lidarData.positionGrid(:,[2,3]), [1.945, 0.76]);
-
+% RoI = dsearchn(lidarData.positionGrid(:,[2,3]), [1.945, 0.76]);
+RoI = dsearchn(lidarData.positionGrid(:,[2,3]), [-0.668, 0.471]);
 
 %% Calculate Mass Along Ray(s)
 
@@ -473,6 +477,8 @@ Q_bck_Interp = griddedInterpolant(D, Q_bck_Range, 'nearest', 'nearest');
 
 %% Solve Lidar Range Equation
 
+P_O = 6.806417341154269e-13; % Hard Target Signal Received Without Spray
+
 alpha0 = 1e-4; % Extinction Coefficient for a Clear Sky (1 / m)
 beta0 = 0; % Backscattering Coefficient for a Clear Sky
 Gamma_O = 0.2; % Target Reflectivity
@@ -493,35 +499,34 @@ R2 = (axisDisp - (D_R0 / 2) + (D_T0 / 3)) / (tan(gamma_R / 2) - tan(gamma_T / 2)
 
 for i = 1:height(RoI)    
     R_discrete = (0:dL:20)';
-%     index_O = find(R_discrete >= (4 * 4.176), 1, 'first');
-%     R_O = R_discrete(index_O);
-    index_0 = [];
-    R_O = 100;
+    index_O = find(R_discrete >= (4 * 4.176), 1, 'first');
+    R_O = R_discrete(index_O);
     
     dT = (2 * (max(R_discrete) / c)) / nSteps;
     
-%     maxP_R = 0;
+    P_R = cell(height(sampleTimes), 1);
+%     P_R_Shift = P_R;
     
-    for j = 1:4 % [25, 50, 75, 100] % 1:nTimes
-        P_R = zeros([height(R_discrete),1]);
+    for j = 1:height(sampleTimes)
+        P_R{j} = zeros([height(R_discrete),1]);
         
         % Initialise Spray Data Interpolants
         nParticlesDensityInterp = griddedInterpolant(lidarData.sampleDist, ...
-                                                     lidarData.nParticlesDensity.inst{j}{i}, ...
+                                                     lidarData.nParticlesDensity.inst{sampleTimes(j)}{i}, ...
                                                      'linear', 'nearest');
         
         nParticlesDensity = @(R) (nParticlesDensityInterp(R) .* ((R >= 0) & (R <= max(lidarData.sampleDist))));
 %         nParticlesDensity = @(R) (0);
         
         d20Interp = griddedInterpolant(lidarData.sampleDist, ...
-                                     (lidarData.d20.inst{j}{i} * 1e-6), ...
+                                     (lidarData.d20.inst{sampleTimes(j)}{i} * 1e-6), ...
                                      'linear', 'nearest');
         
         d20 = @(R) (d20Interp(R) .* ((R >= 0) & (R <= max(lidarData.sampleDist))));
 %         d20 = @(R) (0);
 
         densityInterp = griddedInterpolant(lidarData.sampleDist, ...
-                                           lidarData.density.inst{j}{i}, ...
+                                           lidarData.density.inst{sampleTimes(j)}{i}, ...
                                            'linear', 'nearest');
         
         density = @(R) (densityInterp(R) .* ((R >= 0) & (R <= max(lidarData.sampleDist))));
@@ -557,7 +562,6 @@ for i = 1:height(RoI)
         
         % Calculate Target Impulse Response
         H_O = @(R) ((Gamma_O * (diracDelta((interp1(R_discrete, R_discrete, R, 'nearest') - R_O), 8) / dL)) + beta(R));
-%         H_O = @(R) ((Gamma_O .* normc((exp(-((R - R_O) / 1e-12).^2) / (sqrt(tau / 2) * 1e-12)))) + beta(R));
 
         % Calculate Transmitter/Receiver Overlap Function
         phi_T = @(R) (2 * acos(((D_T(R) ./ 2).^2 - (D_R(R) ./ 2).^2 + axisDisp^2) ./ (2 .* axisDisp .* (D_T(R) ./ 2))));
@@ -581,32 +585,22 @@ for i = 1:height(RoI)
                 continue;
             end
             
-            P_R(k) = trapz(t_discrete, (P_T(t_discrete) .* H(R_discrete(k) - (c * (t_discrete / 2)))));
+            P_R{j}(k) = trapz(t_discrete, (P_T(t_discrete) .* H(R_discrete(k) - (c * (t_discrete / 2)))));
         end
         clear k;
         
-%         % Calculate Received Signal
-%         convolution = @(R, t) (P_T(t) .* H(R - (c * (t / 2))));
-%         
-%         for k = 2:height(R_discrete)
-%             timeMax = ((2 * R_discrete(k)) / c); timeMax = timeMax - (timeMax / 1e3);
-%             timeR_O = (2 * (R_discrete(k) - R_O)) / c;
-%             
-%             if timeR_O < 0
-%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeMax);
-%             elseif timeR_O > 0
-%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeR_O) + convolution(R_discrete(k), timeR_O) + integral(@(t) convolution(R_discrete(k), t), (timeR_O + 1e-11), timeMax);
-%             else
-%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeR_O) + convolution(R_discrete(k), timeR_O);
-%             end
-%             
-%         end
-%         clear k;
+        max(P_R{j} / P_O)
         
-        figTime = num2str(lidarData.time(j), ['%.', num2str(timePrecision), 'f']);
+%         P_R_Shift{j} = circshift(P_R{j}, (16705 - 17080));
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        figTime = num2str(lidarData.time(sampleTimes(j)), ['%.', num2str(timePrecision), 'f']);
         figTitle = ['{', figTime, ' \it{s}}'];
         
-        % Initialise Figure #1
+        % Received Signal %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        % Initialise Figure
         fig = fig + 1;
         figName = ['Lidar_Signals_Ray_', num2str(RoI), '_T', replace(figTime, '.', '_')];
         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
@@ -616,9 +610,11 @@ for i = 1:height(RoI)
         set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
                  'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
              
-        % Plot Signals
-        plot((R_discrete / normLength), P_R, 'color', graphColours(1), 'lineWidth', 2);
+        % Plot Received Signal
+        plot((R_discrete / normLength), (P_R{j} / P_O), 'color', graphColours(1), 'lineWidth', 2);
+%         plot((R_discrete / normLength), (P_R_Shift{j} / P_O), 'color', graphColours(1), 'lineWidth', 2);
         
+        % Plot Target Line
         lineHandle = xline((R_O / normLength), 'alpha', 1, ...
                                                'lineStyle', '--', ...
                                                'lineWidth', 2,  ...
@@ -631,19 +627,26 @@ for i = 1:height(RoI)
         
         % Figure Formatting
         title('{-----}', 'interpreter', 'latex');
+%         subtitle('{ }');
         subtitle(figTitle);
         axis on;
         box on;
         grid off;
         xlim([0; 5]);
-        ylim([0; (1.1 * max(P_R))]);
+%         ylim([0; 1.2]);
+        ylim([0; 35]);
+%         ylim([0; 20]);
         tickData = (1:1:4);
         xticks(tickData);
-        tickData = [];
+%         tickData = (0.24:0.24:0.96);
+        tickData = (7:7:28);
+%         tickData = (4:4:16);
         yticks(tickData);
         xtickformat('%.1f');
-        xlabel({'{$\ell$}'; '{-----}'}, 'interpreter', 'latex');
-        ylabel({'{-----}'; '{Received Signal}'}, 'interpreter', 'latex');
+%         ytickformat('%.2f');
+% %         ytickformat('  %.0f');
+        xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+        ylabel({'{-----}'; '{$P_{_{R}}\,/\,P_{_{O}}$}'}, 'interpreter', 'latex');
         tightInset = get(gca, 'TightInset');
         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                                    (tightInset(2) + 0.00625), ...
@@ -654,9 +657,10 @@ for i = 1:height(RoI)
         
         % Save Figure
         print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
-        
-        
-%         % Initialise Figure #2
+%         
+%         % Scattering Particles %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         
+%         % Initialise Figure
 %         fig = fig + 1;
 %         figName = ['Lidar_nParticles_Ray_', num2str(RoI), '_T', replace(figTime, '.', '_')];
 %         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
@@ -676,15 +680,15 @@ for i = 1:height(RoI)
 %         box on;
 %         grid off;
 %         xlim([0; 5]);
-%         ylim([0; 4.2e3]);
+%         ylim([0; 3e3]);
 %         tickData = (1:1:4);
 %         xticks(tickData);
-%         tickData = (0.84e3:0.84e3:3.36e3);
+%         tickData = (0.6e3:0.6e3:2.4e3);
 %         yticks(tickData);
 %         xtickformat('%.1f');
-%         xtickformat('%.1f');
+%         ytickformat(' %.1f');
 %         axisHandle = gca; axisHandle.YAxis.Exponent = 3; clear axisHandle;
-%         xlabel({'{$\ell$}'; '{-----}'}, 'interpreter', 'latex');
+%         xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
 %         ylabel({'{-----}'; '{Scattering Particles}'}, 'interpreter', 'latex');
 %         tightInset = get(gca, 'TightInset');
 %         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
@@ -696,9 +700,10 @@ for i = 1:height(RoI)
 %         
 %         % Save Figure
 %         print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
-        
-        
-%         % Initialise Figure #3
+%         
+%         % Particles Diameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         
+%         % Initialise Figure
 %         fig = fig + 1;
 %         figName = ['Lidar_d20_Ray_', num2str(RoI), '_T', replace(figTime, '.', '_')];
 %         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
@@ -708,8 +713,8 @@ for i = 1:height(RoI)
 %         set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
 %                  'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
 %              
-%         % Plot Scattering Particles
-%         plot((R_discrete / normLength), (d(R_discrete) * 1e6), 'color', graphColours(1), 'lineWidth', 2);
+%         % Plot Particles Diameters
+%         plot((R_discrete / normLength), (d20(R_discrete) * 1e6), 'color', graphColours(1), 'lineWidth', 2);
 %         
 %         % Figure Formatting
 %         title('{-----}', 'interpreter', 'latex');
@@ -724,8 +729,9 @@ for i = 1:height(RoI)
 %         tickData = (80:80:320);
 %         yticks(tickData);
 %         xtickformat('%.1f');
-%         xlabel({'{$\ell$}'; '{-----}'}, 'interpreter', 'latex');
-%         ylabel({'{-----}'; '{$d_{_{20}}$}'}, 'interpreter', 'latex');
+%         ytickformat(' %.0f');
+%         xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+%         ylabel({'{-----}'; '{$d_{_{20}}$ ($\mu m$)}'}, 'interpreter', 'latex');
 %         tightInset = get(gca, 'TightInset');
 %         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
 %                                    (tightInset(2) + 0.00625), ...
@@ -736,53 +742,256 @@ for i = 1:height(RoI)
 %         
 %         % Save Figure
 %         print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
-
-
-%         % Initialise Figure #5
-%         fig = fig + 1;
-%         figName = ['Lidar_Mass_Ray_', num2str(RoI), '_T', replace(figTime, '.', '_')];
-%         set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-%                      'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
-%         pause(0.5);
-%         hold on;
-%         set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
-%                  'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
-%              
-%         % Plot Scattering Particles
-%         plot((R_discrete / normLength), mass(R_discrete), 'color', graphColours(1), 'lineWidth', 2);
-%         
-%         % Figure Formatting
-%         title('{-----}', 'interpreter', 'latex');
-%         subtitle(figTitle);
-%         axis on;
-%         box on;
-%         grid off;
-%         xlim([0; 5]);
-%         ylim([0; 100e-3]);
-%         tickData = (1:1:4);
-%         xticks(tickData);
-%         tickData = (20e-3:20e-3:80e-3);
-%         yticks(tickData);
-%         xtickformat('%.1f');
-%         xtickformat('%.1f');
-%         axisHandle = gca; axisHandle.YAxis.Exponent = -3; clear axisHandle;
-%         xlabel({'{$\ell$}'; '{-----}'}, 'interpreter', 'latex');
-%         ylabel({'{-----}'; '{Scattering Mass $(kg)$}'}, 'interpreter', 'latex');
-%         tightInset = get(gca, 'TightInset');
-%         set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
-%                                    (tightInset(2) + 0.00625), ...
-%                                    (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
-%                                    (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
-%         pause(0.5);
-%         hold off;
-%         
-%         % Save Figure
-%         print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');        
     end
     clear j;
     
 end
 clear i;
+
+
+%% Sample-to-Sample Variation
+
+% % Initialise Figure
+% fig = fig + 1;
+% figName = 'Lidar_Response_Sample2Sample_A';
+% set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+%              'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+% pause(0.5);
+% hold on;
+% set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+%          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+%              
+% % Plot Signals
+% for i = 1:2
+%     plot((R_discrete / normLength), (P_R{i} / P_O), 'color', graphColours(i), 'lineWidth', 2);
+% end
+% 
+% % Plot Target Line
+% lineHandle = xline((R_O / normLength), 'alpha', 1, ...
+%                                        'lineStyle', '--', ...
+%                                        'lineWidth', 2,  ...
+%                                        'label', 'Target Location', ...
+%                                        'labelHorizontalAlignment', 'Right', ...
+%                                        'labelVerticalAlignment', 'Middle');
+% lineHandle.Interpreter = 'latex';
+% lineHandle.FontSize = 18;
+% clear lineHandle;
+% 
+% % Figure Formatting
+% title('{-----}', 'interpreter', 'latex');
+% subtitle('{ }');
+% axis on;
+% box on;
+% grid off;
+% xlim([0; 5]);
+% ylim([0; 50]);
+% tickData = (1:1:4);
+% xticks(tickData);
+% tickData = (10:10:40);
+% yticks(tickData);
+% xtickformat('%.1f');
+%         ytickformat('  %.0f');
+% xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+% ylabel({'{-----}'; '{$P_{_{R}}\,/\,P_{_{O}}$}'}, 'interpreter', 'latex');
+% legend({'$10.02\,s$', ...
+%         '$10.04\,s$'}, 'location', 'northEast', ...
+%                        'orientation', 'vertical', ...
+%                        'interpreter', 'latex', ...
+%                        'fontSize', 18, ...
+%                        'box', 'off');
+% tightInset = get(gca, 'TightInset');
+% set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+%                            (tightInset(2) + 0.00625), ...
+%                            (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+%                            (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+% pause(0.5);
+% hold off;
+% 
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% % Initialise Figure
+% fig = fig + 1;
+% figName = 'Lidar_Response_Sample2Sample_B';
+% set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+%              'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+% pause(0.5);
+% hold on;
+% set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+%          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+%              
+% % Plot Signals
+% for i = 2:3
+%     plot((R_discrete / normLength), (P_R{i} / P_O), 'color', graphColours(i), 'lineWidth', 2);
+% end
+% 
+% % Plot Target Line
+% lineHandle = xline((R_O / normLength), 'alpha', 1, ...
+%                                        'lineStyle', '--', ...
+%                                        'lineWidth', 2,  ...
+%                                        'label', 'Target Location', ...
+%                                        'labelHorizontalAlignment', 'Right', ...
+%                                        'labelVerticalAlignment', 'Middle');
+% lineHandle.Interpreter = 'latex';
+% lineHandle.FontSize = 18;
+% clear lineHandle;
+% 
+% % Figure Formatting
+% title('{-----}', 'interpreter', 'latex');
+% subtitle('{ }');
+% axis on;
+% box on;
+% grid off;
+% xlim([0; 5]);
+% ylim([0; 50]);
+% tickData = (1:1:4);
+% xticks(tickData);
+% tickData = (10:10:40);
+% yticks(tickData);
+% xtickformat('%.1f');
+%         ytickformat('  %.0f');
+% xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+% ylabel({'{-----}'; '{$P_{_{R}}\,/\,P_{_{O}}$}'}, 'interpreter', 'latex');
+% legend({'$10.04\,s$', ...
+%         '$10.06\,s$'}, 'location', 'northEast', ...
+%                        'orientation', 'vertical', ...
+%                        'interpreter', 'latex', ...
+%                        'fontSize', 18, ...
+%                        'box', 'off');
+% tightInset = get(gca, 'TightInset');
+% set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+%                            (tightInset(2) + 0.00625), ...
+%                            (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+%                            (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+% pause(0.5);
+% hold off;
+% 
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% % Initialise Figure
+% fig = fig + 1;
+% figName = 'Lidar_Response_Sample2Sample_C';
+% set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+%              'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+% pause(0.5);
+% hold on;
+% set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+%          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+%              
+% % Plot Signals
+% for i = 3:4
+%     plot((R_discrete / normLength), (P_R{i} / P_O), 'color', graphColours(i), 'lineWidth', 2);
+% end
+% 
+% % Plot Target Line
+% lineHandle = xline((R_O / normLength), 'alpha', 1, ...
+%                                        'lineStyle', '--', ...
+%                                        'lineWidth', 2,  ...
+%                                        'label', 'Target Location', ...
+%                                        'labelHorizontalAlignment', 'Right', ...
+%                                        'labelVerticalAlignment', 'Middle');
+% lineHandle.Interpreter = 'latex';
+% lineHandle.FontSize = 18;
+% clear lineHandle;
+% 
+% % Figure Formatting
+% title('{-----}', 'interpreter', 'latex');
+% subtitle('{ }');
+% axis on;
+% box on;
+% grid off;
+% xlim([0; 5]);
+% ylim([0; 50]);
+% tickData = (1:1:4);
+% xticks(tickData);
+% tickData = (10:10:40);
+% yticks(tickData);
+% xtickformat('%.1f');
+%         ytickformat('  %.0f');
+% xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+% ylabel({'{-----}'; '{$P_{_{R}}\,/\,P_{_{O}}$}'}, 'interpreter', 'latex');
+% legend({'$10.06\,s$', ...
+%         '$10.08\,s$'}, 'location', 'northEast', ...
+%                        'orientation', 'vertical', ...
+%                        'interpreter', 'latex', ...
+%                        'fontSize', 18, ...
+%                        'box', 'off');
+% tightInset = get(gca, 'TightInset');
+% set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+%                            (tightInset(2) + 0.00625), ...
+%                            (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+%                            (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+% pause(0.5);
+% hold off;
+% 
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% % Initialise Figure
+% fig = fig + 1;
+% figName = 'Lidar_Response_Sample2Sample_D';
+% set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
+%              'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
+% pause(0.5);
+% hold on;
+% set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
+%          'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
+%              
+% % Plot Signals
+% for i = 4:5
+%     plot((R_discrete / normLength), (P_R{i} / P_O), 'color', graphColours(i), 'lineWidth', 2);
+% end
+% 
+% % Plot Target Line
+% lineHandle = xline((R_O / normLength), 'alpha', 1, ...
+%                                        'lineStyle', '--', ...
+%                                        'lineWidth', 2,  ...
+%                                        'label', 'Target Location', ...
+%                                        'labelHorizontalAlignment', 'Right', ...
+%                                        'labelVerticalAlignment', 'Middle');
+% lineHandle.Interpreter = 'latex';
+% lineHandle.FontSize = 18;
+% clear lineHandle;
+% 
+% % Figure Formatting
+% title('{-----}', 'interpreter', 'latex');
+% subtitle('{ }');
+% axis on;
+% box on;
+% grid off;
+% xlim([0; 5]);
+% ylim([0; 50]);
+% tickData = (1:1:4);
+% xticks(tickData);
+% tickData = (10:10:40);
+% yticks(tickData);
+% xtickformat('%.1f');
+%         ytickformat('  %.0f');
+% xlabel({'{Distance From Sensor ({$\ell$})}'; '{-----}'}, 'interpreter', 'latex');
+% ylabel({'{-----}'; '{$P_{_{R}}\,/\,P_{_{O}}$}'}, 'interpreter', 'latex');
+% legend({'$10.08\,s$', ...
+%         '$10.10\,s$'}, 'location', 'northEast', ...
+%                        'orientation', 'vertical', ...
+%                        'interpreter', 'latex', ...
+%                        'fontSize', 18, ...
+%                        'box', 'off');
+% tightInset = get(gca, 'TightInset');
+% set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
+%                            (tightInset(2) + 0.00625), ...
+%                            (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
+%                            (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
+% pause(0.5);
+% hold off;
+% 
+% % Save Figure
+% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
 
 
 %% Local Functions
@@ -798,6 +1007,29 @@ function pos = inputPos(orientation)
     end
     
 end
+
+
+%         % Calculate Received Signal
+%         convolution = @(R, t) (P_T(t) .* H(R - (c * (t / 2))));
+%         
+%         for k = 2:height(R_discrete)
+%             timeMax = ((2 * R_discrete(k)) / c); timeMax = timeMax - (timeMax / 1e3);
+%             timeR_O = (2 * (R_discrete(k) - R_O)) / c;
+%             
+%             if timeR_O < 0
+%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeMax);
+%             elseif timeR_O > 0
+%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeR_O) + convolution(R_discrete(k), timeR_O) + integral(@(t) convolution(R_discrete(k), t), (timeR_O + 1e-11), timeMax);
+%             else
+%                 P_R(k) = integral(@(t) convolution(R_discrete(k), t), 0, timeR_O) + convolution(R_discrete(k), timeR_O);
+%             end
+%             
+%         end
+%         clear k;
+
+
+%         % Calculate Target Impulse Response
+%         H_O = @(R) ((Gamma_O .* normc((exp(-((R - R_O) / 1e-12).^2) / (sqrt(tau / 2) * 1e-12)))) + beta(R));
 
 
 %         % Test plots
@@ -842,63 +1074,9 @@ end
 %         hold off;
 
 
-%         maxP_R = max(maxP_R, max(P_R));
-%         
-%         % Initialise Figure
-%         if j == 1
-%             fig = fig + 1;
-%             figName = 'Lidar_Signals_Over_Time';
-%             set(figure(fig), 'name', figName, 'color', [1, 1, 1], ...
-%                          'units', 'pixels', 'outerPosition', [50, 50, 795, 880]);
-%             pause(0.5);
-%             hold on;
-%             set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 0.75], ...
-%                      'lineWidth', 4, 'fontName', 'LM Mono 12', 'fontSize', 22, 'layer', 'top');
-%         end
-%              
-%         % Plot Signals
-%         plot((R_discrete / normLength), P_R, 'color', graphColours(j), 'lineWidth', 2);
-%         
-%         % Figure Formatting
-%         if j == 2
-%             lineHandle = xline((R_O / normLength), 'alpha', 1, ...
-%                                                    'lineStyle', '--', ...
-%                                                    'lineWidth', 2,  ...
-%                                                    'label', 'Target Location', ...
-%                                                    'labelHorizontalAlignment', 'Right', ...
-%                                                    'labelVerticalAlignment', 'Middle');
-%             lineHandle.Interpreter = 'latex';
-%             lineHandle.FontSize = 18;
-%             clear lineHandle;
-%             
-%             title('{-----}', 'interpreter', 'latex');
-%             subtitle('{ }');
-%             axis on;
-%             box on;
-%             grid off;
-%             xlim([0; 5]);
-%             ylim([0; (1.1 * maxP_R)]);
-%             tickData = (1:1:4);
-%             xticks(tickData);
-%             tickData = [];
-%             yticks(tickData);
-%             xtickformat('%.1f');
-%             xlabel({'{$\ell$}'; '{-----}'}, 'interpreter', 'latex');
-%             ylabel({'{-----}'; '{Received Signal}'}, 'interpreter', 'latex');
-%             legend({'$10.02\,s$', ...
-%                     '$10.04\,s$'}, 'location', 'northEast', ...
-%                                    'orientation', 'vertical', ...
-%                                    'interpreter', 'latex', ...
-%                                    'fontSize', 18, ...
-%                                    'box', 'off');
-%             tightInset = get(gca, 'TightInset');
-%             set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
-%                                        (tightInset(2) + 0.00625), ...
-%                                        (1 - (tightInset(1) + tightInset(3) + 0.0125)), ...
-%                                        (1 - (tightInset(2) + tightInset(4) + 0.0125))]);
-%             pause(0.5);
-%             hold off;
-% 
-%             % Save Figure
-%             print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
-%         end
+
+
+
+
+
+

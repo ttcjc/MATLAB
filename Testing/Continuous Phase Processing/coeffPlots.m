@@ -124,24 +124,26 @@ clear time Cl Cd Cs Cm_p Cm_y Cm_r;
 if blockageCorrection
     
     if strcmp(campaignID, 'Windsor_fullScale')
-        U = 22.222222222222222; % m/s
-        rho = 1.269; % kg/m^3
+        U = 22.222222222222222;
+        rho = 1.269;
         
         Am = ((4 * 0.289) * (4 * 0.389)) + (2 * (((4 * 0.05) - 0.018) * (4 * 0.055)));
         At = 14.336 * 26.624;
+        E = Am / At;
     elseif strcmp(campaignID, 'Windsor_Upstream_2023')
-        U = 40; % m/s
-        rho = 1.269; % kg/m^3
+        U = 40;
+        rho = 1.269;
         
         Am = (0.289 * 0.389) + (2 * (0.046 * 0.055));
         At = (2 * (0.9519083 + (3.283 * tan(atan(0.0262223 / 9.44)))) * 1.32);
+        E = Am / At;
     end
     
     Fl = coeffData.Cl * 0.5 * rho * U^2 * Am;
     Fd = coeffData.Cd * 0.5 * rho * U^2 * Am;
     Fs = coeffData.Cs * 0.5 * rho * U^2 * Am;
     
-    Ucorr = U * (At / (At - Am));
+    Ucorr = U  / (1 - E);
     
     coeffData.Cl = Fl / (0.5 * rho * Ucorr^2 * Am); clear Fl;
     coeffData.Cd = Fd / (0.5 * rho * Ucorr^2 * Am); clear Fd;

@@ -139,12 +139,12 @@ set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 
 
 % Plot
 for i = 1:height(minVals)
-    plot([i, i], [minVals(i), maxVals(i)], 'lineStyle', '-', 'lineWidth', 2, 'color', graphColours(1))
+    plot([i, i], [minVals(i), maxVals(i)] / 100, 'lineStyle', '-', 'lineWidth', 2, 'color', graphColours(1))
 end
 
-plot(minVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
+plot((minVals / 100), 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
 % plot(meanVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 10, 'color', graphColours(1));
-plot(maxVals, 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
+plot((maxVals / 100), 'lineStyle', 'none', 'lineWidth', 2, 'marker', '_', 'markerSize', 20, 'color', graphColours(1));
 
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
@@ -153,14 +153,14 @@ axis on;
 box on;
 grid off;
 xlim([0; 6]);
-ylim([0; 100]);
+ylim([0; 1]);
 xticks(1:1:5);
-yticks(20:20:80);
+yticks(0.2:0.2:0.8);
 % xtickformat('%+.2g');
-% ytickformat('%+.2g');
+ytickformat('%.1f');
 % ztickformat('%+.2g');
 xlabel({'{Test Period}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$\varphi$ $(\%)$}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$\varphi$}'}, 'interpreter', 'latex');
 tightInset = get(gca, 'TightInset');
 set(gca, 'innerPosition', [(tightInset(1) + 0.00625), ...
                            (tightInset(2) + 0.00625), ...

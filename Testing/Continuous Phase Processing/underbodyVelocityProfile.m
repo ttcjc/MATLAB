@@ -5,16 +5,13 @@ run preamble;
 
 %%
 
-E_QS = 0.046304987335294;
-E_FS = 0.004922468583662;
-
-content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/underbody_Velocity_Profile.csv');
+content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/lineData/underbody_Velocity_Profile.csv');
 QS.xPos = content.data(:,2) / 1.044;
-QS.U = content.data(:,1) / (40 / ((1 - E_QS)^2));
+QS.U = content.data(:,1) / 40.54745102;
 
-content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/underbody_Velocity_Profile.csv');
+content = importdata('/mnt/Processing/Data/Numerical/ParaView/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/lineData/underbody_Velocity_Profile.csv');
 FS.xPos = content.data(:,2) / 4.176;
-FS.U = content.data(:,1) / (22.2222 / ((1 - E_QS)^2));
+FS.U = content.data(:,1) / 22.2230072;
 
 clear content;
 
@@ -33,7 +30,7 @@ set(gca, 'positionConstraint', 'outerPosition', 'plotBoxAspectRatio', [1, 0.75, 
 
 % Plot Mean Profiles
 plot(QS.xPos, QS.U, 'color', graphColours(1), 'lineWidth', 2);
-plot(FS.xPos, FS.U, 'color', graphColours(4), 'lineWidth', 2);
+plot(FS.xPos, FS.U, 'color', graphColours(2), 'lineWidth', 2);
 % xline(1 - (0.1645 / 1.044))
 % xline(1 - ((0.1645 + 0.6375) / 1.044))
 
@@ -44,15 +41,15 @@ axis on;
 box on;
 grid off;
 xlim([-0.1; 1.1]);
-ylim([0.76; 1.16]);
+ylim([0.84; 1.24]);
 tickData = (0.14:0.24:0.86);
 xticks(tickData);
-tickData = (0.84:0.08:1.08);
+tickData = (0.92:0.08:1.16);
 yticks(tickData);
 xtickformat('%.2f');
 ytickformat('%.2f');
 xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$\overline{|u|}_{_{n}}$}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$|\vec{\bar{u}}_{_{f}}|\,/\,u_{_{\infty}}$}'}, 'interpreter', 'latex');
 legend({'Reduced-Scale', ...
         'Full-Scale'}, ...
        'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...

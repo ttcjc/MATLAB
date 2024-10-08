@@ -78,7 +78,7 @@ disp(' ');
 switch format
 
     case 'A'
-        [campaignID, caseID, pData] = initialisePVdata(saveLoc, 'p');
+        [campaignID, caseID, pData] = initialisePVdata([saveLoc, '/PhD'], 'p');
         
         pData = pData.(cell2mat(fieldnames(pData)));
         
@@ -86,7 +86,7 @@ switch format
         error('NYI');
         
     case 'C'
-        [campaignID, caseID, pData] = initialiseExpFlowData(saveLoc, 'p');
+        [campaignID, caseID, pData] = initialiseExpFlowData([saveLoc, '/PhD'], 'p');
         
         pData = pData.(cell2mat(fieldnames(pData)));
         pData.Cp = rmfield(pData.Cp, 'RMS');

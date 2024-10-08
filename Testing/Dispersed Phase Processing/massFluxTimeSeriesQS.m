@@ -222,7 +222,7 @@ set(gca, 'XTickLabel', {'$1.0\,\ell$', '$1.5\,\ell$', '$2.0\,\ell$'});
 ytickformat('%.1f');
 currentFig = gca; currentFig.YAxis.Exponent = -3; clear currentAxis;
 xlabel({'{Measurement Plane}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{Total Mass Transfer $(kg)$}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{Total Mass Flow ($kg$)}'}, 'interpreter', 'latex');
 legend({'\textit{Config A}', ...
         '\textit{Config B}', ...
         '\textit{Config C}'}, ...
@@ -237,4 +237,4 @@ pause(0.5);
 hold off;
 
 % Save Figure
-% print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');
+print(gcf, [userpath, '/Output/Figures/', figName, '.png'], '-dpng', '-r300');

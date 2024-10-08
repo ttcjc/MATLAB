@@ -68,6 +68,6 @@ omega = 0.09^(-0.25) * (sqrt(kappa) / Lt);
 nuTilda = 0.09 * ((kappa^2) / epsilon);
 
 disp([char(954), ' {Freestream} = ', num2str(kappa), ' [m^2 s^-2]']);
-disp([char(949), ' {Freestream} = ', num2str(epsilon), ' [m^2 s^-1]']);
+disp([char(949), ' {Freestream} = ', num2str(epsilon), ' [m^2 s^-3]']);
 disp([char(969), ' {Freestream} = ', num2str(omega), ' [s^-1]']);
 disp([char(957), ' {Freestream} = ', num2str(nuTilda), ' [m^2 s^-1]']);

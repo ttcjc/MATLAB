@@ -288,9 +288,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData(2:5));
                     tickData = zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2);
                     zticks(tickData(2:5));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         ylabel({'{$y_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -379,9 +379,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData);
                     tickData = zLimsPlot(1):(diff(zLimsPlot) / 5):zLimsPlot(2);
                     zticks(tickData(2:5));
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');
@@ -470,9 +470,9 @@ function [fig, planeNo] = plotPlanarVectorField(orientation, positionData, vecto
                     yticks(tickData(2:5));
                     tickData = [];
                     zticks(tickData);
-                    xtickformat('%+.2g');
-                    ytickformat('%+.2g');
-                    ztickformat('%+.2g');
+                    xtickformat('%+.2f');
+                    ytickformat('%+.2f');
+                    ztickformat('%+.2f');
                     
                     if normDims
                         xlabel({'{$x_{_{\ell}}$}'; '{-----}'}, 'interpreter', 'latex');

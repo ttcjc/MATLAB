@@ -1,17 +1,17 @@
 run preamble;
 
-% QS_1L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/X_P0_20225/T12525_T40000_F400_D1_D147_cumulative.mat', 'mapData').mapData;
-% QS_2L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/X_P1_24625/T12525_T40000_F400_D1_D147_cumulative.mat', 'mapData').mapData;
+% QS_1L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/X_P0_20225/T12525_T40000_F400_D1_D147_cumulative.mat', 'mapData').mapData;
+% QS_2L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_Upstream_2023/Windsor_SB_wW_Upstream_SC/X_P1_24625/T12525_T40000_F400_D1_D147_cumulative.mat', 'mapData').mapData;
 
-FS_Uncoupled_1L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P6_109/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Uncoupled_2L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P10_285/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Uncoupled_3L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P14_461/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Uncoupled_4L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P18_637/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Uncoupled_1L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P6_109/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Uncoupled_2L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P10_285/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Uncoupled_3L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P14_461/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Uncoupled_4L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_uncoupled/X_P18_637/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
 
-FS_Coupled_1L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P6_109/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Coupled_2L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P10_285/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Coupled_3L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P14_461/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
-FS_Coupled_4L = load('/mnt/Processing/Data/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P18_637/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Coupled_1L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P6_109/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Coupled_2L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P10_285/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Coupled_3L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P14_461/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
+FS_Coupled_4L = load('/mnt/Processing/Data/PhD/Numerical/MATLAB/planarSprayMap/Windsor_fullScale/Windsor_SB_fullScale_multiPhase_coupled/X_P18_637/T1002_T3200_F50_D20_D400_cumulative.mat', 'mapData').mapData;
 
 
 %%
@@ -76,7 +76,7 @@ set(gca, 'XTickLabel', {'$1.0\,\ell$', '$2.0\,\ell$', '$3.0\,\ell$', '$4.0\,\ell
 % ytickformat('%.1f');
 currentFig = gca; currentFig.YAxis.Exponent = -3; clear currentAxis;
 xlabel({'{Measurement Plane}'; '{-----}'}, 'interpreter', 'latex');
-ylabel({'{-----}'; '{$\max{(\bar{\varrho}_{_{A}})}$ ($kg {\cdot} m^{-2}$)}'}, 'interpreter', 'latex');
+ylabel({'{-----}'; '{$\max{(\overline{\varrho_{_{A}}})}$ ($kg {\cdot} m^{-2}$)}'}, 'interpreter', 'latex');
 legend({'Uncoupled', ...
         'Coupled'}, ...
        'location', 'northEast', 'orientation', 'vertical', 'interpreter', 'latex', ...

@@ -141,6 +141,9 @@ plot(bouchet40(:,1), bouchet40(:,2), 'color', graphColours(1), 'lineStyle', '-',
 plot(bouchet80(:,1), bouchet80(:,2), 'color', graphColours(2), 'lineStyle', '-', 'lineWidth', 2);
 plot(bouchet140(:,1), bouchet140(:,2), 'color', graphColours(3), 'lineStyle', '-', 'lineWidth', 2);
 
+meanTest = sum(bouchet80(:,2) .* bouchet80(:,1)) / sum(bouchet80(:,2))
+sigmaTest = (sum(((bouchet80(:,1) - meanTest).^2) .* bouchet80(:,2)) / sum(bouchet80(:,2)))^(0.5)
+
 % Format Figure
 title('{-----}', 'interpreter', 'latex');
 subtitle('{ }');
